@@ -1,0 +1,379 @@
+<script>
+// Show login view and stop if no user context
+(function() {
+  var user = typeof CURRENT_USER !== 'undefined' && CURRENT_USER;
+  if (!user || !user.email) {
+    document.getElementById('login-view').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    return;
+  }
+})();
+
+var CURRENT_USER_OBJ = CURRENT_USER;
+if (CURRENT_USER_OBJ && CURRENT_USER_OBJ.email) {
+new Vue({
+  el: '#app',
+  data: {
+    user: CURRENT_USER || { email: '', role: '', name: '', faculty: '' },
+    currentView: 'programmes',
+    currentProgramme: null,
+    programmes: [],
+    search: '',
+    loading: false,
+    error: null,
+    viewMode: 'entry',
+    peoOpen: false,
+    ploOpen: false,
+    peos: [],
+    saving: false,
+    plos: [],
+    savingPLO: false,
+    graphLoading: false,
+    graphError: null,
+    uploadOpen: false,
+    uploadType: 'DCI',
+    files: [],
+    previewFile: null,
+    showAddDialog: false,
+    addProg: { name: '', mqaCode: '', nec: '', progCode: '', mode: 'Coursework' },
+    pendingOpen: false,
+    pendingSuggestions: [],
+    pendingDeletions: [],
+    toast: null,
+    toastTimer: null
+  },
+  computed: {
+    filteredProgrammes: function() {
+      var self = this;
+      if (!this.search) return this.programmes;
+      var q = this.search.toLowerCase();
+      return this.programmes.filter(function(p) {
+        return p.name.toLowerCase().indexOf(q) > -1 ||
+               p.mqaCode.toLowerCase().indexOf(q) > -1 ||
+               p.progCode.toLowerCase().indexOf(q) > -1;
+      });
+    }
+  },
+  methods: {
+    showToast: function(msg) {
+      var self = this;
+      if (this.toastTimer) clearTimeout(this.toastTimer);
+      this.toast = msg;
+      this.toastTimer = setTimeout(function() { self.toast = null; }, 3000);
+    },
+    loadProgrammes: function() {
+      this.loading = true;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(result) {
+          self.programmes = result;
+          self.loading = false;
+        })
+        .withFailureHandler(function(err) {
+          self.error = err.message;
+          self.loading = false;
+        })
+        .getProgrammesApi();
+    },
+    openProgramme: function(prog) {
+      this.currentProgramme = prog;
+      this.currentView = 'detail';
+    },
+    setView: function(view) {
+      this.currentView = view;
+      if (view === 'programmes') this.loadProgrammes();
+    },
+    toggleViewMode: function() {
+      this.viewMode = this.viewMode === 'entry' ? 'graph' : 'entry';
+    },
+    loadPEOs: function() {
+      var self = this;
+      if (!this.currentProgramme) return;
+      google.script.run
+        .withSuccessHandler(function(r) { self.peos = r; })
+        .getPEOsApi(this.currentProgramme.mqaCode);
+    },
+    addPEO: function() {
+      this.peos.push({
+        code: 'PEO' + (this.peos.length + 1),
+        description: '',
+        domain: '',
+        tf: [false, false, false, false],
+        sdg: new Array(17).fill(false),
+        sc: new Array(8).fill(false)
+      });
+    },
+    removePEO: function(idx) {
+      this.peos.splice(idx, 1);
+    },
+    savePEOs: function() {
+      this.saving = true;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(r) {
+          self.peos = r;
+          self.saving = false;
+          self.showToast('PEO berjaya disimpan.');
+        })
+        .withFailureHandler(function(e) {
+          self.saving = false;
+          self.showToast('Ralat: ' + e.message);
+        })
+        .savePEOsApi(this.currentProgramme.mqaCode, this.peos);
+    },
+    loadPLOs: function() {
+      var self = this;
+      if (!this.currentProgramme) return;
+      google.script.run
+        .withSuccessHandler(function(r) { self.plos = r; })
+        .getPLOsApi(this.currentProgramme.mqaCode);
+    },
+    addPLO: function() {
+      this.plos.push({
+        code: 'PLO' + (this.plos.length + 1),
+        description: '',
+        embeddedPEO: '',
+        mqfDomains: new Array(11).fill(false),
+        mapping: []
+      });
+    },
+    removePLO: function(idx) {
+      this.plos.splice(idx, 1);
+    },
+    savePLOs: function() {
+      this.savingPLO = true;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(r) {
+          self.plos = r;
+          self.savingPLO = false;
+          self.showToast('PLO berjaya disimpan.');
+        })
+        .withFailureHandler(function(e) {
+          self.savingPLO = false;
+          self.showToast('Ralat: ' + e.message);
+        })
+        .savePLOsApi(this.currentProgramme.mqaCode, this.plos);
+    },
+    loadGraph: function() {
+      this.graphLoading = true;
+      this.graphError = null;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(data) {
+          self.$nextTick(function() {
+            self.renderVisNetwork(data);
+            self.graphLoading = false;
+          });
+        })
+        .withFailureHandler(function(err) {
+          self.graphError = err.message;
+          self.graphLoading = false;
+        })
+        .getGraphDataApi(this.currentProgramme.mqaCode);
+    },
+    renderVisNetwork: function(data) {
+      var container = document.getElementById('graph-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      var colorMap = {
+        Programme: '#3B82F6',
+        PEO: '#10B981',
+        PLO: '#F59E0B',
+        TF: '#EF4444',
+        SDG: '#8B5CF6',
+        SC: '#EC4899',
+        MQFDomain: '#6366F1'
+      };
+
+      var shapeMap = {
+        Programme: 'hexagon',
+        PEO: 'diamond',
+        PLO: 'box',
+        TF: 'circle',
+        SDG: 'star',
+        SC: 'triangle',
+        MQFDomain: 'ellipse'
+      };
+
+      var edgeColorMap = {
+        has: '#9CA3AF',
+        maps_to: '#60A5FA',
+        embeds: '#34D399',
+        classified_as: '#FBBF24'
+      };
+
+      var nodes = new vis.DataSet(data.nodes.map(function(n) {
+        return {
+          id: n.id,
+          label: n.label,
+          title: '<strong>' + n.label + '</strong>',
+          shape: shapeMap[n.type] || 'dot',
+          color: { background: colorMap[n.type] || '#999', border: '#fff' },
+          borderWidth: 2
+        };
+      }));
+
+      var edges = new vis.DataSet(data.edges.map(function(e) {
+        return {
+          from: e.from,
+          to: e.to,
+          color: { color: edgeColorMap[e.type] || '#999', highlight: edgeColorMap[e.type] || '#999' },
+          title: e.type,
+          smooth: { type: 'continuous' }
+        };
+      }));
+
+      var options = {
+        physics: { enabled: true },
+        edges: { smooth: true },
+        configure: { filter: ['physics'] },
+        interaction: { hover: true, tooltipDelay: 200 },
+        nodes: { font: { size: 11 } }
+      };
+
+      var network = new vis.Network(container, { nodes: nodes, edges: edges }, options);
+
+      network.on('click', function(params) {
+        if (params.nodes.length > 0) {
+          network.selectNodes(params.nodes, true);
+        } else {
+          network.unselectAll();
+        }
+      });
+    },
+    loadFiles: function() {
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(r) { self.files = r; })
+        .getUploadedFilesApi(this.currentProgramme.mqaCode);
+    },
+    doUpload: function() {
+      var input = this.$refs.fileInput;
+      if (!input.files || !input.files[0]) { this.showToast('Sila pilih fail.'); return; }
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() {
+          self.showToast('Fail berjaya dimuat naik.');
+          self.loadFiles();
+        })
+        .withFailureHandler(function(e) { self.showToast('Ralat: ' + e.message); })
+        .uploadFileApi(this.currentProgramme.mqaCode, this.uploadType, input);
+    },
+    deleteFile: function(file) {
+      if (!confirm('Padamkan fail ini?')) return;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() {
+          self.showToast('Fail berjaya dipadam.');
+          self.loadFiles();
+        })
+        .withFailureHandler(function(e) { self.showToast('Ralat: ' + e.message); })
+        .approveDeleteFileApi(file.id);
+    },
+    requestDelete: function(file) {
+      if (!confirm('Hantar permintaan padam fail ini?')) return;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() {
+          self.showToast('Permintaan padam dihantar untuk kelulusan Admin.');
+        })
+        .withFailureHandler(function(e) { self.showToast('Ralat: ' + e.message); })
+        .suggestDeleteFileApi(file.id, self.currentProgramme.mqaCode);
+    },
+    loadPendingSuggestions: function() {
+      var self = this;
+      if (this.user.role !== 'Admin') return;
+      google.script.run
+        .withSuccessHandler(function(r) { self.pendingSuggestions = r; })
+        .getPendingSuggestionsApi();
+    },
+    loadPendingDeletions: function() {
+      var self = this;
+      if (this.user.role !== 'Admin') return;
+      google.script.run
+        .withSuccessHandler(function(r) { self.pendingDeletions = r; })
+        .getPendingDeletionsApi();
+    },
+    suggestAddProgramme: function(data, callback) {
+      var self = this;
+      google.script.run
+        .withSuccessHandler(callback)
+        .withFailureHandler(function(e) { self.showToast('Ralat: ' + e.message); })
+        .suggestAddProgrammeApi(data);
+    },
+    suggestRemoveProgramme: function(mqaCode) {
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() {
+          self.showToast('Cadangan padam dihantar untuk kelulusan Admin.');
+        })
+        .withFailureHandler(function(e) { self.showToast('Ralat: ' + e.message); })
+        .suggestRemoveProgrammeApi(mqaCode);
+    },
+    submitAddSuggestion: function() {
+      var self = this;
+      var data = {
+        name: this.addProg.name,
+        mqaCode: this.addProg.mqaCode,
+        nec: this.addProg.nec,
+        progCode: this.addProg.progCode,
+        mode: this.addProg.mode,
+        accr: ''
+      };
+      if (!data.name || !data.mqaCode) { self.showToast('Sila isi nama dan MQA Code.'); return; }
+      this.suggestAddProgramme(data, function() {
+        self.showToast('Cadangan tambah program dihantar untuk kelulusan Admin.');
+        self.showAddDialog = false;
+        self.addProg = { name: '', mqaCode: '', nec: '', progCode: '', mode: 'Coursework' };
+      });
+    },
+    approveSuggestion: function(idx) {
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() {
+          self.loadPendingSuggestions();
+          self.loadProgrammes();
+        })
+        .approveSuggestionApi(idx);
+    },
+    rejectSuggestion: function(idx) {
+      var self = this;
+      var note = this.pendingSuggestions[idx].reason || '';
+      google.script.run
+        .withSuccessHandler(function() {
+          self.loadPendingSuggestions();
+          self.loadProgrammes();
+        })
+        .rejectSuggestionApi(idx, note);
+    },
+    approveDelete: function(d) {
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() { self.loadPendingDeletions(); })
+        .approveDeleteFileApi(d.fileId);
+    }
+  },
+  mounted: function() {
+    this.loadProgrammes();
+    this.loadPendingSuggestions();
+    this.loadPendingDeletions();
+  },
+  watch: {
+    currentProgramme: function() {
+      if (this.currentProgramme) {
+        this.loadPEOs();
+        this.loadPLOs();
+        this.loadFiles();
+      }
+    },
+    viewMode: function(mode) {
+      if (mode === 'graph' && this.currentProgramme) {
+        this.$nextTick(function() { this.loadGraph(); });
+      }
+    }
+  }
+});
+}
+</script>

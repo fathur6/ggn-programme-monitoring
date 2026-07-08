@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.css">
+  <?!= include('Styles'); ?>
+</head>
+<body class="bg-gray-50">
+  <!-- Login View (shown when not authenticated) -->
+  <div id="login-view" class="min-h-screen flex items-center justify-center bg-gray-50" style="display:none;">
+    <div class="bg-white rounded-xl shadow-lg p-8 max-w-sm w-full mx-4 text-center">
+      <div class="text-2xl font-bold text-gray-800 mb-2">MQF 2.0</div>
+      <p class="text-gray-500 mb-6">Program Information System</p>
+      <p class="text-sm text-gray-600 mb-4">Sila log masuk dengan akaun @unisza.edu.my</p>
+      <a href="<?= deploymentUrl ?>" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700">Log Masuk dengan Google</a>
+      <div class="mt-4 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 text-left">
+        <strong>Debug:</strong><br>
+        ActiveUser: <span id="dbg-active"><?= debugInfo ? JSON.parse(debugInfo).activeUserEmail : 'null' ?></span><br>
+        EffectiveUser: <span id="dbg-effective"><?= debugInfo ? JSON.parse(debugInfo).effectiveUserEmail : 'null' ?></span><br>
+        User found: <span id="dbg-found"><?= debugInfo ? JSON.parse(debugInfo).userFound : false ?></span><br>
+        User email: <span id="dbg-email"><?= debugInfo ? JSON.parse(debugInfo).userEmail : 'null' ?></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="app" class="min-h-screen bg-gray-50">
+    <header class="bg-white shadow-sm border-b px-6 py-3 flex items-center justify-between">
+      <h1 class="text-lg font-semibold text-gray-800">MQF 2.0 — Program Information</h1>
+      <div class="text-sm text-gray-500">{{ user.name }} ({{ user.role }})</div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-6">
+      <!-- Programme List View -->
+      <div v-if="currentView === 'programmes'">
+        <div class="flex items-center justify-between mb-4">
+          <input v-model="search" type="text" placeholder="Cari program..." class="flex-1 border rounded-lg px-4 py-2">
+          <button v-if="user.role !== 'Admin'" @click="showAddDialog = true" class="btn btn-primary ml-3 text-sm whitespace-nowrap">+ Cadang Tambah Program</button>
+        </div>
+
+        <div v-if="loading" class="text-center py-8 text-gray-400">Memuatkan...</div>
+        <div v-if="error" class="text-red-600 bg-red-50 border border-red-200 rounded p-4">{{ error }}</div>
+
+        <div v-for="p in filteredProgrammes" @click="openProgramme(p)" class="card cursor-pointer hover:shadow-md transition">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="font-medium">{{ p.name }}</div>
+              <div class="text-sm text-gray-500 mt-1">{{ p.mqaCode }} · {{ p.progCode }} · {{ p.mode }}</div>
+              <div class="text-xs text-gray-400 mt-1">{{ p.faculty }}</div>
+            </div>
+            <button v-if="user.role !== 'Admin'" @click.stop="suggestRemoveProgramme(p.mqaCode)" class="btn btn-danger text-xs whitespace-nowrap ml-2">Cadang Padam</button>
+          </div>
+        </div>
+
+        <!-- Suggest Add Programme Modal -->
+        <div v-if="showAddDialog" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" @click.self="showAddDialog = false">
+          <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg mx-4">
+            <h3 class="text-lg font-semibold mb-4">Cadang Tambah Program</h3>
+            <div class="space-y-3">
+              <div><label class="text-sm text-gray-600">Programme Name</label><input v-model="addProg.name" class="w-full border rounded px-3 py-2 text-sm"></div>
+              <div><label class="text-sm text-gray-600">MQA Code</label><input v-model="addProg.mqaCode" class="w-full border rounded px-3 py-2 text-sm"></div>
+              <div><label class="text-sm text-gray-600">NEC 2020</label><input v-model="addProg.nec" class="w-full border rounded px-3 py-2 text-sm"></div>
+              <div><label class="text-sm text-gray-600">Program Code</label><input v-model="addProg.progCode" class="w-full border rounded px-3 py-2 text-sm"></div>
+              <div><label class="text-sm text-gray-600">Mode</label>
+                <select v-model="addProg.mode" class="w-full border rounded px-3 py-2 text-sm">
+                  <option value="Coursework">Coursework</option>
+                  <option value="Research">Research</option>
+                  <option value="Mixed">Mixed</option>
+                </select>
+              </div>
+              <div><label class="text-sm text-gray-600">Faculty</label><input :value="user.faculty" disabled class="w-full border rounded px-3 py-2 text-sm bg-gray-100"></div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+              <button @click="showAddDialog = false" class="btn btn-secondary text-sm">Batal</button>
+              <button @click="submitAddSuggestion" class="btn btn-primary text-sm">Hantar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Suggestions Panel -->
+      <div v-if="user.role === 'Admin'" class="mb-6">
+        <div class="card">
+          <div @click="pendingOpen = !pendingOpen" class="flex items-center justify-between cursor-pointer">
+            <h3 class="font-semibold text-lg">Cadangan ({{ pendingSuggestions.length + pendingDeletions.length }})</h3>
+            <span>{{ pendingOpen ? '▲' : '▼' }}</span>
+          </div>
+          <div v-show="pendingOpen" class="mt-4">
+            <h4 class="font-semibold text-sm text-gray-600 mb-2">Tambah/Padam Program</h4>
+            <div v-if="pendingSuggestions.length === 0" class="text-gray-400 text-sm">Tiada cadangan baru.</div>
+            <div v-for="(s, idx) in pendingSuggestions" :key="'s'+idx" class="border rounded p-3 mb-2 text-sm">
+              <div><strong>{{ s.type === 'Add' ? 'Tambah' : 'Padam' }}</strong> — {{ s.programmeCode }} oleh {{ s.requestedBy }} pada {{ s.requestedDate }}</div>
+              <div class="mt-1" v-if="s.status === 'Pending'">
+                <button @click="approveSuggestion(idx)" class="btn btn-success text-xs mr-2">Lulus</button>
+                <button @click="rejectSuggestion(idx)" class="btn btn-danger text-xs">Tolak</button>
+                <input v-model="s.reason" placeholder="Catatan (jika tolak)" class="border rounded px-2 py-1 text-xs ml-2">
+              </div>
+              <div class="text-xs mt-1" v-else><span :class="s.status === 'Approved' ? 'text-green-600' : 'text-red-600'">{{ s.status }}</span></div>
+            </div>
+
+            <h4 class="font-semibold text-sm text-gray-600 mb-2 mt-4">Padam Fail</h4>
+            <div v-if="pendingDeletions.length === 0" class="text-gray-400 text-sm">Tiada permintaan padam fail.</div>
+            <div v-for="(d, idx) in pendingDeletions" :key="'d'+idx" class="border rounded p-3 mb-2 text-sm">
+              <div><strong>{{ d.fileName }}</strong> — {{ d.programme }} oleh {{ d.requestedBy }}</div>
+              <div class="mt-1" v-if="d.status === 'Pending'">
+                <button @click="approveDelete(d)" class="btn btn-success text-xs mr-2">Lulus</button>
+              </div>
+              <div class="text-xs mt-1" v-else><span class="text-green-600">{{ d.status }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detail View -->
+      <div v-if="currentView === 'detail' && currentProgramme">
+        <button @click="setView('programmes')" class="text-blue-600 text-sm mb-4">&larr; Kembali ke senarai</button>
+
+        <div class="card">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-xl font-bold">{{ currentProgramme.name }}</h2>
+              <p class="text-sm text-gray-500">{{ currentProgramme.mqaCode }} · {{ currentProgramme.progCode }}</p>
+            </div>
+            <button @click="toggleViewMode" class="btn btn-primary">
+              {{ viewMode === 'entry' ? 'Paparan Graf' : 'Paparan Data' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Entry View -->
+        <div v-if="viewMode === 'entry'">
+          <div class="card">
+            <div @click="peoOpen = !peoOpen" class="flex items-center justify-between cursor-pointer">
+              <h3 class="font-semibold text-lg">A — Program Educational Objectives (PEO)</h3>
+              <span>{{ peoOpen ? '▲' : '▼' }}</span>
+            </div>
+            <div v-show="peoOpen" class="mt-4">
+              <table class="w-full text-sm" v-if="peos.length > 0">
+                <thead>
+                  <tr class="bg-gray-100">
+                    <th class="p-2 text-left">Code</th>
+                    <th class="p-2 text-left">Description</th>
+                    <th class="p-2 text-left">Domain</th>
+                    <th class="p-2 text-center">TF</th>
+                    <th class="p-2 text-center">SDG</th>
+                    <th class="p-2 text-center">SC</th>
+                    <th class="p-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(peo, idx) in peos" :key="idx" class="border-t">
+                    <td class="p-2"><input v-model="peo.code" class="w-16 border rounded px-1"></td>
+                    <td class="p-2"><input v-model="peo.description" class="w-full border rounded px-1"></td>
+                    <td class="p-2"><input v-model="peo.domain" class="w-24 border rounded px-1"></td>
+                    <td class="p-2 text-center text-xs">
+                      <div v-for="(v, ti) in peo.tf" :key="ti">
+                        <label><input type="checkbox" v-model="peo.tf[ti]"> TF{{ ti+1 }}</label>
+                      </div>
+                    </td>
+                    <td class="p-2 text-center text-xs">
+                      <div v-for="(v, si) in peo.sdg" :key="si">
+                        <label><input type="checkbox" v-model="peo.sdg[si]"> SDG{{ si+1 }}</label>
+                      </div>
+                    </td>
+                    <td class="p-2 text-center text-xs">
+                      <div v-for="(v, si) in peo.sc" :key="si">
+                        <label><input type="checkbox" v-model="peo.sc[si]"> SC{{ si+1 }}</label>
+                      </div>
+                    </td>
+                    <td class="p-2"><button @click="removePEO(idx)" class="text-red-500 text-xs">Padam</button></td>
+                  </tr>
+                </tbody>
+              </table>
+              <button @click="addPEO" class="btn btn-success mt-2 text-xs">+ Tambah PEO</button>
+              <button @click="savePEOs" class="btn btn-primary mt-2 ml-2 text-xs" :disabled="saving">{{ saving ? 'Menyimpan...' : 'Simpan' }}</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div @click="ploOpen = !ploOpen" class="flex items-center justify-between cursor-pointer">
+              <h3 class="font-semibold text-lg">B — Programme Learning Outcomes (PLO)</h3>
+              <span>{{ ploOpen ? '▲' : '▼' }}</span>
+            </div>
+            <div v-show="ploOpen" class="mt-4">
+              <table class="w-full text-sm" v-if="plos.length > 0">
+                <thead>
+                  <tr class="bg-gray-100">
+                    <th class="p-2 text-left">Code</th>
+                    <th class="p-2 text-left">Description</th>
+                    <th class="p-2 text-left">Embedded PEO</th>
+                    <th class="p-2 text-left">MQF Domain</th>
+                    <th class="p-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(plo, idx) in plos" :key="idx" class="border-t">
+                    <td class="p-2"><input v-model="plo.code" class="w-16 border rounded px-1"></td>
+                    <td class="p-2"><input v-model="plo.description" class="w-full border rounded px-1"></td>
+                    <td class="p-2">
+                      <select v-model="plo.embeddedPEO" class="border rounded px-1">
+                        <option value="">—</option>
+                        <option v-for="peo in peos" :value="peo.code">{{ peo.code }}</option>
+                      </select>
+                    </td>
+                    <td class="p-2 text-xs">
+                      <div v-for="(d, di) in plo.mqfDomains" :key="di" class="inline-block mr-1">
+                        <label><input type="checkbox" v-model="plo.mqfDomains[di]"> D{{ di+1 }}</label>
+                      </div>
+                    </td>
+                    <td class="p-2"><button @click="removePLO(idx)" class="text-red-500 text-xs">Padam</button></td>
+                  </tr>
+                </tbody>
+              </table>
+              <button @click="addPLO" class="btn btn-success mt-2 text-xs">+ Tambah PLO</button>
+              <button @click="savePLOs" class="btn btn-primary mt-2 ml-2 text-xs" :disabled="savingPLO">{{ savingPLO ? 'Menyimpan...' : 'Simpan' }}</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graph View -->
+        <div v-if="viewMode === 'graph'">
+          <div v-if="graphLoading" class="text-center py-8 text-gray-400">Memuatkan graf...</div>
+          <div v-if="graphError" class="text-red-600 bg-red-50 border border-red-200 rounded p-4 mb-4">{{ graphError }}</div>
+          <div id="graph-container" v-show="!graphLoading && !graphError" style="width:100%;height:600px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;"></div>
+          <!-- Legend -->
+          <div class="mt-4 p-3 bg-white rounded-lg border text-xs">
+            <div class="font-semibold mb-1">Petunjuk:</div>
+            <div class="flex flex-wrap gap-3">
+              <span><span class="inline-block w-3 h-3 rounded-full bg-blue-600 mr-1"></span>Programme</span>
+              <span><span class="inline-block w-3 h-3" style="background:#2ecc71;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%)"></span>PEO</span>
+              <span><span class="inline-block w-3 h-3 rounded-sm bg-orange-500 mr-1"></span>PLO</span>
+              <span><span class="inline-block w-3 h-3 rounded-full bg-gray-400 mr-1"></span>TF</span>
+              <span><span class="inline-block w-3 h-3" style="background:#f1c40f;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)"></span>SDG</span>
+              <span><span class="inline-block w-3 h-3" style="background:#e74c3c;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%)"></span>SC</span>
+              <span><span class="inline-block w-3 h-3 rounded-full bg-purple-500 mr-1"></span>MQF Domain</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="card">
+          <div @click="uploadOpen = !uploadOpen" class="flex items-center justify-between cursor-pointer">
+            <h3 class="font-semibold text-lg">Muat Naik Dokumen</h3>
+            <span>{{ uploadOpen ? '▲' : '▼' }}</span>
+          </div>
+          <div v-show="uploadOpen" class="mt-4">
+            <div class="mb-4">
+              <select v-model="uploadType" class="border rounded px-3 py-2 mr-2">
+                <option value="DCI">DCI</option>
+                <option value="OTH">Lain-lain</option>
+              </select>
+              <input type="file" ref="fileInput" accept="application/pdf" class="border rounded px-3 py-2">
+              <button @click="doUpload" class="btn btn-primary text-xs mt-2">Muat Naik</button>
+            </div>
+
+            <table class="w-full text-sm" v-if="files.length > 0">
+              <thead><tr class="bg-gray-100">
+                <th class="p-2 text-left">Nama Fail</th>
+                <th class="p-2 text-left">Tarikh</th>
+                <th class="p-2"></th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="f in files" :key="f.id" class="border-t">
+                  <td class="p-2">
+                    <a :href="'https://drive.google.com/file/d/' + f.id + '/preview'" target="_blank" class="text-blue-600 underline">{{ f.name }}</a>
+                  </td>
+                  <td class="p-2 text-gray-500">{{ f.date }}</td>
+                  <td class="p-2">
+                    <button @click="previewFile = (previewFile && previewFile.id === f.id) ? null : f" class="text-blue-600 text-xs mr-2">Papar</button>
+                    <button v-if="user.role === 'Admin'" @click="deleteFile(f)" class="text-red-500 text-xs">Padam</button>
+                    <button v-else @click="requestDelete(f)" class="text-orange-500 text-xs">Cadang padam</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-else class="text-gray-400 text-sm">Tiada fail dimuat naik.</p>
+
+            <div v-if="previewFile" class="mt-4">
+              <iframe :src="'https://drive.google.com/file/d/' + previewFile.id + '/preview'" width="100%" height="500px" frameborder="0"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Toast notification -->
+    <div v-if="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50">
+      {{ toast }}
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.min.js"></script>
+  <script>
+    var CURRENT_USER = <?= user ?>;
+  </script>
+  <?!= include('JavaScript'); ?>
+</body>
+</html>

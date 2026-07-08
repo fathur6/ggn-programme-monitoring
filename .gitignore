@@ -1,0 +1,7 @@
+gas/.clasp.json
+gas/config.gs
+**/.superpowers/
+graphify-out/
+*.png
+*.heic
+.playwright-mcp/
