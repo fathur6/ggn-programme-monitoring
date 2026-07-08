@@ -1,16 +1,82 @@
 <script>
-// Show login view and stop if no user context
-(function() {
-  var user = typeof CURRENT_USER !== 'undefined' && CURRENT_USER;
-  if (!user || !user.email) {
-    document.getElementById('login-view').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
+var MIN_LOADING_MS = 1500;
+var _loadingStartTime = 0;
+var _loadingBarRAF = 0;
+
+function startLoadingBar() {
+  var bar = document.getElementById('loadingBarFill');
+  if (!bar) return;
+  _loadingStartTime = Date.now();
+  if (_loadingBarRAF) cancelAnimationFrame(_loadingBarRAF);
+  bar.style.width = '0%';
+  function update() {
+    var elapsed = Date.now() - _loadingStartTime;
+    var pct = Math.min(100, (elapsed / MIN_LOADING_MS) * 100);
+    bar.style.width = pct + '%';
+    if (elapsed < MIN_LOADING_MS) _loadingBarRAF = requestAnimationFrame(update);
+  }
+  _loadingBarRAF = requestAnimationFrame(update);
+}
+
+function showLoadingOverlay() {
+  var el = document.getElementById('loadingOverlay');
+  if (!el) return;
+  el.style.display = 'flex';
+  el.classList.remove('fade-out');
+  startLoadingBar();
+}
+
+function hideLoadingOverlay() {
+  var elapsed = Date.now() - _loadingStartTime;
+  var remaining = Math.max(0, MIN_LOADING_MS - elapsed);
+  if (_loadingBarRAF) cancelAnimationFrame(_loadingBarRAF);
+  var bar = document.getElementById('loadingBarFill');
+  if (bar) bar.style.width = '100%';
+  function doHide() {
+    var el = document.getElementById('loadingOverlay');
+    if (el) {
+      el.classList.add('fade-out');
+      setTimeout(function() {
+        el.style.display = 'none';
+        el.classList.remove('fade-out');
+        if (bar) bar.style.width = '0%';
+      }, 500);
+    }
+  }
+  if (remaining > 0) setTimeout(doHide, remaining);
+  else doHide();
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+function initApp() {
+  showLoadingOverlay();
+
+  var sessionEmailEl = document.getElementById('session-email');
+  var sessionUserEl = document.getElementById('session-user');
+  var sessionEmail = sessionEmailEl ? sessionEmailEl.textContent.trim() : '';
+  var sessionUserRaw = sessionUserEl ? sessionUserEl.textContent.trim() : '';
+
+  if (sessionEmail && sessionUserRaw) {
+    CURRENT_USER = JSON.parse(sessionUserRaw);
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initVueApp();
+    hideLoadingOverlay();
     return;
   }
-})();
 
-var CURRENT_USER_OBJ = CURRENT_USER;
-if (CURRENT_USER_OBJ && CURRENT_USER_OBJ.email) {
+  hideLoadingOverlay();
+  document.getElementById('login-page').style.display = 'flex';
+}
+
+var CURRENT_USER = null;
+
+function initVueApp() {
 new Vue({
   el: '#app',
   data: {
@@ -376,4 +442,6 @@ new Vue({
   }
 });
 }
+
+document.addEventListener('DOMContentLoaded', initApp);
 </script>

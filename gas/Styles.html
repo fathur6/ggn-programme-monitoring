@@ -7,4 +7,48 @@
   .btn-danger { @apply bg-red-600 hover:bg-red-700; }
   .btn-success { @apply bg-green-600 hover:bg-green-700; }
   .card { @apply bg-white rounded-lg shadow p-4 mb-4; }
+
+  .loading-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #17171c;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 0.5s ease;
+  }
+  .loading-overlay.fade-out { opacity: 0; }
+
+  .loading-spinner {
+    width: 32px; height: 32px; margin: 0 auto 24px;
+    border: 2px solid rgba(255,119,89,0.25);
+    border-top-color: #ff7759; border-radius: 50%;
+    animation: loadingSpin 0.8s linear infinite;
+  }
+  @keyframes loadingSpin { to { transform: rotate(360deg); } }
+
+  .loading-bar-track {
+    width: 240px; height: 3px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px; overflow: hidden; margin: 0 auto 24px;
+  }
+  .loading-bar-fill {
+    height: 100%; width: 0%;
+    background: #ff7759;
+    border-radius: 2px; transition: width 0.3s ease;
+  }
+
+  .loading-text {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px; color: rgba(255,255,255,0.7);
+  }
+
+  .login-page {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #f9fafb;
+  }
+  .login-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 12px; padding: 48px; max-width: 420px;
+    width: 90%; text-align: center;
+  }
+  .login-card .subtitle { font-size: 14px; color: #6b7280; margin-bottom: 32px; }
+  .login-card .login-error { color: #dc2626; font-size: 13px; margin-top: 12px; min-height: 20px; }
 </style>

@@ -8,20 +8,24 @@
   <?!= include('Styles'); ?>
 </head>
 <body class="bg-gray-50">
-  <!-- Login View (shown when not authenticated) -->
-  <div id="login-view" class="min-h-screen flex items-center justify-center bg-gray-50" style="display:none;">
-    <div class="bg-white rounded-xl shadow-lg p-8 max-w-sm w-full mx-4 text-center">
-      <div class="text-2xl font-bold text-gray-800 mb-2">MQF 2.0</div>
-      <p class="text-gray-500 mb-6">Program Information System</p>
-      <p class="text-sm text-gray-600 mb-4">Sila log masuk dengan akaun @unisza.edu.my</p>
-      <a href="<?= deploymentUrl ?>" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700">Log Masuk dengan Google</a>
-      <div class="mt-4 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 text-left">
-        <strong>Debug:</strong><br>
-        ActiveUser: <span id="dbg-active"><?= debugInfo ? JSON.parse(debugInfo).activeUserEmail : 'null' ?></span><br>
-        EffectiveUser: <span id="dbg-effective"><?= debugInfo ? JSON.parse(debugInfo).effectiveUserEmail : 'null' ?></span><br>
-        User found: <span id="dbg-found"><?= debugInfo ? JSON.parse(debugInfo).userFound : false ?></span><br>
-        User email: <span id="dbg-email"><?= debugInfo ? JSON.parse(debugInfo).userEmail : 'null' ?></span>
-      </div>
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="text-4xl font-bold text-white mb-2">MQF 2.0</div>
+    <div class="text-white text-opacity-60 mb-8">Program Information System</div>
+    <div class="loading-spinner"></div>
+    <div class="loading-bar-track"><div class="loading-bar-fill" id="loadingBarFill"></div></div>
+    <div class="loading-text">Penyegerakan data dari pelayan...</div>
+  </div>
+
+  <div id="login-page" class="login-page" style="display:none;">
+    <div class="login-card">
+      <div class="text-3xl font-bold text-gray-800 mb-1">MQF 2.0</div>
+      <div class="subtitle">Program Information System</div>
+      <div id="login-error" class="login-error"></div>
+      <div id="oauth-error" style="display:none"><?= oauthError ?></div>
+      <div id="session-email" style="display:none"><?= sessionEmail ?></div>
+      <div id="session-user" style="display:none"><?= sessionUser ?></div>
+      <div id="oauth-url" style="display:none"><?= oauthUrl ?></div>
+      <a id="sign-in-with-google" class="btn btn-primary" href="<?= oauthUrl ?>" target="_top" style="margin-top:16px;width:100%;text-align:center;text-decoration:none">Log Masuk dengan Google</a>
     </div>
   </div>
 
@@ -32,7 +36,6 @@
     </header>
 
     <main class="max-w-6xl mx-auto p-6">
-      <!-- Programme List View -->
       <div v-if="currentView === 'programmes'">
         <div class="flex items-center justify-between mb-4">
           <input v-model="search" type="text" placeholder="Cari program..." class="flex-1 border rounded-lg px-4 py-2">
@@ -53,7 +56,6 @@
           </div>
         </div>
 
-        <!-- Suggest Add Programme Modal -->
         <div v-if="showAddDialog" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" @click.self="showAddDialog = false">
           <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg mx-4">
             <h3 class="text-lg font-semibold mb-4">Cadang Tambah Program</h3>
@@ -79,7 +81,6 @@
         </div>
       </div>
 
-      <!-- Admin Suggestions Panel -->
       <div v-if="user.role === 'Admin'" class="mb-6">
         <div class="card">
           <div @click="pendingOpen = !pendingOpen" class="flex items-center justify-between cursor-pointer">
@@ -112,7 +113,6 @@
         </div>
       </div>
 
-      <!-- Detail View -->
       <div v-if="currentView === 'detail' && currentProgramme">
         <button @click="setView('programmes')" class="text-blue-600 text-sm mb-4">&larr; Kembali ke senarai</button>
 
@@ -128,7 +128,6 @@
           </div>
         </div>
 
-        <!-- Entry View -->
         <div v-if="viewMode === 'entry'">
           <div class="card">
             <div @click="peoOpen = !peoOpen" class="flex items-center justify-between cursor-pointer">
@@ -218,12 +217,10 @@
           </div>
         </div>
 
-        <!-- Graph View -->
         <div v-if="viewMode === 'graph'">
           <div v-if="graphLoading" class="text-center py-8 text-gray-400">Memuatkan graf...</div>
           <div v-if="graphError" class="text-red-600 bg-red-50 border border-red-200 rounded p-4 mb-4">{{ graphError }}</div>
           <div id="graph-container" v-show="!graphLoading && !graphError" style="width:100%;height:600px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;"></div>
-          <!-- Legend -->
           <div class="mt-4 p-3 bg-white rounded-lg border text-xs">
             <div class="font-semibold mb-1">Petunjuk:</div>
             <div class="flex flex-wrap gap-3">
@@ -238,7 +235,6 @@
           </div>
         </div>
 
-        <!-- Upload Section -->
         <div class="card">
           <div @click="uploadOpen = !uploadOpen" class="flex items-center justify-between cursor-pointer">
             <h3 class="font-semibold text-lg">Muat Naik Dokumen</h3>
@@ -284,16 +280,13 @@
       </div>
     </main>
 
-    <!-- Toast notification -->
     <div v-if="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50">
       {{ toast }}
     </div>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.min.js"></script>
-  <script>
-    var CURRENT_USER = <?= user ?>;
-  </script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <?!= include('JavaScript'); ?>
 </body>
 </html>

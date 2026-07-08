@@ -1,0 +1,8 @@
+/** Config.gs — Configuration (DO NOT COMMIT real values) */
+
+var CONFIG = {
+  SHEET_ID: 'YOUR_SPREADSHEET_ID',
+  GOOGLE_CLIENT_ID: 'YOUR_CLIENT_ID.apps.googleusercontent.com',
+  GOOGLE_CLIENT_SECRET: 'YOUR_CLIENT_SECRET',
+  DRIVE_FOLDER_ID: 'YOUR_DRIVE_FOLDER_ID',
+};

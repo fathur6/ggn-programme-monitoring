@@ -1,4 +1,5 @@
 gas/.clasp.json
+gas/Config.gs
 gas/config.gs
 **/.superpowers/
 graphify-out/

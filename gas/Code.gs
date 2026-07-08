@@ -13,28 +13,43 @@ function withErrorHandling(fn) {
   }
 }
 
-function doGet() {
-  var user = getCurrentUser();
-  var activeEmail = Session.getActiveUser().getEmail();
-  var effectiveEmail = Session.getEffectiveUser().getEmail();
-  console.log('doGet - activeUser: ' + activeEmail + ', effectiveUser: ' + effectiveEmail + ', user: ' + JSON.stringify(user));
-  
+function doGet(e) {
+  var code = e && e.parameter && e.parameter.code;
+  var state = e && e.parameter && e.parameter.state;
+
   var template = HtmlService.createTemplateFromFile('Index');
-  template.user = user ? JSON.stringify(user) : 'null';
+  template.oauthUrl = getOAuthUrl();
+  template.oauthError = '';
+  template.sessionEmail = '';
+  template.sessionUser = '';
   template.deploymentUrl = ScriptApp.getService().getUrl();
-  template.debugInfo = JSON.stringify({
-    activeUserEmail: activeEmail,
-    effectiveUserEmail: effectiveEmail,
-    userFound: !!user,
-    userEmail: user ? user.email : null
-  });
+
+  if (code && state) {
+    try {
+      var result = handleOAuthCode(code, state);
+      template.sessionEmail = result.user.email;
+      template.sessionUser = JSON.stringify(result.user);
+    } catch (err) {
+      console.error('OAuth error: ' + err.message);
+      template.oauthError = err.message;
+    }
+    return template.evaluate()
+      .setTitle('MQF 2.0 — Program Information')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
+
+  var user = getCurrentUser();
+  if (user) {
+    template.sessionEmail = user.email;
+    template.sessionUser = JSON.stringify(user);
+  }
+
   return template.evaluate()
     .setTitle('MQF 2.0 — Program Information')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
-
-
 
 function include(file) {
   return HtmlService.createHtmlOutputFromFile(file).getContent();
