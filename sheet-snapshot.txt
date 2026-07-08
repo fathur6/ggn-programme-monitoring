@@ -1,0 +1,117 @@
+- application [ref=e1] [box=0,0,1200,838]:
+  - iframe [ref=e2] [box=0,-1287,121,121]:
+    
+  - iframe [ref=e3] [box=0,-1287,121,121]:
+    
+  - banner "Menu bar" [ref=e4] [box=0,0,1200,143]:
+    - generic [ref=e7] [box=0,0,1200,32]:
+      - link "Sheets home" [ref=e9] [cursor=pointer] [box=8,7,52,52]:
+        - /url: https://docs.google.com/spreadsheets/u/0/?pli=1&authuser=0&usp=sheets_web
+      - generic [ref=e16] [box=54,0,1146,32]:
+        - 'generic "MQF2.0: PROGRAM INFORMATION" [ref=e18] [box=54,8,1146,31]':
+          - generic [ref=e19] [box=54,10,309,27]:
+            - generic [box=54,10,305,26]: "MQF2.0: PROGRAM INFORMATION"
+            - textbox "Rename" [ref=e21] [box=54,10,309,24]: "MQF2.0: PROGRAM INFORMATION"
+          - generic [ref=e22] [box=363,8,138,31]:
+            - button "Shared externally" [ref=e24] [cursor=pointer] [box=369,14,20,20]
+            - checkbox "Star" [ref=e28] [cursor=pointer] [box=397,10,28,28]
+            - button "Move" [ref=e364] [cursor=pointer] [box=429,10,28,28]
+            - 'button "Document status: Saved to Drive." [ref=e32] [box=461,10,28,28]'
+        - generic [ref=e40] [box=808,0,392,60]:
+          - button "Last edit was made 6 hours ago by FATHURRAHMAN LANANAN" [ref=e42] [cursor=pointer] [box=832,9,42,42]
+          - button "Show all comments" [ref=e46] [cursor=pointer] [box=882,9,42,42]
+          - button "Join a call here or present this tab to the call" [ref=e50] [cursor=pointer] [box=932,10,68,40]
+          - generic [ref=e55] [box=1008,10,132,40]:
+            - button "Share. Anyone with the link. Anyone who has the link can access. No sign-in required." [ref=e56] [cursor=pointer] [box=1008,10,91,40]: Share
+            - button "Quick sharing actions" [ref=e58] [cursor=pointer] [box=1098,10,34,40]
+          - 'button "Google Account: Timbalan Dekan Akademik PPS (pps_tdakademik@unisza.edu.my)" [ref=e62] [cursor=pointer] [box=1144,10,40,40]':
+            - img [ref=e63] [box=1148,14,32,32]
+    - generic [ref=e64] [box=0,26,1200,79]:
+      - menubar [ref=e66] [box=54,26,471,33]:
+        - menuitem "File" [ref=e67] [cursor=pointer] [box=54,34,39,24]
+        - menuitem "Edit" [ref=e68] [cursor=pointer] [box=93,34,41,24]
+        - menuitem "View" [ref=e69] [cursor=pointer] [box=134,34,46,24]
+        - menuitem "Insert" [ref=e70] [cursor=pointer] [box=180,34,54,24]
+        - menuitem "Format" [ref=e71] [cursor=pointer] [box=234,34,62,24]
+        - menuitem "Data" [ref=e72] [cursor=pointer] [box=296,34,47,24]
+        - menuitem "Tools" [ref=e73] [cursor=pointer] [box=343,34,50,24]
+        - menuitem "Extensions" [ref=e74] [cursor=pointer] [box=393,34,86,24]
+        - menuitem "Help" [ref=e75] [cursor=pointer] [box=480,34,46,24]
+      - generic [ref=e76] [box=16,65,1168,40]:
+        - generic [ref=e77] [box=24,65,1116,40]:
+          - toolbar "Search the menus (Option+/)" [ref=e78] [box=24,66,35,38]:
+            - combobox "Menus" [ref=e80] [box=25,71,44,28]
+          - toolbar "Main" [ref=e81] [box=59,76,1045,16]:
+            - button "Undo (⌘Z)" [ref=e82] [cursor=pointer] [box=62,70,30,30]
+            - button "Redo (⌘Y)" [ref=e87] [cursor=pointer] [box=94,70,30,30]
+            - button "Print (⌘P)" [ref=e92] [cursor=pointer] [box=126,70,30,30]
+            - button "Paint format" [ref=e97] [cursor=pointer] [box=158,70,30,30]
+            - combobox "Zoom" [ref=e102] [cursor=pointer] [box=190,71,75,28]:
+              - option "Zoom list. 100% selected." [selected] [ref=e105] [box=193,72,52,29]:
+                - textbox "Zoom" [ref=e106] [box=193,72,48,28]: 100%
+            - separator [disabled] [ref=e110] [box=269,75,1,20]
+            - button "Format as currency" [ref=e111] [cursor=pointer] [box=274,70,30,30]:
+              - generic [ref=e113] [box=275,71,28,28]: $
+            - button "Format as percent" [ref=e114] [cursor=pointer] [box=306,70,30,30]:
+              - generic [ref=e116] [box=307,71,28,28]: "%"
+            - button "Decrease decimal places" [ref=e117] [cursor=pointer] [box=338,70,30,30]
+            - button "Increase decimal places" [ref=e122] [cursor=pointer] [box=370,70,30,30]
+            - button "More formats" [ref=e127] [cursor=pointer] [box=402,70,32,30]:
+              - generic [ref=e130] [box=409,71,18,28]: "123"
+            - separator [disabled] [ref=e131] [box=438,75,1,20]
+            - listbox "Font" [ref=e132] [cursor=pointer] [box=443,70,97,30]:
+              - option "Font list. Default (Arial) selected." [selected] [ref=e135] [box=454,71,55,28]: Default (Arial)
+            - separator [disabled] [ref=e139] [box=544,75,1,20]
+            - button "Decrease font size (⌘+Shift+comma)" [ref=e140] [cursor=pointer] [box=549,73,24,24]
+            - combobox "Font size" [ref=e145] [cursor=pointer] [box=576,73,34,24]:
+              - option "Font size list. 10 selected." [selected] [ref=e148] [box=577,74,41,22]:
+                - textbox "Font size" [ref=e149] [box=577,73,32,24]: "10"
+            - button "Increase font size (⌘+Shift+period)" [ref=e150] [cursor=pointer] [box=613,73,24,24]
+            - separator [disabled] [ref=e155] [box=641,75,1,20]
+            - button "Bold (⌘B)" [ref=e156] [cursor=pointer] [box=646,70,30,30]
+            - button "Italic (⌘I)" [ref=e161] [cursor=pointer] [box=678,70,30,30]
+            - button "Strikethrough (⌘+Shift+X)" [ref=e166] [cursor=pointer] [box=710,70,30,30]
+            - button "Text color" [ref=e171] [cursor=pointer] [box=742,70,32,30]
+            - separator [disabled] [ref=e178] [box=778,75,1,20]
+            - button "Fill color" [ref=e179] [cursor=pointer] [box=783,70,32,30]
+            - button "Borders" [ref=e186] [cursor=pointer] [box=817,70,32,30]
+            - button "Merge cells" [disabled] [ref=e192] [box=851,70,30,30]
+            - button "Select merge type" [disabled] [ref=e197] [box=881,70,12,30]
+            - separator [disabled] [ref=e203] [box=897,75,1,20]
+            - button "Horizontal align" [ref=e204] [cursor=pointer] [box=902,70,39,30]
+            - button "Vertical align" [ref=e213] [cursor=pointer] [box=943,70,39,30]
+            - button "Text wrapping" [ref=e222] [cursor=pointer] [box=984,70,39,30]
+            - button "Text rotation" [ref=e231] [cursor=pointer] [box=1025,70,39,30]
+            - separator [disabled] [ref=e240] [box=1068,75,1,20]
+            - button "More" [ref=e241] [cursor=pointer] [box=1073,70,30,30]
+        - toolbar "Mode and view" [ref=e248] [box=1140,65,32,40]:
+          - button "Hide the menus (Ctrl+Shift+F)" [ref=e249] [cursor=pointer] [box=1141,70,30,30]
+    - generic [box=1200,59,0,779]:
+      - generic [box=1144,802,56,36]:
+        - button "Show side panel" [box=1144,802,56,36]:
+          - img [ref=e255] [cursor=pointer] [box=1162,812,20,20]
+    - generic [ref=e260] [box=0,113,1200,29]:
+      - generic "Name box (⌘ + J)" [ref=e261] [box=6,115,94,24]:
+        - textbox [ref=e262] [box=8,117,74,19]: A1
+        - button "Name box menu button. Select one of the menu items to navigate to its corresponding named range." [ref=e264] [cursor=pointer] [box=82,115,18,24]
+      - textbox [ref=e280] [box=141,115,1059,26]
+  - navigation "Sheet tab bar" [ref=e316] [box=0,801,1200,37]:
+    - toolbar [ref=e317] [box=41,802,84,36]:
+      - button "Add Sheet" [ref=e318] [cursor=pointer] [box=44,803,34,34]
+      - button "All Sheets" [ref=e323] [cursor=pointer] [box=84,803,34,34]
+    - toolbar [ref=e330] [box=127,802,287,39]:
+      - button "Programme" [ref=e331] [cursor=pointer] [box=134,802,125,37]:
+        - generic [ref=e335] [box=146,809,82,24]: Programme
+      - button "PIC" [ref=e339] [cursor=pointer] [box=258,802,69,37]:
+        - generic [ref=e343] [box=270,809,26,24]: PIC
+      - button "PPS" [ref=e347] [box=326,802,71,37]:
+        - generic [ref=e351] [box=337,809,30,24]: PPS
+    - toolbar [ref=e355] [box=418,802,4,36]
+  - generic [ref=e356] [box=0,-10000,8,34]:
+    - textbox [active] [box=4,-9998,0,30]
+  - link "Turn on screen reader support" [ref=e357] [cursor=pointer] [box=0,-1,1,1]:
+    - /url: "#"
+  - textbox [ref=e358] [box=-10000,-10000,183,37]
+  - generic [ref=e359] [box=0,-1000,83,1]: Banner hidden
+  - region [box=0,-1000,0,1]
+  - region [ref=e360] [box=0,-1,1,1]: To enable screen reader support, press ⌘+Option+Z To learn about keyboard shortcuts, press ⌘slash

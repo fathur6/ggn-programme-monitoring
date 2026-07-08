@@ -1,7 +1,7 @@
 /** PLOService.gs — PLO data retrieval and save operations */
 
 function getPLOs(mqaCode) {
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
   var sheet = ss.getSheetByName(mqaCode);
   if (!sheet) return [];
 
@@ -36,7 +36,7 @@ function savePLOs(mqaCode, plos) {
   }
 
   try {
-    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
     var sheet = ss.getSheetByName(mqaCode);
     if (!sheet) throw new Error('Program tidak dijumpai');
 

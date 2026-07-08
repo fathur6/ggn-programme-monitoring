@@ -57,7 +57,7 @@ function suggestDeleteFile(fileId, mqaCode) {
   }
 
   try {
-    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
     var sheet = ss.getSheetByName('PendingDeletions');
     if (!sheet) {
       sheet = ss.insertSheet('PendingDeletions');
@@ -86,7 +86,7 @@ function approveDeleteFile(fileId) {
   try {
     var file = DriveApp.getFileById(fileId);
     file.setTrashed(true);
-    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
     var sheet = ss.getSheetByName('PendingDeletions');
     if (sheet) {
       var data = sheet.getDataRange().getValues();

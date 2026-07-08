@@ -14,7 +14,7 @@ function getGraphData(mqaCode) {
     }
   }
 
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
   var progSheet = ss.getSheetByName('Programme');
   var progData = progSheet.getDataRange().getValues();
   var progName = mqaCode;

@@ -1,7 +1,7 @@
 /** ProgrammeService.gs — Programme listing and filtering */
 
 function getProgrammes(userFilterFaculty) {
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
   var sheet = ss.getSheetByName('Programme');
   if (!sheet) throw new Error('Sheet "Programme" not found');
   var data = sheet.getDataRange().getValues();

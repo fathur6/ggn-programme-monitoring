@@ -1,7 +1,7 @@
 /** SuggestionsService.gs — Add/Remove programme suggestion + approval + pending deletions panel */
 
 function ensureSuggestionsSheet() {
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
   var sheet = ss.getSheetByName('PendingSuggestions');
   if (!sheet) {
     sheet = ss.insertSheet('PendingSuggestions');
@@ -45,7 +45,7 @@ function suggestRemoveProgramme(mqaCode) {
 function getPendingSuggestions() {
   var user = getCurrentUser();
   if (!user || user.role !== 'Admin') throw new Error('Unauthorized');
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
   var sheet = ss.getSheetByName('PendingSuggestions');
   if (!sheet) return [];
   var data = sheet.getDataRange().getValues();
@@ -83,7 +83,7 @@ function approveSuggestion(rowIndex) {
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
-    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
     var sheet = ss.getSheetByName('PendingSuggestions');
     if (!sheet) throw new Error('Sheet tidak dijumpai');
     var data = sheet.getDataRange().getValues();
@@ -123,7 +123,7 @@ function rejectSuggestion(rowIndex, note) {
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
-    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
     var sheet = ss.getSheetByName('PendingSuggestions');
     if (!sheet) throw new Error('Sheet tidak dijumpai');
     var data = sheet.getDataRange().getValues();
@@ -143,7 +143,7 @@ function rejectSuggestion(rowIndex, note) {
 function getPendingDeletions() {
   var user = getCurrentUser();
   if (!user || user.role !== 'Admin') throw new Error('Unauthorized');
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
   var sheet = ss.getSheetByName('PendingDeletions');
   if (!sheet) return [];
   var data = sheet.getDataRange().getValues();
