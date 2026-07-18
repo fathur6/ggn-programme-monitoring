@@ -80,5 +80,11 @@ assertContains(index, /Save PEOs/, 'PEO save action is missing');
 assertContains(index, /Save PLOs/, 'PLO save action is missing');
 assertContains(index, /MQF 2\.0 Domain/, 'MQF Domain label is missing');
 assertContains(index, /Taxonomy/, 'Taxonomy label is missing');
+assertContains(index, /Request temporary access/, 'Faculty access request workspace is missing');
+assertContains(index, /createAccessRequest/, 'Access request action is missing from the UI');
+assertContains(index, /Access requests/, 'Admin access request queue is missing');
+assertContains(index, /Governance queue/, 'Admin governance queue is missing');
+assertContains(javascript, /loadAccessRequests:\s*function\s*\(/, 'Access request loader is missing');
+assertContains(javascript, /loadGovernanceItems:\s*function\s*\(/, 'Governance queue loader is missing');
 
 console.log('MQF rebuild static checks passed.');

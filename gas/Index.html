@@ -66,8 +66,22 @@
               <tbody><tr v-for="faculty in dashboard.faculties" :key="faculty.faculty"><td><strong>{{ faculty.facultyFull || faculty.faculty }}</strong><small>{{ faculty.faculty }}</small></td><td>{{ faculty.programmeCount }}</td><td class="status-good">{{ faculty.completeCount }}</td><td class="status-warn">{{ faculty.needsAttentionCount }}</td><td class="status-bad">{{ faculty.overdueCount }}</td><td><div class="progress-track"><span :style="{width: completionPercent(faculty) + '%'}"></span></div><small>{{ completionPercent(faculty) }}%</small></td><td><button v-if="user.role === 'Admin'" class="table-action" @click="openFaculty(faculty.faculty)">Review</button></td></tr></tbody>
             </table></div>
           </section>
-          <p class="privacy-note"><span class="lock-mark">&#9679;</span> This overview shows status signals only. Programme detail is available within your authorized scope.</p>
-        </template>
+           <p class="privacy-note"><span class="lock-mark">&#9679;</span> This overview shows status signals only. Programme detail is available within your authorized scope.</p>
+           <section v-if="user.role !== 'Admin'" class="card-bordered access-request-card">
+             <p class="eyebrow">NEED TO COLLABORATE?</p>
+             <h3 class="section-title">Request temporary access</h3>
+             <p class="text-sm text-muted">Ask Graduate School administration for a specific programme or faculty. Approved access expires automatically after seven days.</p>
+             <div class="request-fields">
+               <input v-model="accessRequest.targetFaculty" placeholder="Target faculty code" aria-label="Target faculty code">
+               <input v-model="accessRequest.mqaCode" placeholder="Optional MQA code" aria-label="Optional MQA code">
+               <input v-model="accessRequest.reason" placeholder="Reason for access" aria-label="Reason for access">
+               <button class="btn btn-primary" @click="createAccessRequest">Send request</button>
+             </div>
+             <div v-if="myAccessRequests.length" class="request-list">
+               <div v-for="request in myAccessRequests" :key="request.requestId"><strong>{{ request.status }}</strong> · {{ request.mqaCode || request.targetFaculty }}<span v-if="request.expiresAt"> · expires {{ request.expiresAt }}</span></div>
+             </div>
+           </section>
+         </template>
       </section>
 
       <div v-if="currentView === 'admin'" class="dashboard-view"><div class="page-intro"><div><p class="eyebrow">GRADUATE SCHOOL ADMINISTRATION</p><h2 class="page-title">Governance operations</h2><p class="page-lede">Use the programme workspace to drill into any authorized programme. Approval queues and governance controls remain below.</p></div><button class="btn btn-primary" @click="setView('programmes')">Browse all programmes</button></div></div>
@@ -168,14 +182,37 @@
 
             <h4 class="text-sm text-muted font-medium mb-2 mt-4">File Delete Requests</h4>
             <div v-if="pendingDeletions.length === 0" class="text-sm text-muted">No pending file delete requests.</div>
-            <div v-for="(d, idx) in pendingDeletions" :key="'d'+idx" class="card-bordered" style="padding:12px;margin-bottom:8px;">
-              <div class="text-sm"><strong>{{ d.fileName }}</strong> — {{ d.programme }} by {{ d.requestedBy }}</div>
+             <div v-for="(d, idx) in pendingDeletions" :key="'d'+idx" class="card-bordered" style="padding:12px;margin-bottom:8px;">
+               <div class="text-sm"><strong>{{ d.fileName }}</strong> — {{ d.programme }} by {{ d.requestedBy }}</div>
               <div class="mt-1" v-if="d.status === 'Pending'">
                 <button @click="approveDelete(d)" class="btn btn-success text-sm">Approve</button>
               </div>
-              <div class="text-xs mt-1" v-else><span class="text-action-blue">{{ d.status }}</span></div>
-            </div>
-          </div>
+               <div class="text-xs mt-1" v-else><span class="text-action-blue">{{ d.status }}</span></div>
+             </div>
+
+             <div class="admin-grid">
+               <section>
+                 <h4 class="text-sm text-muted font-medium mb-2">Access requests</h4>
+                 <div v-if="accessRequests.length === 0" class="text-sm text-muted">No access requests.</div>
+                 <div v-for="request in accessRequests" :key="request.requestId" class="admin-row">
+                   <div><strong>{{ request.requesterFaculty }}</strong> &rarr; {{ request.mqaCode || request.targetFaculty }}<small>{{ request.reason }}</small></div>
+                   <span class="status-chip">{{ request.status }}</span>
+                   <div v-if="request.status === 'Pending'">
+                     <button @click="decideAccess(request, 'Approved')" class="table-action">Approve</button>
+                     <button @click="decideAccess(request, 'Rejected')" class="table-action">Reject</button>
+                   </div>
+                   <button v-if="request.status === 'Approved'" @click="revokeAccess(request)" class="table-action">Revoke</button>
+                 </div>
+               </section>
+               <section>
+                 <h4 class="text-sm text-muted font-medium mb-2">Governance queue</h4>
+                 <div v-if="governanceItems.length === 0" class="text-sm text-muted">No revisions, audits, or central requests.</div>
+                 <div v-for="item in governanceItems" :key="item.itemId" class="admin-row">
+                   <div><strong>{{ item.type }}</strong> · {{ item.title || item.mqaCode || 'University item' }}<small>{{ item.status }}<span v-if="item.dueDate"> · due {{ item.dueDate }}</span></small></div>
+                 </div>
+               </section>
+             </div>
+           </div>
         </div>
 
       </div>
@@ -309,6 +346,7 @@
                 <span class="legend-item"><span class="legend-dot" style="background:#10B981;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);border-radius:0"></span>PEO</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#F59E0B;border-radius:2px"></span>PLO</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#6366F1"></span>MQF Domain</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#8B5CF6;border-radius:2px"></span>Taxonomy</span>
               </div>
             </div>
         </div>

@@ -183,6 +183,13 @@
   .review-blockers span { color: var(--slate); }
   .review-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 18px; }
   .toast-action { border: 0; color: #fff; background: transparent; text-decoration: underline; margin-left: 14px; cursor: pointer; font-weight: 600; }
+  .access-request-card { border-left: 3px solid var(--action-blue); }
+  .request-fields { display: grid; grid-template-columns: 1fr 1fr 1.4fr auto; gap: 8px; margin-top: 14px; }
+  .request-list { display: grid; gap: 5px; margin-top: 14px; color: var(--slate); font-size: 12px; }
+  .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--hairline); }
+  .admin-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 12px; }
+  .admin-row small { display: block; color: var(--muted); margin-top: 3px; }
+  .status-chip { border-radius: 99px; background: var(--canvas-muted); color: var(--slate); padding: 3px 7px; font-size: 10px; }
   .section-heading-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   .section-heading-row .section-title { margin: 0; }
   .last-updated { color: var(--muted); font-size: 11px; }
@@ -536,6 +543,7 @@
     .save-state { display: none; }
     .record-summary { display: none; }
     .review-grid { grid-template-columns: 1fr; }
+    .request-fields, .admin-grid { grid-template-columns: 1fr; }
     .last-updated { display: none; }
   }
 </style>

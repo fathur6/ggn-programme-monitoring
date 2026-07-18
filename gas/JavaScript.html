@@ -194,6 +194,10 @@ new Vue({
     ,saveState: 'clean'
     ,dirty: false
     ,undoSnapshot: null
+    ,accessRequest: { targetFaculty: '', mqaCode: '', reason: '', scope: 'programme' }
+    ,myAccessRequests: []
+    ,accessRequests: []
+    ,governanceItems: []
   },
   computed: {
     filteredProgrammes: function() {
@@ -406,6 +410,29 @@ new Vue({
       this.search = '';
       this.setView('programmes');
     },
+    loadAccessRequests: function() {
+      var self = this;
+      google.script.run.withSuccessHandler(function(items) { if (self.user.role === 'Admin') self.accessRequests = items; else self.myAccessRequests = items; }).withFailureHandler(function(err) { self.showToast('Access requests: ' + err.message); }).getAccessRequestsApi({});
+    },
+    createAccessRequest: function() {
+      var self = this;
+      if (!this.accessRequest.reason || (!this.accessRequest.targetFaculty && !this.accessRequest.mqaCode)) { this.showToast('Add a target and a reason for the request.'); return; }
+      google.script.run.withSuccessHandler(function() { self.accessRequest = { targetFaculty: '', mqaCode: '', reason: '', scope: 'programme' }; self.showToast('Access request sent to Graduate School.'); self.loadAccessRequests(); }).withFailureHandler(function(err) { self.showToast(err.message); }).createAccessRequestApi(this.accessRequest);
+    },
+    decideAccess: function(request, decision) {
+      var self = this;
+      google.script.run.withSuccessHandler(function() { self.showToast('Access request ' + decision.toLowerCase() + '.'); self.loadAccessRequests(); }).withFailureHandler(function(err) { self.showToast(err.message); }).decideAccessRequestApi(request.requestId, decision, '');
+    },
+    revokeAccess: function(request) {
+      var self = this;
+      if (!confirm('Revoke this temporary access grant?')) return;
+      google.script.run.withSuccessHandler(function() { self.loadAccessRequests(); }).withFailureHandler(function(err) { self.showToast(err.message); }).revokeAccessGrantApi(request.requestId, 'Revoked by Graduate School administrator');
+    },
+    loadGovernanceItems: function() {
+      var self = this;
+      if (this.user.role !== 'Admin') return;
+      google.script.run.withSuccessHandler(function(items) { self.governanceItems = items; }).withFailureHandler(function(err) { self.showToast('Governance: ' + err.message); }).getGovernanceItemsApi({});
+    },
     openProgramme: function(prog) {
       if (this.dirty && !confirm('You have unsaved changes. Leave this programme without saving?')) return;
       this.currentProgramme = prog;
@@ -516,14 +543,16 @@ self.showToast('Error: ' + e.message);
         Programme: '#3B82F6',
         PEO: '#10B981',
         PLO: '#F59E0B',
-        MQFDomain: '#6366F1'
+        MQFDomain: '#6366F1',
+        Taxonomy: '#8B5CF6'
       };
 
       var shapeMap = {
         Programme: 'hexagon',
         PEO: 'diamond',
         PLO: 'box',
-        MQFDomain: 'ellipse'
+        MQFDomain: 'ellipse',
+        Taxonomy: 'box'
       };
 
       var edgeColorMap = {
@@ -702,6 +731,8 @@ self.showToast('Error: ' + e.message);
     this.loadProgrammes();
     this.loadPendingSuggestions();
     this.loadPendingDeletions();
+    this.loadAccessRequests();
+    this.loadGovernanceItems();
   },
   watch: {
     currentProgramme: function() {
