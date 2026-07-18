@@ -185,7 +185,7 @@ function computeProgrammeStatus_(programme) {
   var mqfComplete = plos.length > 0 && plos.every(function(item) { return String(item.mqfDomain || '').trim(); });
   var taxonomyComplete = plos.length > 0 && plos.every(function(item) { return String(item.taxonomy || '').trim(); });
   var mappingComplete = plos.length > 0 && plos.every(function(item) { return String(item.embeddedPEO || '').trim(); });
-  var complete = peoComplete && ploComplete && mqfComplete && taxonomyComplete && mappingComplete && filesReady;
+  var complete = peoComplete && ploComplete && mqfComplete && taxonomyComplete && mappingComplete;
   return {
     completionState: complete ? 'Complete' : 'Needs Attention',
     peoState: peoComplete ? 'Complete' : 'Needs Attention',
