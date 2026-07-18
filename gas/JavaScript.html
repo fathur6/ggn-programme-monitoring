@@ -1,0 +1,624 @@
+<script>
+var MIN_LOADING_MS = 1500;
+var _loadingStartTime = 0;
+var _loadingBarRAF = 0;
+
+function startLoadingBar() {
+  var bar = document.getElementById('loadingBarFill');
+  if (!bar) return;
+  _loadingStartTime = Date.now();
+  if (_loadingBarRAF) cancelAnimationFrame(_loadingBarRAF);
+  bar.style.width = '0%';
+  function update() {
+    var elapsed = Date.now() - _loadingStartTime;
+    var pct = Math.min(100, (elapsed / MIN_LOADING_MS) * 100);
+    bar.style.width = pct + '%';
+    if (elapsed < MIN_LOADING_MS) _loadingBarRAF = requestAnimationFrame(update);
+  }
+  _loadingBarRAF = requestAnimationFrame(update);
+}
+
+function showLoadingOverlay() {
+  var el = document.getElementById('loadingOverlay');
+  if (!el) return;
+  el.style.display = 'flex';
+  el.classList.remove('fade-out');
+  startLoadingBar();
+}
+
+function hideLoadingOverlay() {
+  var elapsed = Date.now() - _loadingStartTime;
+  var remaining = Math.max(0, MIN_LOADING_MS - elapsed);
+  if (_loadingBarRAF) cancelAnimationFrame(_loadingBarRAF);
+  var bar = document.getElementById('loadingBarFill');
+  if (bar) bar.style.width = '100%';
+  function doHide() {
+    var el = document.getElementById('loadingOverlay');
+    if (el) {
+      el.classList.add('fade-out');
+      setTimeout(function() {
+        el.style.display = 'none';
+        el.classList.remove('fade-out');
+        if (bar) bar.style.width = '0%';
+      }, 500);
+    }
+  }
+  if (remaining > 0) setTimeout(doHide, remaining);
+  else doHide();
+}
+
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+var MQF_CLUSTERS = [
+  {
+    name: 'Knowledge and Understanding',
+    domains: [
+      { id: 'MQF 1', label: 'Knowledge and Understanding', description: 'The ability to understand and systematically apply the core concepts, principles, facts, and theories within a specific discipline or field of study.' }
+    ]
+  },
+  {
+    name: 'Cognitive Skills',
+    domains: [
+      { id: 'MQF 2', label: 'Cognitive Skills', description: 'Intellectual and thinking capabilities that allow students to analyze data, think critically, innovate, and solve complex problems within their field.' }
+    ]
+  },
+  {
+    name: 'Functional Work Skills',
+    domains: [
+      { id: 'MQF 3a', label: 'Practical Skills', description: 'The technical, hands-on, and operational skills required to plan, manage, and execute tasks safely and effectively within a specific discipline.' },
+      { id: 'MQF 3b', label: 'Interpersonal Skills', description: 'The ability to work collaboratively, interact positively, and build professional relationships inside a team, with stakeholders, or within a community.' },
+      { id: 'MQF 3c', label: 'Communication Skills', description: 'The capacity to convey ideas, information, and arguments clearly, effectively, and professionally through written, oral, or visual means.' },
+      { id: 'MQF 3d', label: 'Digital Skills', description: 'The ability to leverage digital tools, software, applications, and networks to access, process, and manage data or information securely.' },
+      { id: 'MQF 3e', label: 'Numeracy Skills', description: 'The proficiency to use quantitative data, mathematics, and statistical concepts accurately to interpret information and solve problems.' },
+      { id: 'MQF 3f', label: 'Leadership, Autonomy, and Responsibilities', description: 'The capacity to demonstrate accountability, decision-making autonomy, and ethical guidance when leading teams or managing professional tasks.' }
+    ]
+  },
+  {
+    name: 'Personal and Entrepreneurial Skills',
+    domains: [
+      { id: 'MQF 4a', label: 'Personal Skills', description: 'Life-long learning attributes, self-control, resilience, and confidence needed for positive self-development and personal growth.' },
+      { id: 'MQF 4b', label: 'Entrepreneurial Skills', description: 'The ability to identify opportunities, think innovatively, take calculated risks, and demonstrate business or project management acumen.' }
+    ]
+  },
+  {
+    name: 'Ethics and Professionalism',
+    domains: [
+      { id: 'MQF 5', label: 'Ethics and Professionalism', description: 'The integration of strong self-identity, high integrity, moral values, and social responsibility in compliance with established professional codes of conduct.' }
+    ]
+  }
+];
+
+var MQF_DOMAIN_FLAT = [];
+for (var _c = 0; _c < MQF_CLUSTERS.length; _c++) {
+  for (var _d = 0; _d < MQF_CLUSTERS[_c].domains.length; _d++) {
+    MQF_DOMAIN_FLAT.push(MQF_CLUSTERS[_c].domains[_d]);
+  }
+}
+
+var TAXONOMY_LEVELS = {
+  Cognitive: [
+    { id: 'C1', label: 'Remember' },
+    { id: 'C2', label: 'Understand' },
+    { id: 'C3', label: 'Apply' },
+    { id: 'C4', label: 'Analyze' },
+    { id: 'C5', label: 'Evaluate' },
+    { id: 'C6', label: 'Create' }
+  ],
+  Affective: [
+    { id: 'A1', label: 'Receive' },
+    { id: 'A2', label: 'Respond' },
+    { id: 'A3', label: 'Value' },
+    { id: 'A4', label: 'Organize' },
+    { id: 'A5', label: 'Internalize' },
+    { id: 'A6', label: 'Characterize' }
+  ],
+  Psychomotor: [
+    { id: 'P1', label: 'Imitation' },
+    { id: 'P2', label: 'Manipulation' },
+    { id: 'P3', label: 'Precision' },
+    { id: 'P4', label: 'Articulation' },
+    { id: 'P5', label: 'Naturalization' },
+    { id: 'P6', label: 'Origination' }
+  ]
+};
+
+function initApp() {
+  showLoadingOverlay();
+
+  var sessionEmailEl = document.getElementById('session-email');
+  var sessionUserEl = document.getElementById('session-user');
+  var sessionEmail = sessionEmailEl ? sessionEmailEl.textContent.trim() : '';
+  var sessionUserRaw = sessionUserEl ? sessionUserEl.textContent.trim() : '';
+
+  if (sessionEmail && sessionUserRaw) {
+    CURRENT_USER = JSON.parse(sessionUserRaw);
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initVueApp();
+    hideLoadingOverlay();
+    return;
+  }
+
+  hideLoadingOverlay();
+  document.getElementById('login-page').style.display = 'flex';
+}
+
+var CURRENT_USER = null;
+
+function initVueApp() {
+new Vue({
+  el: '#app',
+  data: {
+    user: CURRENT_USER || { email: '', role: '', name: '', faculty: '' },
+    currentView: 'programmes',
+    currentProgramme: null,
+    programmes: [],
+    search: '',
+    loading: false,
+    error: null,
+    viewMode: 'entry',
+    peoOpen: false,
+    ploOpen: false,
+    peos: [],
+    saving: false,
+    plos: [],
+    savingPLO: false,
+    graphLoading: false,
+    graphError: null,
+    uploadOpen: false,
+    uploadType: 'DCI',
+    files: [],
+    previewFile: null,
+    showAddDialog: false,
+    addProg: { name: '', mqaCode: '', nec: '', progCode: '', mode: 'Coursework' },
+    pendingOpen: false,
+    pendingSuggestions: [],
+    pendingDeletions: [],
+    toast: null,
+    toastTimer: null,
+    mqfClusters: MQF_CLUSTERS,
+    taxonomyLevels: TAXONOMY_LEVELS,
+    subgroupOpen: {},
+    preparing: false
+  },
+  computed: {
+    filteredProgrammes: function() {
+      var self = this;
+      if (!this.search) return this.programmes;
+      var q = this.search.toLowerCase();
+      return this.programmes.filter(function(p) {
+        return p.name.toLowerCase().indexOf(q) > -1 ||
+               p.mqaCode.toLowerCase().indexOf(q) > -1 ||
+               p.progCode.toLowerCase().indexOf(q) > -1;
+      });
+    },
+    groupedProgrammes: function() {
+      var filtered = this.filteredProgrammes;
+      var isAdmin = this.user.role === 'Admin';
+      var structureOrder = ['Doctorate', 'Masters', 'Other'];
+
+      if (isAdmin) {
+        var structMap = {};
+        for (var s = 0; s < structureOrder.length; s++) {
+          structMap[structureOrder[s]] = {};
+        }
+        for (var i = 0; i < filtered.length; i++) {
+          var p = filtered[i];
+          var lvl = p.level || 'Other';
+          if (!structMap[lvl]) structMap[lvl] = {};
+          var fac = p.faculty || 'Unknown';
+          if (!structMap[lvl][fac]) structMap[lvl][fac] = [];
+          structMap[lvl][fac].push(p);
+        }
+        var result = [];
+        for (var s2 = 0; s2 < structureOrder.length; s2++) {
+          var lvlName = structureOrder[s2];
+          var faculties = structMap[lvlName];
+          var facKeys = Object.keys(faculties).sort();
+          if (facKeys.length === 0) continue;
+          var subGroups = [];
+          var total = 0;
+          for (var f = 0; f < facKeys.length; f++) {
+            var progList = faculties[facKeys[f]];
+            subGroups.push({ title: progList[0].facultyFull || facKeys[f], key: lvlName + '-' + facKeys[f], count: progList.length, programmes: progList });
+            total += progList.length;
+          }
+          result.push({ title: lvlName, key: lvlName, count: total, subGroups: subGroups });
+        }
+        return result;
+      } else {
+        var facMap = {};
+        for (var i2 = 0; i2 < filtered.length; i2++) {
+          var p2 = filtered[i2];
+          var fac2 = p2.faculty || 'Unknown';
+          if (!facMap[fac2]) facMap[fac2] = {};
+          var lvl2 = p2.level || 'Other';
+          if (!facMap[fac2][lvl2]) facMap[fac2][lvl2] = [];
+          facMap[fac2][lvl2].push(p2);
+        }
+        var result2 = [];
+        var facNames2 = Object.keys(facMap).sort();
+        for (var f2 = 0; f2 < facNames2.length; f2++) {
+          var fn = facNames2[f2];
+          var levels = facMap[fn];
+          var subs = [];
+          var total2 = 0;
+          var firstProg = null;
+          for (var s3 = 0; s3 < structureOrder.length; s3++) {
+            var ln = structureOrder[s3];
+            if (levels[ln]) {
+              if (!firstProg) firstProg = levels[ln][0];
+              subs.push({ title: ln, key: fn + '-' + ln, count: levels[ln].length, programmes: levels[ln], cssClass: ln });
+              total2 += levels[ln].length;
+            }
+          }
+          result2.push({ title: (firstProg ? firstProg.facultyFull : fn), key: fn, count: total2, subGroups: subs });
+        }
+        return result2;
+      }
+    },
+    peoDomainMap: function() {
+      var map = {};
+      for (var i = 0; i < this.plos.length; i++) {
+        var plo = this.plos[i];
+        if (!plo.embeddedPEO) continue;
+        if (!map[plo.embeddedPEO]) map[plo.embeddedPEO] = { domains: [], linkedPLOs: [] };
+        if (plo.mqfDomain && map[plo.embeddedPEO].domains.indexOf(plo.mqfDomain) === -1) {
+          map[plo.embeddedPEO].domains.push(plo.mqfDomain);
+        }
+        map[plo.embeddedPEO].linkedPLOs.push(plo.code);
+      }
+      return map;
+    }
+  },
+  methods: {
+    showToast: function(msg) {
+      var self = this;
+      if (this.toastTimer) clearTimeout(this.toastTimer);
+      this.toast = msg;
+      this.toastTimer = setTimeout(function() { self.toast = null; }, 3000);
+    },
+    autoResize: function(ev) {
+      var el = ev.target;
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    },
+    autoResizeAll: function() {
+      var self = this;
+      this.$nextTick(function() {
+        var els = document.querySelectorAll('.expand-textarea');
+        for (var i = 0; i < els.length; i++) {
+          els[i].style.height = 'auto';
+          els[i].style.height = els[i].scrollHeight + 'px';
+        }
+      });
+    },
+    loadProgrammes: function() {
+      this.loading = true;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(result) {
+          self.programmes = result;
+          self.loading = false;
+        })
+        .withFailureHandler(function(err) {
+          self.error = err.message;
+          self.loading = false;
+        })
+        .getProgrammesApi();
+    },
+    openProgramme: function(prog) {
+      this.currentProgramme = prog;
+      this.currentView = 'detail';
+    },
+    toggleSub: function(sub) {
+      this.$set(this.subgroupOpen, sub.key, !this.subgroupOpen[sub.key]);
+    },
+    setView: function(view) {
+      this.currentView = view;
+      if (view === 'programmes') this.loadProgrammes();
+    },
+    toggleViewMode: function() {
+      this.viewMode = this.viewMode === 'entry' ? 'graph' : 'entry';
+    },
+    loadPEOs: function() {
+      var self = this;
+      if (!this.currentProgramme) return;
+      google.script.run
+        .withSuccessHandler(function(r) { self.peos = r; self.autoResizeAll(); })
+        .getPEOsApi(this.currentProgramme.mqaCode);
+    },
+    addPEO: function() {
+      this.peos.push({
+        code: 'PEO' + (this.peos.length + 1),
+        description: '',
+        mqfDomain: ''
+      });
+    },
+    removePEO: function(idx) {
+      this.peos.splice(idx, 1);
+    },
+    savePEOs: function() {
+      this.saving = true;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(r) {
+          self.peos = r;
+          self.saving = false;
+          self.showToast('PEO saved.');
+        })
+        .withFailureHandler(function(e) {
+          self.saving = false;
+self.showToast('Error: ' + e.message);
+      })
+        .savePEOsApi(this.currentProgramme.mqaCode, this.peos);
+    },
+    loadPLOs: function() {
+      var self = this;
+      if (!this.currentProgramme) return;
+      google.script.run
+        .withSuccessHandler(function(r) { self.plos = r; self.autoResizeAll(); })
+        .getPLOsApi(this.currentProgramme.mqaCode);
+    },
+    addPLO: function() {
+      this.plos.push({
+        code: 'PLO' + (this.plos.length + 1),
+        description: '',
+        mqfDomain: '',
+        taxonomy: '',
+        embeddedPEO: ''
+      });
+    },
+    removePLO: function(idx) {
+      this.plos.splice(idx, 1);
+    },
+    savePLOs: function() {
+      this.savingPLO = true;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(r) {
+          self.plos = r;
+          self.savingPLO = false;
+          self.showToast('PLO saved.');
+        })
+        .withFailureHandler(function(e) {
+          self.savingPLO = false;
+self.showToast('Error: ' + e.message);
+      })
+        .savePLOsApi(this.currentProgramme.mqaCode, this.plos);
+    },
+    loadGraph: function() {
+      this.graphLoading = true;
+      this.graphError = null;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(data) {
+          self.$nextTick(function() {
+            self.renderVisNetwork(data);
+            self.graphLoading = false;
+          });
+        })
+        .withFailureHandler(function(err) {
+          self.graphError = err.message;
+          self.graphLoading = false;
+        })
+        .getGraphDataApi(this.currentProgramme.mqaCode);
+    },
+    renderVisNetwork: function(data) {
+      var container = document.getElementById('graph-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      var colorMap = {
+        Programme: '#3B82F6',
+        PEO: '#10B981',
+        PLO: '#F59E0B',
+        MQFDomain: '#6366F1'
+      };
+
+      var shapeMap = {
+        Programme: 'hexagon',
+        PEO: 'diamond',
+        PLO: 'box',
+        MQFDomain: 'ellipse'
+      };
+
+      var edgeColorMap = {
+        has: '#9CA3AF',
+        maps_to: '#60A5FA',
+        classified_as: '#FBBF24'
+      };
+
+      var nodes = new vis.DataSet(data.nodes.map(function(n) {
+        return {
+          id: n.id,
+          label: n.label,
+          title: '<strong>' + n.label + '</strong>',
+          shape: shapeMap[n.type] || 'dot',
+          color: { background: colorMap[n.type] || '#999', border: '#fff' },
+          borderWidth: 2
+        };
+      }));
+
+      var edges = new vis.DataSet(data.edges.map(function(e) {
+        return {
+          from: e.from,
+          to: e.to,
+          color: { color: edgeColorMap[e.type] || '#999', highlight: edgeColorMap[e.type] || '#999' },
+          title: e.type,
+          smooth: { type: 'continuous' }
+        };
+      }));
+
+      var options = {
+        physics: { enabled: true },
+        edges: { smooth: true },
+        configure: { filter: ['physics'] },
+        interaction: { hover: true, tooltipDelay: 200 },
+        nodes: { font: { size: 11 } }
+      };
+
+      var network = new vis.Network(container, { nodes: nodes, edges: edges }, options);
+
+      network.on('click', function(params) {
+        if (params.nodes.length > 0) {
+          network.selectNodes(params.nodes, true);
+        } else {
+          network.unselectAll();
+        }
+      });
+    },
+    loadFiles: function() {
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(r) { self.files = r; })
+        .getUploadedFilesApi(this.currentProgramme.mqaCode);
+    },
+    doUpload: function() {
+      var input = this.$refs.fileInput;
+      if (!input.files || !input.files[0]) { this.showToast('Please select a file.'); return; }
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() {
+          self.showToast('File uploaded.');
+          self.loadFiles();
+        })
+        .withFailureHandler(function(e) { self.showToast('Ralat: ' + e.message); })
+        .uploadFileApi(this.currentProgramme.mqaCode, this.uploadType, input);
+    },
+    deleteFile: function(file) {
+      if (!confirm('Padamkan fail ini?')) return;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() {
+          self.showToast('File deleted.');
+          self.loadFiles();
+        })
+        .withFailureHandler(function(e) { self.showToast('Ralat: ' + e.message); })
+        .approveDeleteFileApi(file.id);
+    },
+    requestDelete: function(file) {
+      if (!confirm('Send delete request for this file?')) return;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() {
+          self.showToast('Delete request sent for Admin approval.');
+        })
+        .withFailureHandler(function(e) { self.showToast('Error: ' + e.message); })
+        .suggestDeleteFileApi(file.id, self.currentProgramme.mqaCode);
+    },
+    loadPendingSuggestions: function() {
+      var self = this;
+      if (this.user.role !== 'Admin') return;
+      google.script.run
+        .withSuccessHandler(function(r) { self.pendingSuggestions = r; })
+        .getPendingSuggestionsApi();
+    },
+    loadPendingDeletions: function() {
+      var self = this;
+      if (this.user.role !== 'Admin') return;
+      google.script.run
+        .withSuccessHandler(function(r) { self.pendingDeletions = r; })
+        .getPendingDeletionsApi();
+    },
+    suggestAddProgramme: function(data, callback) {
+      var self = this;
+      google.script.run
+        .withSuccessHandler(callback)
+        .withFailureHandler(function(e) { self.showToast('Ralat: ' + e.message); })
+        .suggestAddProgrammeApi(data);
+    },
+    suggestRemoveProgramme: function(mqaCode) {
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() {
+          self.showToast('Remove suggestion sent for Admin approval.');
+        })
+        .withFailureHandler(function(e) { self.showToast('Error: ' + e.message); })
+        .suggestRemoveProgrammeApi(mqaCode);
+    },
+    submitAddSuggestion: function() {
+      var self = this;
+      var data = {
+        name: this.addProg.name,
+        mqaCode: this.addProg.mqaCode,
+        nec: this.addProg.nec,
+        progCode: this.addProg.progCode,
+        mode: this.addProg.mode,
+        accr: ''
+      };
+      if (!data.name || !data.mqaCode) { self.showToast('Please enter name and MQA Code.'); return; }
+      this.suggestAddProgramme(data, function() {
+        self.showToast('New programme suggestion sent for Admin approval.');
+        self.showAddDialog = false;
+        self.addProg = { name: '', mqaCode: '', nec: '', progCode: '', mode: 'Coursework' };
+      });
+    },
+    approveSuggestion: function(idx) {
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() {
+          self.loadPendingSuggestions();
+          self.loadProgrammes();
+        })
+        .approveSuggestionApi(idx);
+    },
+    rejectSuggestion: function(idx) {
+      var self = this;
+      var note = this.pendingSuggestions[idx].reason || '';
+      google.script.run
+        .withSuccessHandler(function() {
+          self.loadPendingSuggestions();
+          self.loadProgrammes();
+        })
+        .rejectSuggestionApi(idx, note);
+    },
+    prepareSheets: function() {
+      this.preparing = true;
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(result) {
+          self.preparing = false;
+          self.showToast('Created: ' + result.created.length + ' tabs. Skipped: ' + result.skipped.length + (result.errors.length ? ' Errors: ' + result.errors.join(', ') : ''));
+        })
+        .withFailureHandler(function(e) {
+          self.preparing = false;
+          self.showToast('Error: ' + e.message);
+        })
+        .prepareAllSheetsApi();
+    },
+    approveDelete: function(d) {
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function() { self.loadPendingDeletions(); })
+        .approveDeleteFileApi(d.fileId);
+    }
+  },
+  mounted: function() {
+    this.loadProgrammes();
+    this.loadPendingSuggestions();
+    this.loadPendingDeletions();
+  },
+  watch: {
+    currentProgramme: function() {
+      if (this.currentProgramme) {
+        this.loadPEOs();
+        this.loadPLOs();
+        this.loadFiles();
+      }
+    },
+    viewMode: function(mode) {
+      if (mode === 'graph' && this.currentProgramme) {
+        this.$nextTick(function() { this.loadGraph(); });
+      }
+    }
+  }
+});
+}
+
+document.addEventListener('DOMContentLoaded', initApp);
+</script>

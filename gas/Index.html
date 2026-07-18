@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.css">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-title">MQF 2.0</div>
+    <div class="loading-subtitle">Program Information System</div>
+    <div class="loading-spinner"></div>
+    <div class="loading-bar-track"><div class="loading-bar-fill" id="loadingBarFill"></div></div>
+    <div class="loading-text">Loading programme data...</div>
+  </div>
+
+  <div id="login-page" class="login-page" style="display:none;">
+    <div class="login-card">
+      <div class="login-title">MQF 2.0</div>
+      <div class="login-subtitle">Program Information System</div>
+      <div id="login-error" class="login-error"></div>
+      <div id="oauth-error" style="display:none"><?= oauthError ?></div>
+      <div id="session-email" style="display:none"><?= sessionEmail ?></div>
+      <div id="session-user" style="display:none"><?= sessionUser ?></div>
+      <div id="oauth-url" style="display:none"><?= oauthUrl ?></div>
+      <a id="sign-in-with-google" class="btn btn-primary" href="<?= oauthUrl ?>" target="_top" style="margin-top:16px;width:100%;text-align:center;text-decoration:none">Sign in with Google</a>
+    </div>
+  </div>
+
+  <div id="app" class="min-h-screen" style="background:var(--soft-stone)">
+    <header class="header">
+      <div class="flex items-center gap-3">
+        <img src="https://i.postimg.cc/L6bJj0H1/GS-logo-color-cropped.png" alt="Graduate School" style="height:32px;width:auto">
+        <div>
+          <h1 class="header-title">MQF 2.0</h1>
+          <div class="header-subtitle">Program Information System</div>
+        </div>
+      </div>
+      <div class="header-user">{{ user.name }} ({{ user.role }})</div>
+    </header>
+
+    <main class="container" style="padding-top:24px;padding-bottom:48px;">
+      <div v-if="currentView === 'programmes'">
+        <div class="flex items-center gap-3 mb-4">
+          <input v-model="search" type="text" placeholder="Search programmes..." class="search-input">
+          <button v-if="user.role !== 'Admin'" @click="showAddDialog = true" class="btn btn-primary whitespace-nowrap">+ Suggest New Programme</button>
+        </div>
+
+        <div v-if="loading" class="text-center py-8 text-muted">Loading...</div>
+        <div v-if="error" class="alert alert-error">{{ error }}</div>
+
+        <div v-if="!loading && !error && groupedProgrammes.length === 0" class="text-center py-8 text-muted">No programmes found.</div>
+
+        <div v-for="group in groupedProgrammes" :key="group.key" class="mb-6">
+          <div class="faculty-header">
+            <h2 class="faculty-title">{{ group.title }}</h2>
+            <span class="faculty-count">{{ group.count }} programmes</span>
+          </div>
+
+          <div v-for="sub in group.subGroups" :key="sub.key" class="ml-3 mb-2">
+            <div @click="toggleSub(sub)" class="subgroup-header" style="cursor:pointer">
+              <span class="level-badge" :class="sub.cssClass || ''">{{ sub.title }}</span>
+              <span class="text-muted" style="font-size:13px">{{ sub.count }} programmes</span>
+              <span style="color:var(--muted);margin-left:auto;font-size:12px">{{ subgroupOpen[sub.key] ? '▲' : '▼' }}</span>
+            </div>
+            <div v-show="subgroupOpen[sub.key]" class="subgroup-content">
+              <div v-for="p in sub.programmes" :key="p.mqaCode" @click="openProgramme(p)" class="card-soft cursor-pointer programme-card">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <div class="font-medium">{{ p.name }}</div>
+                    <div class="text-sm text-muted mt-1">{{ p.mqaCode }} · {{ p.progCode }} · {{ p.level }}</div>
+                  </div>
+                  <button v-if="user.role !== 'Admin'" @click.stop="suggestRemoveProgramme(p.mqaCode)" class="btn btn-danger text-xs whitespace-nowrap ml-2">Suggest Remove</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="showAddDialog" class="modal-overlay" @click.self="showAddDialog = false">
+          <div class="modal-card">
+            <h3 class="modal-title">Suggest New Programme</h3>
+            <div class="form-group">
+              <label>Programme Name</label><input v-model="addProg.name">
+            </div>
+            <div class="form-group">
+              <label>MQA Code</label><input v-model="addProg.mqaCode">
+            </div>
+            <div class="form-group">
+              <label>NEC 2020</label><input v-model="addProg.nec">
+            </div>
+            <div class="form-group">
+              <label>Program Code</label><input v-model="addProg.progCode">
+            </div>
+            <div class="form-group">
+              <label>Mode</label>
+              <select v-model="addProg.mode">
+                <option value="Coursework">Coursework</option>
+                <option value="Research">Research</option>
+                <option value="Mixed">Mixed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Faculty</label><input :value="user.faculty" disabled>
+            </div>
+            <div class="modal-actions">
+              <button @click="showAddDialog = false" class="btn btn-secondary">Cancel</button>
+              <button @click="submitAddSuggestion" class="btn btn-primary">Submit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="user.role === 'Admin'" class="mb-6">
+        <div class="flex justify-end mb-3">
+          <button @click="prepareSheets" class="btn btn-success text-sm" :disabled="preparing">{{ preparing ? 'Preparing...' : '⚙ Prepare Spreadsheet' }}</button>
+        </div>
+        <div class="card-bordered">
+          <div @click="pendingOpen = !pendingOpen" class="accordion-header">
+            <h3 class="section-title" style="margin-bottom:0">Pending Approvals ({{ pendingSuggestions.length + pendingDeletions.length }})</h3>
+            <span style="color:var(--muted);font-size:14px">{{ pendingOpen ? '▲' : '▼' }}</span>
+          </div>
+          <div v-show="pendingOpen" class="mt-4">
+            <h4 class="text-sm text-muted font-medium mb-2">Programme Add/Remove</h4>
+            <div v-if="pendingSuggestions.length === 0" class="text-sm text-muted">No pending suggestions.</div>
+            <div v-for="(s, idx) in pendingSuggestions" :key="'s'+idx" class="card-bordered" style="padding:12px;margin-bottom:8px;">
+              <div class="text-sm"><strong>{{ s.type === 'Add' ? 'Add' : 'Remove' }}</strong> — {{ s.programmeCode }} by {{ s.requestedBy }} on {{ s.requestedDate }}</div>
+              <div class="mt-1" v-if="s.status === 'Pending'">
+                <button @click="approveSuggestion(idx)" class="btn btn-success text-sm">Approve</button>
+                <button @click="rejectSuggestion(idx)" class="btn btn-danger text-sm ml-2">Reject</button>
+                <input v-model="s.reason" placeholder="Note (if rejecting)" class="ml-2" style="width:auto;display:inline-block;padding:4px 8px;font-size:12px;">
+              </div>
+              <div class="text-xs mt-1" v-else><span :class="s.status === 'Approved' ? 'text-action-blue' : 'text-coral'">{{ s.status }}</span></div>
+            </div>
+
+            <h4 class="text-sm text-muted font-medium mb-2 mt-4">File Delete Requests</h4>
+            <div v-if="pendingDeletions.length === 0" class="text-sm text-muted">No pending file delete requests.</div>
+            <div v-for="(d, idx) in pendingDeletions" :key="'d'+idx" class="card-bordered" style="padding:12px;margin-bottom:8px;">
+              <div class="text-sm"><strong>{{ d.fileName }}</strong> — {{ d.programme }} by {{ d.requestedBy }}</div>
+              <div class="mt-1" v-if="d.status === 'Pending'">
+                <button @click="approveDelete(d)" class="btn btn-success text-sm">Approve</button>
+              </div>
+              <div class="text-xs mt-1" v-else><span class="text-action-blue">{{ d.status }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="currentView === 'detail' && currentProgramme">
+        <div class="back-link" @click="setView('programmes')">&larr; Back to list</div>
+
+        <div class="card-bordered">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="section-title" style="margin-bottom:2px;font-size:24px">{{ currentProgramme.name }}</h2>
+              <p class="text-sm text-muted">{{ currentProgramme.mqaCode }} · {{ currentProgramme.progCode }}</p>
+            </div>
+            <button @click="toggleViewMode" class="btn btn-primary">
+              {{ viewMode === 'entry' ? 'Graph View' : 'Data View' }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="viewMode === 'entry'">
+          <div class="card-bordered">
+            <div @click="peoOpen = !peoOpen" class="accordion-header">
+              <h3 class="section-title" style="margin-bottom:0">A — Programme Educational Objectives (PEO)</h3>
+              <span style="color:var(--muted);font-size:14px">{{ peoOpen ? '▲' : '▼' }}</span>
+            </div>
+            <div v-show="peoOpen" class="mt-4">
+              <div v-if="peos.length > 0">
+                <div v-for="(peo, idx) in peos" :key="idx" class="peo-card">
+                  <div class="peo-card-header">
+                    <span class="font-mono" style="font-weight:600;color:var(--ink)">{{ peo.code }}</span>
+                    <button @click="removePEO(idx)" class="btn btn-danger text-xs" style="padding:4px 10px">Remove</button>
+                  </div>
+                  <textarea v-model="peo.description" class="expand-textarea" placeholder="Enter description..." @input="autoResize($event)"></textarea>
+                  <div class="peo-domain-display" :title="'Derived from linked PLOs:\n' + (peoDomainMap[peo.code] ? peoDomainMap[peo.code].linkedPLOs.join(', ') + '\n→ ' + peoDomainMap[peo.code].domains.join(', ') : 'No linked PLOs')">
+                    <template v-if="peoDomainMap[peo.code] && peoDomainMap[peo.code].domains.length > 0">
+                      <span v-for="(d, di) in peoDomainMap[peo.code].domains" :key="di" class="domain-pill">{{ d }}</span>
+                    </template>
+                    <span v-else class="text-muted" style="font-style:italic">Auto-derived from PLO</span>
+                  </div>
+                </div>
+              </div>
+              <button @click="addPEO" class="btn btn-success text-sm">+ Add PEO</button>
+              <button @click="savePEOs" class="btn btn-primary ml-2 text-sm" :disabled="saving">{{ saving ? 'Saving...' : 'Save' }}</button>
+            </div>
+          </div>
+
+          <div class="card-bordered">
+            <div @click="ploOpen = !ploOpen" class="accordion-header">
+              <h3 class="section-title" style="margin-bottom:0">B — Programme Learning Outcomes (PLO)</h3>
+              <span style="color:var(--muted);font-size:14px">{{ ploOpen ? '▲' : '▼' }}</span>
+            </div>
+            <div v-show="ploOpen" class="mt-4">
+              <div v-if="plos.length > 0">
+                <div v-for="(plo, idx) in plos" :key="idx" class="plo-card">
+                  <div class="plo-card-header">
+                    <span class="font-mono" style="font-weight:600;color:var(--ink)">{{ plo.code }}</span>
+                    <button @click="removePLO(idx)" class="btn btn-danger text-xs" style="padding:4px 10px">Remove</button>
+                  </div>
+                  <textarea v-model="plo.description" class="expand-textarea" placeholder="Enter description..." @input="autoResize($event)"></textarea>
+                  <div class="plo-fields-row">
+                    <div class="plo-field">
+                      <label class="field-label">MQF 2.0 Domain</label>
+                      <select v-model="plo.mqfDomain" class="mqf-select">
+                        <option value="">— Select Domain —</option>
+                        <optgroup v-for="cluster in mqfClusters" :label="cluster.name">
+                          <option v-for="domain in cluster.domains" :value="domain.id"
+                            :title="domain.description">{{ domain.id }} — {{ domain.label }}</option>
+                        </optgroup>
+                      </select>
+                    </div>
+                    <div class="plo-field">
+                      <label class="field-label">Taxonomy</label>
+                      <select v-model="plo.taxonomy" class="mqf-select">
+                        <option value="">— Select Taxonomy —</option>
+                        <optgroup label="Cognitive">
+                          <option v-for="c in taxonomyLevels.Cognitive" :value="c.id">{{ c.id }} — {{ c.label }}</option>
+                        </optgroup>
+                        <optgroup label="Affective">
+                          <option v-for="a in taxonomyLevels.Affective" :value="a.id">{{ a.id }} — {{ a.label }}</option>
+                        </optgroup>
+                        <optgroup label="Psychomotor">
+                          <option v-for="p in taxonomyLevels.Psychomotor" :value="p.id">{{ p.id }} — {{ p.label }}</option>
+                        </optgroup>
+                      </select>
+                    </div>
+                    <div class="plo-field">
+                      <label class="field-label">Embed in PEO</label>
+                      <select v-model="plo.embeddedPEO" class="mqf-select">
+                        <option value="">—</option>
+                        <option v-for="peo in peos" :value="peo.code"
+                          :title="'Description: ' + (peo.description || '(empty)')">{{ peo.code }}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button @click="addPLO" class="btn btn-success text-sm">+ Add PLO</button>
+              <button @click="savePLOs" class="btn btn-primary ml-2 text-sm" :disabled="savingPLO">{{ savingPLO ? 'Saving...' : 'Save' }}</button>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="viewMode === 'graph'">
+          <div v-if="graphLoading" class="text-center py-8 text-muted">Loading graph...</div>
+          <div v-if="graphError" class="alert alert-error mb-4">{{ graphError }}</div>
+          <div id="graph-container" class="graph-container" v-show="!graphLoading && !graphError"></div>
+            <div class="legend">
+              <div class="font-medium mb-2">Legend:</div>
+              <div class="flex gap-3 flex-wrap">
+                <span class="legend-item"><span class="legend-dot" style="background:#3B82F6"></span>Programme</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#10B981;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);border-radius:0"></span>PEO</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#F59E0B;border-radius:2px"></span>PLO</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#6366F1"></span>MQF Domain</span>
+              </div>
+            </div>
+        </div>
+
+        <div class="card-bordered">
+          <div @click="uploadOpen = !uploadOpen" class="accordion-header">
+            <h3 class="section-title" style="margin-bottom:0">Document Upload</h3>
+            <span style="color:var(--muted);font-size:14px">{{ uploadOpen ? '▲' : '▼' }}</span>
+          </div>
+          <div v-show="uploadOpen" class="mt-4">
+            <div class="flex items-center gap-3 mb-4">
+              <select v-model="uploadType" style="width:auto">
+                <option value="DCI">DCI</option>
+                <option value="OTH">Other</option>
+              </select>
+              <input type="file" ref="fileInput" accept="application/pdf" style="max-width:300px">
+              <button @click="doUpload" class="btn btn-primary text-sm">Upload</button>
+            </div>
+
+            <table v-if="files.length > 0">
+              <thead><tr>
+                <th>File Name</th>
+                <th>Date</th>
+                <th></th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="f in files" :key="f.id">
+                  <td><a :href="'https://drive.google.com/file/d/' + f.id + '/preview'" target="_blank" class="text-action-blue underline">{{ f.name }}</a></td>
+                  <td class="text-muted">{{ f.date }}</td>
+                  <td>
+                    <button @click="previewFile = (previewFile && previewFile.id === f.id) ? null : f" class="btn btn-success text-sm">View</button>
+                    <button v-if="user.role === 'Admin'" @click="deleteFile(f)" class="btn btn-danger text-sm ml-2">Delete</button>
+                    <button v-else @click="requestDelete(f)" class="btn btn-danger text-sm ml-2">Suggest Delete</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-else class="text-sm text-muted">No files uploaded.</p>
+
+            <div v-if="previewFile" class="mt-4">
+              <iframe :src="'https://drive.google.com/file/d/' + previewFile.id + '/preview'" width="100%" height="500px" frameborder="0" style="border-radius:var(--radius-sm)"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div v-if="toast" class="toast">{{ toast }}</div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.min.js"></script>
+  <?!= include('JavaScript'); ?>
+</body>
+</html>
