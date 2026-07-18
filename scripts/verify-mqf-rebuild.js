@@ -1,4 +1,5 @@
 const fs = require('fs');
+const childProcess = require('child_process');
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -24,6 +25,33 @@ const suggestions = read('gas/SuggestionsService.gs');
 const index = read('gas/Index.html');
 const javascript = read('gas/JavaScript.html');
 const styles = read('gas/Styles.html');
+
+[
+  'gas/Index.html',
+  'gas/JavaScript.html',
+  'gas/Styles.html',
+  'gas/Auth.gs',
+  'gas/Code.gs',
+  'gas/GovernanceService.gs',
+  'gas/AccessRequestService.gs',
+  'gas/PEOService.gs',
+  'gas/PLOService.gs',
+  'gas/GraphService.gs',
+  'gas/UploadService.gs',
+  'gas/SuggestionsService.gs',
+  'gas/appsscript.json',
+  'README.md'
+].forEach(function(path) {
+  assert(fs.existsSync(path), 'Required project file is missing: ' + path);
+});
+
+const trackedFiles = childProcess.execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n');
+assert(trackedFiles.indexOf('gas/Config.gs') === -1, 'Unsanitized Config.gs must remain untracked');
+assert(trackedFiles.indexOf('gas/.clasp.json') === -1, 'Deployment clasp metadata must remain untracked');
+['gas/Config.gs', 'gas/.clasp.json'].forEach(function(path) {
+  childProcess.execFileSync('git', ['check-ignore', '-q', path]);
+});
+assert(!trackedFiles.some(function(path) { return path.indexOf('.superpowers/') === 0 || path.indexOf('graphify-out/') === 0; }), 'Generated project artifacts must not be tracked');
 
 assertContains(auth, /isGraduateSchoolAdmin_\s*\(/, 'Missing Graduate School admin capability helper');
 assertContains(auth, /canViewProgramme_\s*\(/, 'Missing programme access helper');
