@@ -42,6 +42,17 @@ function getPEOs(mqaCode) {
 }
 
 function savePEOs(mqaCode, peos) {
+  if (!mqaCode || !Array.isArray(peos)) throw new Error('Data PEO tidak sah.');
+  peos = peos.map(function(p) {
+    var code = String(p && p.code || '').trim();
+    var description = String(p && p.description || '').trim();
+    if (!code || !description) throw new Error('Kod dan penerangan PEO diperlukan.');
+    return {
+      code: code,
+      description: description,
+      mqfDomain: String(p.mqfDomain || '').trim()
+    };
+  });
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);

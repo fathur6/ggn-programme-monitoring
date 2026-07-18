@@ -15,7 +15,11 @@ function getGraphData(mqaCode) {
   }
 
   function domainId(domain) {
-    return 'MQF_' + domain.replace(/\s+/g, '_');
+    return 'MQF_' + String(domain).trim().replace(/\s+/g, '_');
+  }
+
+  function taxonomyId(taxonomy) {
+    return 'TAXONOMY_' + String(taxonomy).trim().replace(/\s+/g, '_');
   }
 
   var ss = getSpreadsheet();
@@ -23,8 +27,8 @@ function getGraphData(mqaCode) {
   var progData = progSheet.getDataRange().getValues();
   var progName = mqaCode;
   for (var i = 1; i < progData.length; i++) {
-    if (progData[i][1] === mqaCode) {
-      progName = progData[i][0];
+    if (progData[i][2] === mqaCode || progData[i][1] === mqaCode) {
+      progName = progData[i][1] || progData[i][0];
       break;
     }
   }
@@ -48,6 +52,10 @@ function getGraphData(mqaCode) {
     if (plo.mqfDomain) {
       addNode(domainId(plo.mqfDomain), plo.mqfDomain, 'MQFDomain');
       edges.push({ from: 'PLO_' + plo.code, to: domainId(plo.mqfDomain), type: 'classified_as' });
+    }
+    if (plo.taxonomy) {
+      addNode(taxonomyId(plo.taxonomy), plo.taxonomy, 'Taxonomy');
+      edges.push({ from: 'PLO_' + plo.code, to: taxonomyId(plo.taxonomy), type: 'classified_as' });
     }
   });
 

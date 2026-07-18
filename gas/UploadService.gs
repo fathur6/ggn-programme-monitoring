@@ -1,6 +1,7 @@
 /** UploadService.gs — File upload, delete requests, and admin approval with LockService */
 
 function getUploadedFiles(mqaCode) {
+  if (!mqaCode) throw new Error('Program tidak dijumpai.');
   var folder = getProgramFolder(mqaCode);
   var files = folder.getFiles();
   var result = [];
@@ -26,6 +27,7 @@ function uploadFile(mqaCode, fileType, fileBlob) {
   }
 
   try {
+    if (!mqaCode || !fileType) throw new Error('Maklumat fail tidak lengkap.');
     if (!fileBlob) throw new Error('Sila pilih fail.');
     if (fileBlob.getContentType() !== 'application/pdf') throw new Error('Hanya format PDF dibenarkan.');
 
@@ -57,6 +59,7 @@ function suggestDeleteFile(fileId, mqaCode) {
   }
 
   try {
+    if (!fileId || !mqaCode) throw new Error('Maklumat fail tidak lengkap.');
     var ss = getSpreadsheet();
     var sheet = ss.getSheetByName('PendingDeletions');
     if (!sheet) {
@@ -74,7 +77,7 @@ function suggestDeleteFile(fileId, mqaCode) {
 
 function approveDeleteFile(fileId) {
   var user = getCurrentUser();
-  if (!user || user.role !== 'Admin') throw new Error('Hanya Admin boleh meluluskan.');
+  if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
 
   var lock = LockService.getScriptLock();
   try {

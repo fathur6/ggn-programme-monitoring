@@ -245,29 +245,29 @@ function suggestRemoveProgrammeApi(mqaCode) {
 }
 
 function getPendingSuggestionsApi() {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
   return getPendingSuggestions();
 }
 
 function approveSuggestionApi(rowIndex) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
   return approveSuggestion(rowIndex);
 }
 
 function rejectSuggestionApi(rowIndex, note) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
   return rejectSuggestion(rowIndex, note);
 }
 
 function getPendingDeletionsApi() {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
   return getPendingDeletions();
 }
 
 /** One-time: create per-program tabs for all programmes from the Programme sheet */
 function prepareAllSheetsApi() {
   var user = getCurrentUser();
-  if (!user || user.role !== 'Admin') throw new Error('Admin only');
+  if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('Programme');

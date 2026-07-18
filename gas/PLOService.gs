@@ -43,6 +43,19 @@ function getPLOs(mqaCode) {
 }
 
 function savePLOs(mqaCode, plos) {
+  if (!mqaCode || !Array.isArray(plos)) throw new Error('Data PLO tidak sah.');
+  plos = plos.map(function(p) {
+    var code = String(p && p.code || '').trim();
+    var description = String(p && p.description || '').trim();
+    if (!code || !description) throw new Error('Kod dan penerangan PLO diperlukan.');
+    return {
+      code: code,
+      description: description,
+      mqfDomain: String(p.mqfDomain || '').trim(),
+      embeddedPEO: String(p.embeddedPEO || '').trim(),
+      taxonomy: String(p.taxonomy || '').trim()
+    };
+  });
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
@@ -87,4 +100,13 @@ function savePLOs(mqaCode, plos) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function getNextPLOCode(plos) {
+  var highest = 0;
+  (plos || []).forEach(function(p) {
+    var match = String(p && p.code || '').toUpperCase().match(/^PLO\s*(\d+)$/);
+    if (match) highest = Math.max(highest, Number(match[1]));
+  });
+  return 'PLO' + (highest + 1);
 }

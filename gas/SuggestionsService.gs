@@ -44,7 +44,7 @@ function suggestRemoveProgramme(mqaCode) {
 
 function getPendingSuggestions() {
   var user = getCurrentUser();
-  if (!user || user.role !== 'Admin') throw new Error('Unauthorized');
+  if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('PendingSuggestions');
   if (!sheet) return [];
@@ -79,7 +79,7 @@ function findPendingRow(data, rowIndex) {
 
 function approveSuggestion(rowIndex) {
   var user = getCurrentUser();
-  if (!user || user.role !== 'Admin') throw new Error('Unauthorized');
+  if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
@@ -119,7 +119,7 @@ function approveSuggestion(rowIndex) {
 
 function rejectSuggestion(rowIndex, note) {
   var user = getCurrentUser();
-  if (!user || user.role !== 'Admin') throw new Error('Unauthorized');
+  if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
@@ -142,7 +142,7 @@ function rejectSuggestion(rowIndex, note) {
 
 function getPendingDeletions() {
   var user = getCurrentUser();
-  if (!user || user.role !== 'Admin') throw new Error('Unauthorized');
+  if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('PendingDeletions');
   if (!sheet) return [];
