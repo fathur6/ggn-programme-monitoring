@@ -17,14 +17,23 @@ Rebuild the complete MQF 2.0 web application interface for faculty programme edi
 
 Faculty users are scoped to their own faculty's programmes. They can view and edit only data they are authorized to access. This scope must be enforced server-side, not merely by filtering the frontend list. Direct requests for another faculty's programme must return a permission failure or no authorized data.
 
-Administrative users retain broader access according to the existing authorization rules. The redesign must not weaken authorization around programme administration, approvals, spreadsheet preparation, or document deletion.
+The system has three access layers:
+
+- **Faculty users:** view and edit their own faculty's programme content.
+- **University-wide users:** view aggregate and status information across the university, but not detailed programme content outside their authorization scope.
+- **UniSZA Graduate School administrators:** unrestricted access to all faculty programme content, revisions, audits, submissions, documents, and administration workflows.
+
+Faculty users may request temporary access to a specific programme or faculty outside their normal scope. A UniSZA Graduate School administrator must approve the request. Approved access is limited to the requested scope and expires automatically after one week. Expired access must no longer authorize detail views or actions.
+
+The redesign must not weaken authorization around programme administration, approvals, spreadsheet preparation, or document deletion. All access checks, approval decisions, expiration checks, and detail responses must be enforced server-side.
 
 ## Information Architecture
 
 The application uses a persistent workspace shell with the following modules:
 
 - **Overview:** assigned programmes, completion status, recent activity, and next actions.
-- **Programmes:** searchable programme list grouped by level and faculty, scoped to the current user.
+- **University Dashboard:** aggregate programme status across all 14 faculties, including completion, revision, audit, submission, and outstanding-request summaries. The default view contains status information only.
+- **Programmes:** searchable programme list grouped by level and faculty, scoped to the current user. University-wide users see status-only rows unless they have detail authorization.
 - **Programme Workspace:** persistent programme identity and status context.
 - **PEOs:** guided entry and review of Programme Educational Objectives.
 - **PLOs:** guided entry of Programme Learning Outcomes, including description, MQF Domain, Taxonomy, and PEO mapping.
@@ -32,12 +41,15 @@ The application uses a persistent workspace shell with the following modules:
 - **Graph:** relationship view for PEOs, PLOs, MQF Domains, Taxonomy values, and mappings.
 - **Documents:** supporting-document upload, preview, and deletion-request workflow.
 - **Admin:** approvals, programme administration, and spreadsheet preparation for authorized users.
+- **Access Requests:** request, approve, reject, review, and expire temporary cross-faculty access grants.
 
 The primary editor path is:
 
 `Overview -> Select Programme -> PEOs -> PLOs -> Review & Submit`
 
 Each step exposes completion status, missing-field warnings, save state, previous/next navigation, and the persistent programme identity header.
+
+The university dashboard is a reporting surface rather than an alternative editor. It must generate current status information for faculty communication without providing in-depth programme navigation to unauthorized users. Graduate School administrators can drill down from status summaries into any programme detail.
 
 ## Interaction Model
 
@@ -103,7 +115,34 @@ Any backend authorization gaps discovered during implementation must be addresse
 
 ### Overview And Programme Selection
 
-The overview shows only authorized programmes and summarizes readiness using actionable status counts. Users can search and filter by programme level, status, missing MQF metadata, and document readiness.
+The overview shows authorized programmes and summarizes readiness using actionable status counts. Users can search and filter by programme level, status, missing MQF metadata, and document readiness.
+
+The university dashboard summarizes all 14 faculties using status-only metrics such as:
+
+- Programme count by faculty and programme level.
+- Completion state for PEOs, PLOs, MQF Domain, and Taxonomy.
+- Review and submission state.
+- Revision and audit state.
+- Outstanding document or administration requests.
+- Last updated timestamp and reporting period.
+
+Faculty users can use these aggregate summaries to understand university-wide progress, but cannot open another faculty's underlying programme content unless a temporary access grant has been approved. Graduate School administrators can drill down to any detailed programme view.
+
+### Revisions, Audits, And Administrative Monitoring
+
+The platform must support the next governance stages after initial filling:
+
+- Record the current programme status and last update.
+- Track revision requests and their resolution state.
+- Track audit cycles, findings, responsible party, and due dates.
+- Track central administration requests and response status.
+- Surface overdue or blocked items in Graduate School dashboards.
+
+These governance records should be additive to the existing data model where possible. Existing programme and PEO/PLO data must remain compatible, and new status records must not change the meaning of current Sheet columns.
+
+### Cross-Faculty Access Requests
+
+Faculty users can submit a request identifying the target faculty or programme, reason, requested detail scope, and required duration. The maximum duration is one week from approval. Graduate School administrators can approve or reject requests, see active and expired grants, and revoke an active grant. The system records requester, approver, scope, approval time, expiry time, and revocation state.
 
 ### PEO Workspace
 
@@ -146,7 +185,9 @@ Authorized admin workflows remain available without exposing admin actions to fa
 - Blocking validation appears inline and in the review summary.
 - Destructive actions are labeled by context, such as `Remove PLO PLO3`, rather than generic `Remove`.
 - Navigation away from dirty data requires confirmation.
-- Authorization remains enforced server-side for faculty scope, administration, and document deletion.
+- Aggregate dashboard responses do not include unauthorized programme content or detail fields.
+- Temporary access grants expire automatically and are rechecked on every detail request.
+- Authorization remains enforced server-side for faculty scope, Graduate School unrestricted access, temporary cross-faculty access, administration, and document deletion.
 
 ## Acceptance Criteria
 
@@ -166,6 +207,10 @@ The rebuild is accepted when the following workflows work:
 12. Authorized administrators retain approval and programme-administration capabilities.
 13. The interface remains usable at desktop and mobile widths with long academic descriptions and dense PLO metadata.
 14. Existing Apps Script service calls and stored Sheet/Drive data remain compatible.
+15. All users can view university-wide aggregate/status reporting without receiving unauthorized programme detail.
+16. UniSZA Graduate School administrators can drill down into all faculty programme content.
+17. Faculty users can request cross-faculty detail access, and approved access expires after one week.
+18. Revisions, audits, and central administration requests have visible status, ownership, and due-date monitoring.
 
 ## Verification Strategy
 
