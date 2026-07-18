@@ -188,6 +188,12 @@ new Vue({
     ,dashboardLoading: false
     ,dashboardError: null
     ,selectedFaculty: ''
+    ,workspaceStep: 1
+    ,peoActiveIndex: 0
+    ,ploActiveIndex: 0
+    ,saveState: 'clean'
+    ,dirty: false
+    ,undoSnapshot: null
   },
   computed: {
     filteredProgrammes: function() {
@@ -277,6 +283,11 @@ new Vue({
         map[plo.embeddedPEO].linkedPLOs.push(plo.code);
       }
       return map;
+    },
+    reviewSummary: function() {
+      var peoMissing = this.validatePEOs().filter(function(item) { return item.missing.length; }).length;
+      var ploMissing = this.validatePLOs().filter(function(item) { return item.missing.length; }).length;
+      return { peoCount: this.peos.length, ploCount: this.plos.length, peoMissing: peoMissing, ploMissing: ploMissing };
     }
   },
   methods: {
@@ -300,6 +311,68 @@ new Vue({
           els[i].style.height = els[i].scrollHeight + 'px';
         }
       });
+    },
+    markDirty: function() {
+      this.dirty = true;
+      this.saveState = 'dirty';
+    },
+    nextRecordCode: function(records, prefix) {
+      var highest = 0;
+      (records || []).forEach(function(record) {
+        var match = String(record.code || '').toUpperCase().match(new RegExp('^' + prefix + '\\s*(\\d+)$'));
+        if (match) highest = Math.max(highest, Number(match[1]));
+      });
+      return prefix + (highest + 1);
+    },
+    validatePEO: function(peo) {
+      return { code: peo.code, missing: peo.description ? [] : ['description'] };
+    },
+    validatePEOs: function() {
+      return this.peos.map(this.validatePEO);
+    },
+    validatePLO: function(plo) {
+      return { code: plo.code, missing: [].concat(plo.description ? [] : ['description'], plo.mqfDomain ? [] : ['MQF Domain'], plo.taxonomy ? [] : ['Taxonomy'], plo.embeddedPEO ? [] : ['PEO mapping']) };
+    },
+    validatePLOs: function() {
+      return this.plos.map(this.validatePLO);
+    },
+    getReviewSummary: function() {
+      return this.reviewSummary;
+    },
+    addRecord: function(prefix) {
+      this.markDirty();
+      if (prefix === 'PEO') {
+        this.peos.push({ code: this.nextRecordCode(this.peos, 'PEO'), description: '', mqfDomain: '' });
+        this.peoActiveIndex = this.peos.length - 1;
+      } else {
+        this.plos.push({ code: this.nextRecordCode(this.plos, 'PLO'), description: '', mqfDomain: '', taxonomy: '', embeddedPEO: '' });
+        this.ploActiveIndex = this.plos.length - 1;
+      }
+    },
+    removeRecord: function(record, prefix, idx) {
+      if (!confirm('Remove ' + prefix + ' ' + record.code + '? This change is not saved until you select Save.')) return;
+      this.undoSnapshot = { prefix: prefix, record: JSON.parse(JSON.stringify(record)), index: idx };
+      this.markDirty();
+      if (prefix === 'PEO') { this.peos.splice(idx, 1); this.peoActiveIndex = Math.max(0, Math.min(idx, this.peos.length - 1)); }
+      else { this.plos.splice(idx, 1); this.ploActiveIndex = Math.max(0, Math.min(idx, this.plos.length - 1)); }
+      this.showToast(prefix + ' removed. Save to apply, or use the undo action in this message.');
+    },
+    undoRemove: function() {
+      if (!this.undoSnapshot) return;
+      var snapshot = this.undoSnapshot;
+      if (snapshot.prefix === 'PEO') { this.peos.splice(snapshot.index, 0, snapshot.record); this.peoActiveIndex = snapshot.index; }
+      else { this.plos.splice(snapshot.index, 0, snapshot.record); this.ploActiveIndex = snapshot.index; }
+      this.undoSnapshot = null;
+      this.markDirty();
+      this.showToast('Record restored.');
+    },
+    goToStep: function(step) {
+      if (this.dirty && !confirm('You have unsaved changes. Leave this step without saving?')) return;
+      this.workspaceStep = step;
+      this.peoOpen = step === 1;
+      this.ploOpen = step === 2;
+      if (step === 1 || step === 2) this.$nextTick(this.autoResizeAll);
+      window.scrollTo(0, 0);
     },
     loadProgrammes: function() {
       this.loading = true;
@@ -334,14 +407,20 @@ new Vue({
       this.setView('programmes');
     },
     openProgramme: function(prog) {
+      if (this.dirty && !confirm('You have unsaved changes. Leave this programme without saving?')) return;
       this.currentProgramme = prog;
       this.currentView = 'detail';
+      this.workspaceStep = 1;
+      this.dirty = false;
+      this.saveState = 'clean';
     },
     toggleSub: function(sub) {
       this.$set(this.subgroupOpen, sub.key, !this.subgroupOpen[sub.key]);
     },
     setView: function(view) {
+      if (this.dirty && view !== 'detail' && !confirm('You have unsaved changes. Leave without saving?')) return;
       this.currentView = view;
+      this.dirty = false;
       if (view === 'dashboard') this.loadDashboard();
       if (view === 'programmes') this.loadProgrammes();
     },
@@ -352,26 +431,26 @@ new Vue({
       var self = this;
       if (!this.currentProgramme) return;
       google.script.run
-        .withSuccessHandler(function(r) { self.peos = r; self.autoResizeAll(); })
+         .withSuccessHandler(function(r) { self.peos = r; self.peoActiveIndex = 0; self.dirty = false; self.saveState = 'clean'; self.autoResizeAll(); })
         .getPEOsApi(this.currentProgramme.mqaCode);
     },
     addPEO: function() {
-      this.peos.push({
-        code: 'PEO' + (this.peos.length + 1),
-        description: '',
-        mqfDomain: ''
-      });
+      this.addRecord('PEO');
     },
     removePEO: function(idx) {
-      this.peos.splice(idx, 1);
+      this.removeRecord(this.peos[idx], 'PEO', idx);
     },
     savePEOs: function() {
+      if (this.validatePEOs().some(function(item) { return item.missing.length; })) { this.showToast('Complete each PEO description before saving.'); return; }
       this.saving = true;
+      this.saveState = 'saving';
       var self = this;
       google.script.run
         .withSuccessHandler(function(r) {
           self.peos = r;
-          self.saving = false;
+           self.saving = false;
+           self.dirty = false;
+           self.saveState = 'saved';
           self.showToast('PEO saved.');
         })
         .withFailureHandler(function(e) {
@@ -384,28 +463,25 @@ self.showToast('Error: ' + e.message);
       var self = this;
       if (!this.currentProgramme) return;
       google.script.run
-        .withSuccessHandler(function(r) { self.plos = r; self.autoResizeAll(); })
+        .withSuccessHandler(function(r) { self.plos = r; self.ploActiveIndex = 0; self.dirty = false; self.saveState = 'clean'; self.autoResizeAll(); })
         .getPLOsApi(this.currentProgramme.mqaCode);
     },
     addPLO: function() {
-      this.plos.push({
-        code: 'PLO' + (this.plos.length + 1),
-        description: '',
-        mqfDomain: '',
-        taxonomy: '',
-        embeddedPEO: ''
-      });
+      this.addRecord('PLO');
     },
     removePLO: function(idx) {
-      this.plos.splice(idx, 1);
+      this.removeRecord(this.plos[idx], 'PLO', idx);
     },
     savePLOs: function() {
       this.savingPLO = true;
+      this.saveState = 'saving';
       var self = this;
       google.script.run
         .withSuccessHandler(function(r) {
           self.plos = r;
-          self.savingPLO = false;
+           self.savingPLO = false;
+           self.dirty = false;
+           self.saveState = 'saved';
           self.showToast('PLO saved.');
         })
         .withFailureHandler(function(e) {

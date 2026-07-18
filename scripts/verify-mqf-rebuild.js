@@ -71,5 +71,14 @@ assertContains(index, /Faculty readiness/, 'Faculty readiness dashboard is missi
 assertContains(javascript, /getUniversityDashboardApi\(\)/, 'Dashboard API is not loaded by the client');
 assertContains(javascript, /function\(faculty\)/, 'Dashboard faculty completion helper is missing');
 assertContains(styles, /--action-green/, 'Operational Clarity action token is missing');
+assertContains(javascript, /validatePEOs:\s*function\s*\(/, 'PEO validation method is missing');
+assertContains(javascript, /validatePLOs:\s*function\s*\(/, 'PLO validation method is missing');
+assertContains(javascript, /getReviewSummary:\s*function\s*\(/, 'Review summary method is missing');
+assertContains(javascript, /removeRecord:\s*function\s*\(/, 'Context-specific record removal is missing');
+assertContains(javascript, /undoRemove:\s*function\s*\(/, 'Record undo action is missing');
+assertContains(index, /Save PEOs/, 'PEO save action is missing');
+assertContains(index, /Save PLOs/, 'PLO save action is missing');
+assertContains(index, /MQF 2\.0 Domain/, 'MQF Domain label is missing');
+assertContains(index, /Taxonomy/, 'Taxonomy label is missing');
 
 console.log('MQF rebuild static checks passed.');

@@ -177,6 +177,7 @@
             </div>
           </div>
         </div>
+
       </div>
 
       <div v-if="currentView === 'detail' && currentProgramme">
@@ -192,9 +193,16 @@
               {{ viewMode === 'entry' ? 'Graph View' : 'Data View' }}
             </button>
           </div>
-        </div>
+         </div>
 
-        <div v-if="viewMode === 'entry'">
+         <div v-if="viewMode === 'entry'" class="workspace-progress" aria-label="Programme completion steps">
+           <button :class="{current: workspaceStep === 1, complete: workspaceStep > 1}" @click="goToStep(1)"><span>01</span> PEOs</button>
+           <i></i><button :class="{current: workspaceStep === 2, complete: workspaceStep > 2}" @click="goToStep(2)"><span>02</span> PLOs</button>
+           <i></i><button :class="{current: workspaceStep === 3}" @click="goToStep(3)"><span>03</span> Review</button>
+           <span class="save-state" :class="saveState">{{ dirty ? 'Unsaved changes' : saveState === 'saved' ? 'All changes saved' : 'Ready to edit' }}</span>
+         </div>
+
+         <div v-if="viewMode === 'entry'">
           <div class="card-bordered">
             <div @click="peoOpen = !peoOpen" class="accordion-header">
               <h3 class="section-title" style="margin-bottom:0">A — Programme Educational Objectives (PEO)</h3>
@@ -202,22 +210,23 @@
             </div>
             <div v-show="peoOpen" class="mt-4">
               <div v-if="peos.length > 0">
-                <div v-for="(peo, idx) in peos" :key="idx" class="peo-card">
+                <div v-for="(peo, idx) in peos" :key="peo.code" class="peo-card" :class="{active: peoActiveIndex === idx}" @click="peoActiveIndex = idx">
                   <div class="peo-card-header">
                     <span class="font-mono" style="font-weight:600;color:var(--ink)">{{ peo.code }}</span>
-                    <button @click="removePEO(idx)" class="btn btn-danger text-xs" style="padding:4px 10px">Remove</button>
+                    <div class="record-actions"><span v-if="peoActiveIndex !== idx" class="record-summary">{{ peo.description || 'Description needed' }}</span><button @click.stop="removeRecord(peo, 'PEO', idx)" class="btn btn-danger text-xs" style="padding:4px 10px">Remove PEO</button></div>
                   </div>
-                  <textarea v-model="peo.description" class="expand-textarea" placeholder="Enter description..." @input="autoResize($event)"></textarea>
-                  <div class="peo-domain-display" :title="'Derived from linked PLOs:\n' + (peoDomainMap[peo.code] ? peoDomainMap[peo.code].linkedPLOs.join(', ') + '\n→ ' + peoDomainMap[peo.code].domains.join(', ') : 'No linked PLOs')">
-                    <template v-if="peoDomainMap[peo.code] && peoDomainMap[peo.code].domains.length > 0">
-                      <span v-for="(d, di) in peoDomainMap[peo.code].domains" :key="di" class="domain-pill">{{ d }}</span>
-                    </template>
-                    <span v-else class="text-muted" style="font-style:italic">Auto-derived from PLO</span>
+                  <div v-if="peoActiveIndex === idx">
+                    <label class="field-label">Objective description <span class="required-mark">Required</span></label>
+                    <textarea v-model="peo.description" class="expand-textarea" maxlength="500" placeholder="Describe what graduates will be able to achieve..." @input="autoResize($event); markDirty()"></textarea>
+                    <div class="field-hint" :class="{'field-error': !peo.description}">{{ peo.description ? peo.description.length + ' / 500 characters' : 'Add a clear objective description to complete this record.' }}</div>
+                    <div class="peo-domain-display">
+                      <span class="field-label" style="margin-right:4px">Linked PLO domains</span><template v-if="peoDomainMap[peo.code] && peoDomainMap[peo.code].domains.length > 0"><span v-for="(d, di) in peoDomainMap[peo.code].domains" :key="di" class="domain-pill">{{ d }}</span></template><span v-else class="text-muted" style="font-style:italic">Auto-derived after PLO mapping</span>
+                    </div>
                   </div>
                 </div>
               </div>
               <button @click="addPEO" class="btn btn-success text-sm">+ Add PEO</button>
-              <button @click="savePEOs" class="btn btn-primary ml-2 text-sm" :disabled="saving">{{ saving ? 'Saving...' : 'Save' }}</button>
+              <button @click="savePEOs" class="btn btn-primary ml-2 text-sm" :disabled="saving">{{ saving ? 'Saving...' : 'Save PEOs' }}</button>
             </div>
           </div>
 
@@ -228,16 +237,19 @@
             </div>
             <div v-show="ploOpen" class="mt-4">
               <div v-if="plos.length > 0">
-                <div v-for="(plo, idx) in plos" :key="idx" class="plo-card">
+                <div v-for="(plo, idx) in plos" :key="plo.code" class="plo-card" :class="{active: ploActiveIndex === idx}" @click="ploActiveIndex = idx">
                   <div class="plo-card-header">
                     <span class="font-mono" style="font-weight:600;color:var(--ink)">{{ plo.code }}</span>
-                    <button @click="removePLO(idx)" class="btn btn-danger text-xs" style="padding:4px 10px">Remove</button>
+                    <div class="record-actions"><span v-if="ploActiveIndex !== idx" class="record-summary">{{ plo.description || 'Description needed' }}</span><button @click.stop="removeRecord(plo, 'PLO', idx)" class="btn btn-danger text-xs" style="padding:4px 10px">Remove PLO</button></div>
                   </div>
-                  <textarea v-model="plo.description" class="expand-textarea" placeholder="Enter description..." @input="autoResize($event)"></textarea>
+                  <div v-if="ploActiveIndex === idx">
+                  <label class="field-label">Learning outcome <span class="required-mark">Required</span></label>
+                  <textarea v-model="plo.description" class="expand-textarea" maxlength="500" placeholder="Describe the observable learning outcome..." @input="autoResize($event); markDirty()"></textarea>
+                  <div class="field-hint" :class="{'field-error': !plo.description}">{{ plo.description ? plo.description.length + ' / 500 characters' : 'Add a clear learning outcome description.' }}</div>
                   <div class="plo-fields-row">
                     <div class="plo-field">
                       <label class="field-label">MQF 2.0 Domain</label>
-                      <select v-model="plo.mqfDomain" class="mqf-select">
+                        <select v-model="plo.mqfDomain" class="mqf-select" @change="markDirty()">
                         <option value="">— Select Domain —</option>
                         <optgroup v-for="cluster in mqfClusters" :label="cluster.name">
                           <option v-for="domain in cluster.domains" :value="domain.id"
@@ -247,7 +259,7 @@
                     </div>
                     <div class="plo-field">
                       <label class="field-label">Taxonomy</label>
-                      <select v-model="plo.taxonomy" class="mqf-select">
+                      <select v-model="plo.taxonomy" class="mqf-select" @change="markDirty()">
                         <option value="">— Select Taxonomy —</option>
                         <optgroup label="Cognitive">
                           <option v-for="c in taxonomyLevels.Cognitive" :value="c.id">{{ c.id }} — {{ c.label }}</option>
@@ -262,19 +274,28 @@
                     </div>
                     <div class="plo-field">
                       <label class="field-label">Embed in PEO</label>
-                      <select v-model="plo.embeddedPEO" class="mqf-select">
+                      <select v-model="plo.embeddedPEO" class="mqf-select" @change="markDirty()">
                         <option value="">—</option>
                         <option v-for="peo in peos" :value="peo.code"
                           :title="'Description: ' + (peo.description || '(empty)')">{{ peo.code }}</option>
                       </select>
                     </div>
                   </div>
+                  <div class="record-readiness"><span :class="validatePLO(plo).missing.length ? 'status-warn' : 'status-good'">{{ validatePLO(plo).missing.length ? validatePLO(plo).missing.length + ' fields still needed' : 'Ready for review' }}</span><span v-if="validatePLO(plo).missing.length" class="text-muted">{{ validatePLO(plo).missing.join(' · ') }}</span></div>
+                  </div>
                 </div>
               </div>
               <button @click="addPLO" class="btn btn-success text-sm">+ Add PLO</button>
-              <button @click="savePLOs" class="btn btn-primary ml-2 text-sm" :disabled="savingPLO">{{ savingPLO ? 'Saving...' : 'Save' }}</button>
+              <button @click="savePLOs" class="btn btn-primary ml-2 text-sm" :disabled="savingPLO">{{ savingPLO ? 'Saving...' : 'Save PLOs' }}</button>
             </div>
           </div>
+
+          <section v-if="workspaceStep === 3" class="card-bordered review-panel">
+            <p class="eyebrow">FINAL CHECK</p><h3 class="section-title">Review readiness</h3>
+            <div class="review-grid"><div><strong>{{ reviewSummary.peoCount }}</strong><span>PEOs</span><small :class="reviewSummary.peoMissing ? 'status-warn' : 'status-good'">{{ reviewSummary.peoMissing ? reviewSummary.peoMissing + ' need descriptions' : 'Descriptions complete' }}</small></div><div><strong>{{ reviewSummary.ploCount }}</strong><span>PLOs</span><small :class="reviewSummary.ploMissing ? 'status-warn' : 'status-good'">{{ reviewSummary.ploMissing ? reviewSummary.ploMissing + ' need metadata' : 'Metadata complete' }}</small></div><div><strong>{{ files.length }}</strong><span>Documents</span><small :class="files.length ? 'status-good' : 'status-warn'">{{ files.length ? 'Supporting files available' : 'Upload required files' }}</small></div></div>
+            <div class="review-blockers" v-if="reviewSummary.peoMissing || reviewSummary.ploMissing"><strong>Before submission</strong><span>Complete the highlighted PEO/PLO fields, then return here to confirm readiness.</span></div>
+            <div class="review-actions"><button class="btn btn-secondary" @click="goToStep(2)">Back to PLOs</button><button class="btn btn-primary" :disabled="reviewSummary.peoMissing || reviewSummary.ploMissing" @click="showToast('Review complete. Central submission workflow will be enabled by Graduate School administration.')">Mark ready for review</button></div>
+          </section>
         </div>
 
         <div v-if="viewMode === 'graph'">
@@ -335,7 +356,7 @@
       </div>
     </main>
 
-    <div v-if="toast" class="toast">{{ toast }}</div>
+    <div v-if="toast" class="toast">{{ toast }}<button v-if="undoSnapshot" @click="undoRemove" class="toast-action">Undo</button></div>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.min.js"></script>
