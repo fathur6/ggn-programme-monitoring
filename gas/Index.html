@@ -32,20 +32,49 @@
   </div>
 
   <div id="app" class="min-h-screen" style="background:var(--soft-stone)">
-    <header class="header">
-      <div class="flex items-center gap-3">
-        <img src="https://i.postimg.cc/L6bJj0H1/GS-logo-color-cropped.png" alt="Graduate School" style="height:32px;width:auto">
-        <div>
-          <h1 class="header-title">MQF 2.0</h1>
-          <div class="header-subtitle">Program Information System</div>
-        </div>
+    <header class="header app-header">
+      <div class="brand-lockup">
+        <img src="https://i.postimg.cc/L6bJj0H1/GS-logo-color-cropped.png" alt="Graduate School" class="brand-logo">
+        <div><h1 class="header-title">MQF 2.0</h1><div class="header-subtitle">Programme governance workspace</div></div>
       </div>
-      <div class="header-user">{{ user.name }} ({{ user.role }})</div>
+      <nav class="app-nav" aria-label="Primary navigation">
+        <button class="nav-button" :class="{active: currentView === 'dashboard'}" @click="setView('dashboard')">Overview</button>
+        <button class="nav-button" :class="{active: currentView === 'programmes' || currentView === 'detail'}" @click="setView('programmes')">Programmes</button>
+        <button v-if="user.role === 'Admin'" class="nav-button" :class="{active: currentView === 'admin'}" @click="setView('admin')">Admin</button>
+      </nav>
+      <div class="identity-chip"><span class="status-dot"></span><span>{{ user.name || user.email }}</span><span class="role-label">{{ user.role === 'Admin' ? 'Graduate School' : user.faculty }}</span></div>
     </header>
 
     <main class="container" style="padding-top:24px;padding-bottom:48px;">
+      <section v-if="currentView === 'dashboard'" class="dashboard-view">
+        <div class="page-intro">
+          <div><p class="eyebrow">{{ user.role === 'Admin' ? 'UNIVERSITY CONTROL CENTER' : 'FACULTY WORKSPACE' }}</p><h2 class="page-title">Programme readiness</h2><p class="page-lede">A current view of completion across {{ dashboard ? dashboard.facultyCount : 'the university' }} faculties.</p></div>
+          <button class="btn btn-primary" @click="setView('programmes')">Open programme workspace</button>
+        </div>
+        <div v-if="dashboardError" class="alert alert-error">{{ dashboardError }}</div>
+        <div v-if="dashboardLoading" class="loading-panel">Loading readiness data...</div>
+        <template v-if="dashboard && !dashboardLoading">
+          <div class="metric-grid">
+            <article class="metric-card metric-card-strong"><span class="metric-label">Programmes tracked</span><strong>{{ dashboard.programmeCount }}</strong><span class="metric-note">{{ dashboard.facultyCount }} faculties</span></article>
+            <article class="metric-card"><span class="metric-label">Ready to review</span><strong>{{ dashboard.totals.completeCount }}</strong><span class="metric-note status-good">Complete</span></article>
+            <article class="metric-card"><span class="metric-label">Needs attention</span><strong>{{ dashboard.totals.needsAttentionCount }}</strong><span class="metric-note status-warn">In progress</span></article>
+            <article class="metric-card"><span class="metric-label">Overdue items</span><strong>{{ dashboard.totals.overdueCount }}</strong><span class="metric-note status-bad">Requires action</span></article>
+          </div>
+          <section class="dashboard-section card-bordered">
+            <div class="section-heading-row"><div><p class="eyebrow">REPORTING PERIOD {{ dashboard.reportingPeriod }}</p><h3 class="section-title">Faculty readiness</h3></div><span class="last-updated">Updated {{ dashboard.generatedAt }}</span></div>
+            <div class="table-wrap"><table class="readiness-table"><thead><tr><th>Faculty</th><th>Programmes</th><th>Ready</th><th>In progress</th><th>Blocked</th><th>Completion</th><th></th></tr></thead>
+              <tbody><tr v-for="faculty in dashboard.faculties" :key="faculty.faculty"><td><strong>{{ faculty.facultyFull || faculty.faculty }}</strong><small>{{ faculty.faculty }}</small></td><td>{{ faculty.programmeCount }}</td><td class="status-good">{{ faculty.completeCount }}</td><td class="status-warn">{{ faculty.needsAttentionCount }}</td><td class="status-bad">{{ faculty.overdueCount }}</td><td><div class="progress-track"><span :style="{width: completionPercent(faculty) + '%'}"></span></div><small>{{ completionPercent(faculty) }}%</small></td><td><button v-if="user.role === 'Admin'" class="table-action" @click="openFaculty(faculty.faculty)">Review</button></td></tr></tbody>
+            </table></div>
+          </section>
+          <p class="privacy-note"><span class="lock-mark">&#9679;</span> This overview shows status signals only. Programme detail is available within your authorized scope.</p>
+        </template>
+      </section>
+
+      <div v-if="currentView === 'admin'" class="dashboard-view"><div class="page-intro"><div><p class="eyebrow">GRADUATE SCHOOL ADMINISTRATION</p><h2 class="page-title">Governance operations</h2><p class="page-lede">Use the programme workspace to drill into any authorized programme. Approval queues and governance controls remain below.</p></div><button class="btn btn-primary" @click="setView('programmes')">Browse all programmes</button></div></div>
+
       <div v-if="currentView === 'programmes'">
-        <div class="flex items-center gap-3 mb-4">
+        <div class="page-intro compact-intro"><div><p class="eyebrow">PROGRAMME DIRECTORY</p><h2 class="page-title">Your programmes</h2><p class="page-lede">Select a programme to continue its MQF 2.0 completion workflow.</p></div></div>
+        <div class="flex items-center gap-3 mb-4 directory-toolbar">
           <input v-model="search" type="text" placeholder="Search programmes..." class="search-input">
           <button v-if="user.role !== 'Admin'" @click="showAddDialog = true" class="btn btn-primary whitespace-nowrap">+ Suggest New Programme</button>
         </div>

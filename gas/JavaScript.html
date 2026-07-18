@@ -154,7 +154,7 @@ new Vue({
   el: '#app',
   data: {
     user: CURRENT_USER || { email: '', role: '', name: '', faculty: '' },
-    currentView: 'programmes',
+    currentView: 'dashboard',
     currentProgramme: null,
     programmes: [],
     search: '',
@@ -184,6 +184,10 @@ new Vue({
     taxonomyLevels: TAXONOMY_LEVELS,
     subgroupOpen: {},
     preparing: false
+    ,dashboard: null
+    ,dashboardLoading: false
+    ,dashboardError: null
+    ,selectedFaculty: ''
   },
   computed: {
     filteredProgrammes: function() {
@@ -311,6 +315,24 @@ new Vue({
         })
         .getProgrammesApi();
     },
+    loadDashboard: function() {
+      var self = this;
+      this.dashboardLoading = true;
+      this.dashboardError = null;
+      google.script.run
+        .withSuccessHandler(function(result) { self.dashboard = result; self.dashboardLoading = false; })
+        .withFailureHandler(function(err) { self.dashboardError = err.message; self.dashboardLoading = false; })
+        .getUniversityDashboardApi();
+    },
+    completionPercent: function(faculty) {
+      if (!faculty || !faculty.programmeCount) return 0;
+      return Math.round((faculty.completeCount / faculty.programmeCount) * 100);
+    },
+    openFaculty: function(faculty) {
+      this.selectedFaculty = faculty;
+      this.search = '';
+      this.setView('programmes');
+    },
     openProgramme: function(prog) {
       this.currentProgramme = prog;
       this.currentView = 'detail';
@@ -320,6 +342,7 @@ new Vue({
     },
     setView: function(view) {
       this.currentView = view;
+      if (view === 'dashboard') this.loadDashboard();
       if (view === 'programmes') this.loadProgrammes();
     },
     toggleViewMode: function() {
@@ -599,6 +622,7 @@ self.showToast('Error: ' + e.message);
     }
   },
   mounted: function() {
+    this.loadDashboard();
     this.loadProgrammes();
     this.loadPendingSuggestions();
     this.loadPendingDeletions();

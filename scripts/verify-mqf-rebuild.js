@@ -21,6 +21,9 @@ const plo = read('gas/PLOService.gs');
 const graph = read('gas/GraphService.gs');
 const upload = read('gas/UploadService.gs');
 const suggestions = read('gas/SuggestionsService.gs');
+const index = read('gas/Index.html');
+const javascript = read('gas/JavaScript.html');
+const styles = read('gas/Styles.html');
 
 assertContains(auth, /isGraduateSchoolAdmin_\s*\(/, 'Missing Graduate School admin capability helper');
 assertContains(auth, /canViewProgramme_\s*\(/, 'Missing programme access helper');
@@ -62,5 +65,11 @@ assertContains(graph, /type:\s*'classified_as'/, 'Graph does not emit classifica
 assertContains(upload, /isGraduateSchoolAdmin_\(user\)/, 'File deletion is not Graduate School-admin guarded');
 assertContains(suggestions, /isGraduateSchoolAdmin_\(user\)/, 'Suggestion admin operations are not Graduate School-admin guarded');
 assertContains(code, /function\s+prepareAllSheetsApi[\s\S]*?isGraduateSchoolAdmin_/, 'Sheet preparation is not Graduate School-admin guarded');
+assertContains(index, /class="app-nav"/, 'Persistent application navigation is missing');
+assertContains(index, /currentView === 'dashboard'/, 'University dashboard view is missing');
+assertContains(index, /Faculty readiness/, 'Faculty readiness dashboard is missing');
+assertContains(javascript, /getUniversityDashboardApi\(\)/, 'Dashboard API is not loaded by the client');
+assertContains(javascript, /function\(faculty\)/, 'Dashboard faculty completion helper is missing');
+assertContains(styles, /--action-green/, 'Operational Clarity action token is missing');
 
 console.log('MQF rebuild static checks passed.');
