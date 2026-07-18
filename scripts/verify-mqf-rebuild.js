@@ -15,6 +15,7 @@ function assertContains(source, pattern, message) {
 const auth = read('gas/Auth.gs');
 const code = read('gas/Code.gs');
 const governance = read('gas/GovernanceService.gs');
+const access = read('gas/AccessRequestService.gs');
 
 assertContains(auth, /isGraduateSchoolAdmin_\s*\(/, 'Missing Graduate School admin capability helper');
 assertContains(auth, /canViewProgramme_\s*\(/, 'Missing programme access helper');
@@ -41,5 +42,10 @@ assertContains(governance, /function\s+getUniversityDashboardApi_\s*\(/, 'Missin
 assertContains(governance, /MQFDomainState/, 'Dashboard does not monitor MQF Domain state');
 assertContains(governance, /TaxonomyState/, 'Dashboard does not monitor Taxonomy state');
 assertContains(code, /function\s+getUniversityDashboardApi\s*\(/, 'Missing university dashboard API endpoint');
+assertContains(access, /7\s*\*\s*24\s*\*\s*60\s*\*\s*60\s*\*\s*1000/, 'Cross-faculty access does not expire after one week');
+assertContains(access, /function\s+createAccessRequestApi_\s*\(/, 'Missing access request creation');
+assertContains(access, /function\s+decideAccessRequestApi_\s*\(/, 'Missing access request decision');
+assertContains(access, /function\s+revokeAccessGrantApi_\s*\(/, 'Missing access grant revocation');
+assertContains(access, /getActiveAccessGrant_\s*\(/, 'Missing active access grant lookup');
 
 console.log('MQF rebuild static checks passed.');

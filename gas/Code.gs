@@ -172,6 +172,22 @@ function saveGovernanceItemApi(item) {
   return saveGovernanceItemApi_(item || {});
 }
 
+function createAccessRequestApi(request) {
+  return createAccessRequestApi_(request || {});
+}
+
+function getAccessRequestsApi(filters) {
+  return getAccessRequestsApi_(filters || {});
+}
+
+function decideAccessRequestApi(requestId, decision, note) {
+  return decideAccessRequestApi_(requestId, decision, note || '');
+}
+
+function revokeAccessGrantApi(requestId, note) {
+  return revokeAccessGrantApi_(requestId, note || '');
+}
+
 function getPEOsApi(mqaCode) {
   requireProgrammeAccess_(mqaCode, 'view-peos');
   return getPEOs(mqaCode);
