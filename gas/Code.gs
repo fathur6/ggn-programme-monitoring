@@ -149,47 +149,48 @@ function getProgrammesApi() {
 }
 
 function getPEOsApi(mqaCode) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  requireProgrammeAccess_(mqaCode, 'view-peos');
   return getPEOs(mqaCode);
 }
 
 function getPLOsApi(mqaCode) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  requireProgrammeAccess_(mqaCode, 'view-plos');
   return getPLOs(mqaCode);
 }
 
 function savePEOsApi(mqaCode, peos) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  requireProgrammeAccess_(mqaCode, 'edit-peos');
   return savePEOs(mqaCode, peos);
 }
 
 function savePLOsApi(mqaCode, plos) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  requireProgrammeAccess_(mqaCode, 'edit-plos');
   return savePLOs(mqaCode, plos);
 }
 
 function getGraphDataApi(mqaCode) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  requireProgrammeAccess_(mqaCode, 'view-graph');
   return getGraphData(mqaCode);
 }
 
 function getUploadedFilesApi(mqaCode) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  requireProgrammeAccess_(mqaCode, 'view-documents');
   return getUploadedFiles(mqaCode);
 }
 
 function uploadFileApi(mqaCode, fileType, fileBlob) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  requireProgrammeAccess_(mqaCode, 'upload-document');
   return uploadFile(mqaCode, fileType, fileBlob);
 }
 
 function suggestDeleteFileApi(fileId, mqaCode) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  requireProgrammeAccess_(mqaCode, 'request-document-deletion');
   return suggestDeleteFile(fileId, mqaCode);
 }
 
 function approveDeleteFileApi(fileId) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  var user = getCurrentUser();
+  if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   return approveDeleteFile(fileId);
 }
 

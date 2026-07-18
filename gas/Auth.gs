@@ -14,7 +14,7 @@ function getCurrentUser(optEmail) {
     try { email = Session.getActiveUser().getEmail(); } catch (ex) {}
   }
   if (!email || !email.endsWith('@unisza.edu.my')) return null;
-  return lookupUser(email);
+  return decorateUser_(lookupUser(email));
 }
 
 function getOAuthUrl() {
@@ -63,7 +63,7 @@ function handleOAuthCode(code, state) {
   var payload = JSON.parse(Utilities.newBlob(Utilities.base64Decode(b64)).getDataAsString());
   if (!payload.email) throw new Error('No email in OAuth response');
   if (!payload.email_verified) throw new Error('Email not verified by Google');
-  var user = lookupUser(payload.email);
+  var user = decorateUser_(lookupUser(payload.email));
   if (!user) throw new Error('Email tidak berdaftar: ' + payload.email);
   var sessionToken = Utilities.getUuid();
   cache.put('oauth_session_' + sessionToken, user.email, 86400);
@@ -75,7 +75,58 @@ function resolveSessionToken(token) {
   var cache = CacheService.getScriptCache();
   var email = cache.get('oauth_session_' + token);
   if (!email) return null;
-  return lookupUser(email);
+  return decorateUser_(lookupUser(email));
+}
+
+function decorateUser_(user) {
+  if (!user) return null;
+  var isAdmin = user.role === 'Admin';
+  user.capabilities = {
+    universityStatus: true,
+    facultyDetail: !isAdmin,
+    graduateSchoolAdmin: isAdmin
+  };
+  return user;
+}
+
+function isGraduateSchoolAdmin_(user) {
+  return !!user && !!user.capabilities && user.capabilities.graduateSchoolAdmin === true;
+}
+
+function getAuthorizedProgrammeScope_() {
+  var user = getCurrentUser();
+  if (!user) return null;
+  return {
+    mode: isGraduateSchoolAdmin_(user) ? 'graduate-school' : 'faculty',
+    faculty: user.faculty || null,
+    email: user.email
+  };
+}
+
+function canViewProgramme_(user, mqaCode, optAccess) {
+  if (!user || !mqaCode) return false;
+  if (isGraduateSchoolAdmin_(user)) return true;
+
+  var programme = findProgrammeByMqaCode_(mqaCode);
+  if (!programme) return false;
+  if (programme.faculty === String(user.faculty || '').trim()) return true;
+
+  if (!optAccess || optAccess.email !== user.email) return false;
+  if (optAccess.mqaCode && optAccess.mqaCode === mqaCode) return true;
+  return !!optAccess.targetFaculty && optAccess.targetFaculty === programme.faculty;
+}
+
+function requireProgrammeAccess_(mqaCode, action) {
+  var user = getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+
+  var access = typeof getActiveAccessGrant_ === 'function'
+    ? getActiveAccessGrant_(user.email, mqaCode)
+    : null;
+  if (!canViewProgramme_(user, mqaCode, access)) {
+    throw new Error('Forbidden: programme access is outside your authorized scope');
+  }
+  return { user: user, action: action || 'view', access: access };
 }
 
 function lookupUser(email) {

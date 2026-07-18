@@ -31,6 +31,16 @@ function getProgrammes(userFilterFaculty) {
   return programmes;
 }
 
+function findProgrammeByMqaCode_(mqaCode) {
+  var code = String(mqaCode || '').trim();
+  if (!code) return null;
+  var programmes = getProgrammes(null);
+  for (var i = 0; i < programmes.length; i++) {
+    if (String(programmes[i].mqaCode).trim() === code) return programmes[i];
+  }
+  return null;
+}
+
 function detectLevel(name) {
   var n = String(name).toLowerCase();
   if (n.indexOf('doctor') > -1 || n.indexOf('doktor') > -1) return 'Doctorate';
