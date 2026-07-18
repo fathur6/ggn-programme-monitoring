@@ -148,6 +148,30 @@ function getProgrammesApi() {
   return getProgrammes(user.role === 'Admin' ? null : user.faculty);
 }
 
+function getUniversityDashboardApi() {
+  return getUniversityDashboardApi_();
+}
+
+function getFacultyReportApi(faculty) {
+  return getFacultyReportApi_(faculty);
+}
+
+function getProgrammeStatusApi(mqaCode) {
+  return getProgrammeStatusApi_(mqaCode);
+}
+
+function saveProgrammeStatusApi(mqaCode, status) {
+  return saveProgrammeStatusApi_(mqaCode, status);
+}
+
+function getGovernanceItemsApi(filters) {
+  return getGovernanceItemsApi_(filters || {});
+}
+
+function saveGovernanceItemApi(item) {
+  return saveGovernanceItemApi_(item || {});
+}
+
 function getPEOsApi(mqaCode) {
   requireProgrammeAccess_(mqaCode, 'view-peos');
   return getPEOs(mqaCode);
