@@ -143,19 +143,21 @@ function rejectSuggestion(rowIndex, note) {
 function getPendingDeletions() {
   var user = getCurrentUser();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
-  var ss = getSpreadsheet();
-  var sheet = ss.getSheetByName('PendingDeletions');
-  if (!sheet) return [];
-  var data = sheet.getDataRange().getValues();
+  var deletion = getDeletionSheet_();
+  var data = deletion.sheet.getDataRange().getValues();
   var result = [];
   for (var i = 1; i < data.length; i++) {
+    if (!data[i][deletion.columns.FileID]) continue;
     result.push({
-      fileId: data[i][0],
-      fileName: data[i][1],
-      programme: data[i][2],
-      requestedBy: data[i][3],
-      requestedDate: data[i][4],
-      status: data[i][5]
+      requestId: data[i][deletion.columns.RequestId],
+      fileId: data[i][deletion.columns.FileID],
+      fileName: data[i][deletion.columns.FileName],
+      programme: data[i][deletion.columns.Programme],
+      requestedBy: data[i][deletion.columns.RequestedBy],
+      requestedDate: data[i][deletion.columns.RequestedDate],
+      status: data[i][deletion.columns.Status],
+      approverEmail: data[i][deletion.columns.ApproverEmail],
+      approvedDate: data[i][deletion.columns.ApprovedDate]
     });
   }
   return result;

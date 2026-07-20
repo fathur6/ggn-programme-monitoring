@@ -14,77 +14,11 @@ function withErrorHandling(fn) {
 }
 
 function doGet(e) {
-  var code = e && e.parameter && e.parameter.code;
-  var state = e && e.parameter && e.parameter.state;
+  var params = e && e.parameter || {};
+  if (hasDisabledLegacyRoute_(params)) return disabledEndpointResponse_();
 
-  // Debug mode: /exec?debug=1 — returns JSON of all ESERI faculty values
-  if (e && e.parameter && e.parameter.debug) {
-    return ContentService.createTextOutput(JSON.stringify(debugGetProgrammesApi()))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-
-  // Debug PIC: /exec?pic=1 — returns raw PIC sheet data
-  if (e && e.parameter && e.parameter.pic) {
-    var ss = getSpreadsheet();
-    var pic = ss.getSheetByName('PIC');
-    var data = pic.getDataRange().getValues();
-    return ContentService.createTextOutput(JSON.stringify(data, null, 2))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-
-  // Send all: /exec?sendAll=1 — sends announcement to all 15 faculties
-  if (e && e.parameter && e.parameter.sendAll) {
-    var results = sendAllAnnouncements();
-    return ContentService.createTextOutput(JSON.stringify(results, null, 2))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-
-  // Send single: /exec?sendFaculty=FF — sends announcement to a specific faculty
-  if (e && e.parameter && e.parameter.sendFaculty) {
-    try {
-      var result = sendAnnouncement(e.parameter.sendFaculty);
-      return ContentService.createTextOutput(result)
-        .setMimeType(ContentService.MimeType.TEXT);
-    } catch(err) {
-      return ContentService.createTextOutput('Error: ' + err.message)
-        .setMimeType(ContentService.MimeType.TEXT);
-    }
-  }
-
-  // Test email: /exec?testEmail=1 — sends test email for FBK (mailmerge demo)
-  if (e && e.parameter && e.parameter.testEmail) {
-    var result = sendTestAnnouncement();
-    return ContentService.createTextOutput(result)
-      .setMimeType(ContentService.MimeType.TEXT);
-  }
-
-  // Update PIC: /exec?updatePIC=1 — rewrites PIC sheet with correct data
-  if (e && e.parameter && e.parameter.updatePIC) {
-    var ss = getSpreadsheet();
-    var pic = ss.getSheetByName('PIC');
-    pic.clearContents();
-    pic.appendRow(['Faculty', 'Graduate Coordinator', 'Graduate Coordinator Email', 'Faculty PIC', 'Faculty PIC Email']);
-    var rows = [
-      ['FBK','DR. MOHD HAZLI BIN YAH @ ALIAS','mohdhazli@unisza.edu.my','NORMA BINTI JUSOH','normajusoh@unisza.edu.my'],
-      ['FBIM','DR. NORNASUHA BINTI YUSOFF','nornasuhayusoff@unisza.edu.my','MOHAMMAD AMIRUL IZZUDDIN BIN AZMI','izzuddinazmi@unisza.edu.my'],
-      ['FF','DR. ZALINA BINTI ZAHARI','zalinazahari@unisza.edu.my','FAIRUZ BINTI ZAKARIA','fairuzzakaria@unisza.edu.my'],
-      ['FIK','DR. MUHAMMAD DANIAL BIN ZAKARIA','mdanialzakaria@unisza.edu.my','NOR HIDAYAH BINTI SULAIMAN','hidayahsulaiman@unisza.edu.my'],
-      ['FKI','PROF. MADYA DR. SITI FATIMAH BINTI SALLEH','sitifatimah@unisza.edu.my','NOR SUHAIDA AMIRA BINTI MOHAMAD','nsuhaidaamira@unisza.edu.my'],
-      ['FUPL','DR. MUHAMAD HAFIZUDDIN BIN GHANI','hafizuddinghani@unisza.edu.my','NOR NAJIHAN BINTI MAT RIFIN','najihanmrifin@unisza.edu.my'],
-      ['FPP','DR. ROSMARIA BINTI JAFFAR @ HARUN','rosmaria@unisza.edu.my','MERISSA BINTI ABDUL AZIZ','merissaaziz@unisza.edu.my'],
-      ['FP','DR. NOOR AZUIN BINTI SULIMAN','azuinsuliman@unisza.edu.my','NURUL AIDA BINTI HAMDAN','aidahamdan@unisza.edu.my'],
-      ['FPV','DR. HUSNA FASIHAH BINTI MOHD YUSOFF','husnafasihah@unisza.edu.my','NOOR HAFIZAL BINTI ABDUL AZIS','noorhafizal@unisza.edu.my'],
-      ['FRIT','PROF. MADYA TS. DR. YEW BEEN SEOK','bseokyew@unisza.edu.my','NORZILAYATI BINTI HARUN','norzilayati@unisza.edu.my'],
-      ['FSK','DR. MOHD NIZAM BIN ZAHARY','nizamzahary@unisza.edu.my','WAN MAIMUNAH BINTI WAN AWANG','maimunahawang@unisza.edu.my'],
-      ['FSSG','TS. DR. NOORJIMA BINTI ABD WAHAB','noorjimaabdwahab@unisza.edu.my','WAN FAZILA BINTI WAN OMAR @ WAN JOHOR','wanfazila@unisza.edu.my'],
-      ['FUHA','DR. IYLLYANA BINTI CHE ROSLI','iyllyanarosli@unisza.edu.my','HAYATI BINTI ABD. HADI','hayatihadi@unisza.edu.my'],
-      ['ESERI','PROF. MADYA DR. NORHAYATI BINTI NGAH','norhayatingah@unisza.edu.my','NURUL AFIQAH HAZLIN BINTI FAIRUS','afiqahazlin@unisza.edu.my'],
-      ['INSPIRE','DR. NOORSAFUAN BIN CHE NOH','noorsafuancn@unisza.edu.my','NURUL NAJIHAH BINTI MAT SAMAN','najihahmsaman@unisza.edu.my'],
-    ];
-    rows.forEach(function(r) { pic.appendRow(r); });
-    return ContentService.createTextOutput('PIC updated: ' + rows.length + ' faculties')
-      .setMimeType(ContentService.MimeType.TEXT);
-  }
+  var code = params.code;
+  var state = params.state;
 
   var template = HtmlService.createTemplateFromFile('Index');
   template.oauthUrl = getOAuthUrl();
@@ -120,13 +54,23 @@ function doGet(e) {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
+function hasDisabledLegacyRoute_(params) {
+  var names = ['debug', 'pic', 'sendAll', 'sendFaculty', 'testEmail', 'updatePIC'];
+  return names.some(function(name) { return Object.prototype.hasOwnProperty.call(params || {}, name); });
+}
+
+function disabledEndpointResponse_() {
+  return ContentService.createTextOutput('Endpoint disabled')
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
 function include(file) {
   return HtmlService.createHtmlOutputFromFile(file).getContent();
 }
 
 function debugGetProgrammesApi() {
   var user = getCurrentUser();
-  if (!user) return { error: 'Unauthorized' };
+  if (!isGraduateSchoolAdmin_(user)) throw new Error('Endpoint disabled');
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('Programme');
   if (!sheet) return { error: 'No sheet' };
@@ -228,10 +172,10 @@ function suggestDeleteFileApi(fileId, mqaCode) {
   return suggestDeleteFile(fileId, mqaCode);
 }
 
-function approveDeleteFileApi(fileId) {
+function approveDeleteFileApi(requestId) {
   var user = getCurrentUser();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
-  return approveDeleteFile(fileId);
+  return approveDeleteFile(requestId);
 }
 
 function suggestAddProgrammeApi(programmeData) {
@@ -303,7 +247,7 @@ function prepareAllSheetsApi() {
 function sendTestAnnouncementApi() {
   return withErrorHandling(function() {
     var user = getCurrentUser();
-    if (!user || user.role !== 'Admin') throw new Error('Admin only');
+    if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
     return sendTestAnnouncement();
   });
 }
@@ -312,7 +256,7 @@ function sendTestAnnouncementApi() {
 function sendAnnouncementApi(fac) {
   return withErrorHandling(function() {
     var user = getCurrentUser();
-    if (!user || user.role !== 'Admin') throw new Error('Admin only');
+    if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
     return sendAnnouncement(fac);
   });
 }
@@ -321,7 +265,7 @@ function sendAnnouncementApi(fac) {
 function sendAllAnnouncementsApi() {
   return withErrorHandling(function() {
     var user = getCurrentUser();
-    if (!user || user.role !== 'Admin') throw new Error('Admin only');
+    if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
     return sendAllAnnouncements();
   });
 }
@@ -330,7 +274,7 @@ function sendAllAnnouncementsApi() {
 function sendAnnouncementsByFacultyListApi(facList) {
   return withErrorHandling(function() {
     var user = getCurrentUser();
-    if (!user || user.role !== 'Admin') throw new Error('Admin only');
+    if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
     return sendAnnouncementsByFacultyList(facList);
   });
 }

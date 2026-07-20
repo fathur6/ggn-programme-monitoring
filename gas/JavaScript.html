@@ -719,11 +719,11 @@ self.showToast('Error: ' + e.message);
         })
         .prepareAllSheetsApi();
     },
-    approveDelete: function(d) {
+    approveDelete: function(requestId) {
       var self = this;
       google.script.run
         .withSuccessHandler(function() { self.loadPendingDeletions(); })
-        .approveDeleteFileApi(d.fileId);
+        .approveDeleteFileApi(requestId);
     }
   },
   mounted: function() {

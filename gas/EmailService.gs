@@ -140,6 +140,7 @@ function getFacultyRecipients(fac) {
 
 
 function sendTestAnnouncement() {
+  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
   var fac = 'FBK';
   var recip = getFacultyRecipientData(fac);
   var subject = '[TEST] PENGISIAN MAKLUMAT PEO, PLO DAN PEMETAAN MQF 2.0 (2024) — ' + fac;
@@ -159,6 +160,7 @@ function sendTestAnnouncement() {
 
 
 function sendAnnouncement(fac) {
+  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
   fac = String(fac).toUpperCase();
   if (!TDA_DATA[fac]) throw new Error('Unknown faculty: ' + fac);
 
@@ -182,6 +184,7 @@ function sendAnnouncement(fac) {
 
 
 function sendAllAnnouncements() {
+  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
   var results = [];
   var faculties = Object.keys(TDA_DATA);
   for (var i = 0; i < faculties.length; i++) {
@@ -197,6 +200,7 @@ function sendAllAnnouncements() {
 
 
 function sendAnnouncementsByFacultyList(facList) {
+  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
   var results = [];
   var arr = JSON.parse(facList);
   for (var i = 0; i < arr.length; i++) {

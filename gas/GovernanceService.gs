@@ -1,5 +1,18 @@
 /** GovernanceService.gs - university reporting and additive governance records */
 
+var ACADEMIC_DEADLINE = '2026-07-23T23:59:59+08:00';
+var ACADEMIC_DEADLINE_LABEL = '23 July 2026, 11:59:59 PM MYT';
+
+function getAcademicDeadline_() {
+  return new Date(ACADEMIC_DEADLINE);
+}
+
+function isProgrammeOverdue_(status, now) {
+  var completionState = String(status && status.completionState || '').trim();
+  if (completionState === 'Complete' || completionState === 'Submitted') return false;
+  return (now || new Date()).getTime() > getAcademicDeadline_().getTime();
+}
+
 var GOVERNANCE_HEADERS = {
   ProgrammeStatus: [
     'MQACode', 'Faculty', 'CompletionState', 'PEOState', 'PLOState',
@@ -68,7 +81,8 @@ function getUniversityDashboardApi_() {
     programmeCount: programmes.length,
     totals: totals,
     faculties: faculties,
-    canDrillDown: admin
+    canDrillDown: admin,
+    academicDeadline: ACADEMIC_DEADLINE_LABEL
   };
 }
 
@@ -186,8 +200,9 @@ function computeProgrammeStatus_(programme) {
   var taxonomyComplete = plos.length > 0 && plos.every(function(item) { return String(item.taxonomy || '').trim(); });
   var mappingComplete = plos.length > 0 && plos.every(function(item) { return String(item.embeddedPEO || '').trim(); });
   var complete = peoComplete && ploComplete && mqfComplete && taxonomyComplete && mappingComplete;
+  var completionState = complete ? 'Complete' : 'Needs Attention';
   return {
-    completionState: complete ? 'Complete' : 'Needs Attention',
+    completionState: completionState,
     peoState: peoComplete ? 'Complete' : 'Needs Attention',
     ploState: ploComplete ? 'Complete' : 'Needs Attention',
     mqfDomainState: mqfComplete ? 'Complete' : 'Needs Attention',
@@ -196,7 +211,7 @@ function computeProgrammeStatus_(programme) {
     documentState: filesReady ? 'Ready' : 'Needs Attention',
     reviewState: complete ? 'Ready' : 'Blocked',
     submissionState: complete ? 'Ready' : 'Draft',
-    overdue: false,
+    overdue: isProgrammeOverdue_({ completionState: completionState }),
     counts: {
       peos: peos.length,
       plos: plos.length,

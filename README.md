@@ -37,6 +37,22 @@ clasp deploy -V <version> -i <deployment-id> -d "description"
 
 Do not commit `gas/Config.gs` or `gas/.clasp.json`. They contain deployment-specific configuration and credentials.
 
+## Required Deployment Configuration
+
+Create the ignored files locally from the examples:
+
+- `gas/Config.gs` must define `SHEET_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `DRIVE_FOLDER_ID` with values supplied by the system owner.
+- `gas/.clasp.json` must identify the Apps Script project and use `rootDir` pointing to `gas/` when clasp is run from the repository root, or an empty `rootDir` when run from `gas/`.
+- The deploying Google account must have Apps Script project access, spreadsheet access, Drive access, and permission to manage the intended deployment.
+
+The example files contain placeholders only. Never paste real values into README files, static tests, screenshots, or shell output.
+
+## Secret-handling Rules
+
+- Treat `Config.gs`, `.clasp.json`, OAuth tokens, client secrets, spreadsheet identifiers, and Drive identifiers as restricted operational data.
+- Do not print, commit, upload, or include restricted values in diagnostics, screenshots, issue reports, or deployment descriptions.
+- Rotate credentials through the system owner if a restricted value is exposed.
+
 ## Verification
 
 From the project root, run:
@@ -52,6 +68,27 @@ The checks are static and syntax-based because the deployed Google Apps Script s
 ## Deployment Caution
 
 Deploy only after reviewing the authorization changes in `Auth.gs`, `Code.gs`, `GovernanceService.gs`, and `AccessRequestService.gs`. Use a test deployment first, then verify faculty isolation, Graduate School drilldown, seven-day access expiry, document permissions, and admin approval actions with representative accounts. Do not expose the local `Config.gs` or `.clasp.json` contents in logs, commits, or screenshots.
+
+## Secure Backup And Recovery
+
+- Keep the real `Config.gs` and `.clasp.json` in the system owner’s approved password manager or encrypted institutional storage, not in Git or ordinary shared folders.
+- Record the Apps Script project identity and deployment history in the owner’s secure operations record without recording OAuth tokens or client secrets in this repository.
+- If the deployment computer is lost, install clasp on a replacement machine, authenticate with the authorized institutional account, restore the two ignored files from secure storage, run the static checks, and verify the target project with `clasp status` before any push.
+- If either ignored file is unavailable, stop and recover it from the system owner. Do not reconstruct credentials from shell history or browser storage.
+
+## Production Deployment Checklist
+
+1. Run the static verifier, GAS syntax check, manifest JSON check, and `git diff --check`.
+2. Confirm `gas/Config.gs` and `gas/.clasp.json` are ignored and untracked.
+3. Test authorization with a Graduate School Admin and at least one faculty account.
+4. Verify legacy debug, PIC, email, and update URLs return `Endpoint disabled`.
+5. Verify deletion approval uses a specific Pending request and rejects mismatched or already processed requests.
+6. Verify dashboard deadline display is `23 July 2026, 11:59:59 PM MYT` and overdue status uses `Asia/Kuala_Lumpur` semantics.
+7. Use a test deployment first. Run `clasp push`, create a version, and update the intended deployment only after explicit production approval.
+
+## Test Deployment Verification
+
+After an authorized test deployment, verify login, faculty isolation, PEO/PLO saves, MQF Domain and Taxonomy readiness, document permissions, access-request expiry, admin deletion approval, and the fixed deadline with representative test data. No production deployment or external side effect is implied by local verification.
 
 ## Reference
 

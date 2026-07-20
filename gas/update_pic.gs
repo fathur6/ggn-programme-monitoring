@@ -1,6 +1,6 @@
 function updatePICApi(raw) {
   var user = getCurrentUser();
-  if (!user || user.role !== 'Admin') throw new Error('Unauthorized');
+  if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var ss = getSpreadsheet();
   var pic = ss.getSheetByName('PIC');
   var rows = JSON.parse(raw);

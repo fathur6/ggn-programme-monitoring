@@ -22,9 +22,13 @@ const plo = read('gas/PLOService.gs');
 const graph = read('gas/GraphService.gs');
 const upload = read('gas/UploadService.gs');
 const suggestions = read('gas/SuggestionsService.gs');
+const email = read('gas/EmailService.gs');
 const index = read('gas/Index.html');
 const javascript = read('gas/JavaScript.html');
 const styles = read('gas/Styles.html');
+const readme = read('README.md');
+const configExample = read('gas/Config.gs.example');
+const claspExample = read('gas/.clasp.json.example');
 
 [
   'gas/Index.html',
@@ -39,8 +43,10 @@ const styles = read('gas/Styles.html');
   'gas/GraphService.gs',
   'gas/UploadService.gs',
   'gas/SuggestionsService.gs',
+  'gas/EmailService.gs',
   'gas/appsscript.json',
-  'README.md'
+  'README.md',
+  'scripts/test-mqf-overdue.js'
 ].forEach(function(path) {
   assert(fs.existsSync(path), 'Required project file is missing: ' + path);
 });
@@ -52,6 +58,39 @@ assert(trackedFiles.indexOf('gas/.clasp.json') === -1, 'Deployment clasp metadat
   childProcess.execFileSync('git', ['check-ignore', '-q', path]);
 });
 assert(!trackedFiles.some(function(path) { return path.indexOf('.superpowers/') === 0 || path.indexOf('graphify-out/') === 0; }), 'Generated project artifacts must not be tracked');
+assertContains(configExample, /SHEET_ID:\s*['"]YOUR_SPREADSHEET_ID['"]/, 'Config example must use a spreadsheet placeholder');
+assertContains(configExample, /GOOGLE_CLIENT_ID:\s*['"]YOUR_CLIENT_ID/, 'Config example must use a client ID placeholder');
+assertContains(configExample, /GOOGLE_CLIENT_SECRET:\s*['"]YOUR_CLIENT_SECRET['"]/, 'Config example must use a client secret placeholder');
+assertContains(configExample, /DRIVE_FOLDER_ID:\s*['"]YOUR_DRIVE_FOLDER_ID['"]/, 'Config example must use a Drive placeholder');
+assertContains(claspExample, /YOUR_SCRIPT_ID/, 'clasp example must use a script ID placeholder');
+['Required Deployment Configuration', 'Secure Backup And Recovery', 'Production Deployment Checklist', 'Secret-handling', 'Test Deployment Verification'].forEach(function(section) {
+  assert(readme.indexOf(section) !== -1, 'README is missing deployment section: ' + section);
+});
+
+const doGetSource = code.slice(code.indexOf('function doGet'), code.indexOf('function include'));
+assertContains(code, /function\s+hasDisabledLegacyRoute_\s*\(/, 'Legacy route guard is missing');
+assertContains(code, /Endpoint disabled/, 'Disabled endpoints do not return a generic response');
+assert(!/sendAllAnnouncements|sendAnnouncement|sendTestAnnouncement|clearContents|appendRow/.test(doGetSource), 'doGet still exposes a side-effect operation');
+assertContains(code, /function\s+sendAllAnnouncementsApi[\s\S]*?isGraduateSchoolAdmin_/, 'Email API lacks backend admin authorization');
+assertContains(code, /function\s+sendAnnouncementApi[\s\S]*?isGraduateSchoolAdmin_/, 'Faculty email API lacks backend admin authorization');
+assertContains(code, /function\s+sendTestAnnouncementApi[\s\S]*?isGraduateSchoolAdmin_/, 'Test email API lacks backend admin authorization');
+assertContains(code, /function\s+sendAnnouncementsByFacultyListApi[\s\S]*?isGraduateSchoolAdmin_/, 'Faculty-list email API lacks backend admin authorization');
+['sendTestAnnouncement', 'sendAnnouncement', 'sendAllAnnouncements', 'sendAnnouncementsByFacultyList'].forEach(function(name) {
+  assertContains(email, new RegExp('function\\s+' + name + '[\\s\\S]*?isGraduateSchoolAdmin_'), name + ' lacks direct backend admin authorization');
+});
+assertContains(code, /function\s+hasDisabledLegacyRoute_\s*\([\s\S]*?updatePIC/, 'PIC update legacy route is not disabled');
+assertContains(code, /function\s+debugGetProgrammesApi[\s\S]*?isGraduateSchoolAdmin_/, 'Debug service lacks backend admin authorization');
+assertContains(code, /function\s+approveDeleteFileApi\s*\(requestId\)/, 'Delete approval must use requestId');
+assertContains(upload, /function\s+approveDeleteFile\s*\(requestId\)/, 'Delete service must use requestId');
+assertContains(upload, /columns\.Status\]\)\s*!==\s*['"]Pending['"]/, 'Delete service must require Pending status');
+assertContains(upload, /getParents\s*\(/, 'Delete service must verify file folder membership');
+assertContains(upload, /RequestId/, 'Delete records must include a request ID');
+assertContains(index, /approveDelete\(d\.requestId\)/, 'Admin UI must approve a deletion request by requestId');
+assertContains(javascript, /approveDeleteFileApi\(requestId\)/, 'Client approval must send requestId');
+assertContains(read('gas/dump_pic.gs'), /Endpoint disabled/, 'PIC dump utility must be disabled');
+assertContains(governance, /var\s+ACADEMIC_DEADLINE\s*=\s*['"]2026-07-23T23:59:59\+08:00['"]/, 'Academic deadline constant is missing or incorrect');
+assertContains(governance, /function\s+isProgrammeOverdue_\s*\(/, 'Overdue helper is missing');
+assert(!/overdue\s*:\s*false/.test(governance), 'Overdue status is still hard-coded false');
 
 assertContains(auth, /isGraduateSchoolAdmin_\s*\(/, 'Missing Graduate School admin capability helper');
 assertContains(auth, /canViewProgramme_\s*\(/, 'Missing programme access helper');

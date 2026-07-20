@@ -48,7 +48,7 @@
     <main class="container" style="padding-top:24px;padding-bottom:48px;">
       <section v-if="currentView === 'dashboard'" class="dashboard-view">
         <div class="page-intro">
-          <div><p class="eyebrow">{{ user.role === 'Admin' ? 'UNIVERSITY CONTROL CENTER' : 'FACULTY WORKSPACE' }}</p><h2 class="page-title">Programme readiness</h2><p class="page-lede">A current view of completion across {{ dashboard ? dashboard.facultyCount : 'the university' }} faculties.</p></div>
+           <div><p class="eyebrow">{{ user.role === 'Admin' ? 'UNIVERSITY CONTROL CENTER' : 'FACULTY WORKSPACE' }}</p><h2 class="page-title">Programme readiness</h2><p class="page-lede">A current view of completion across {{ dashboard ? dashboard.facultyCount : 'the university' }} faculties. Deadline: {{ dashboard ? dashboard.academicDeadline : '23 July 2026, 11:59:59 PM MYT' }}.</p></div>
           <button class="btn btn-primary" @click="setView('programmes')">Open programme workspace</button>
         </div>
         <div v-if="dashboardError" class="alert alert-error">{{ dashboardError }}</div>
@@ -185,7 +185,7 @@
              <div v-for="(d, idx) in pendingDeletions" :key="'d'+idx" class="card-bordered" style="padding:12px;margin-bottom:8px;">
                <div class="text-sm"><strong>{{ d.fileName }}</strong> — {{ d.programme }} by {{ d.requestedBy }}</div>
               <div class="mt-1" v-if="d.status === 'Pending'">
-                <button @click="approveDelete(d)" class="btn btn-success text-sm">Approve</button>
+                 <button @click="approveDelete(d.requestId)" class="btn btn-success text-sm">Approve</button>
               </div>
                <div class="text-xs mt-1" v-else><span class="text-action-blue">{{ d.status }}</span></div>
              </div>

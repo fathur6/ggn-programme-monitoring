@@ -18,6 +18,53 @@ function getUploadedFiles(mqaCode) {
   return result.sort(function(a, b) { return b.date.localeCompare(a.date); });
 }
 
+var DELETION_HEADERS = [
+  'RequestId', 'FileID', 'FileName', 'Programme', 'RequestedBy',
+  'RequestedDate', 'Status', 'ApproverEmail', 'ApprovedDate', 'DecisionNote'
+];
+
+function getDeletionSheet_() {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName('PendingDeletions');
+  if (!sheet) {
+    sheet = ss.insertSheet('PendingDeletions');
+    sheet.appendRow(DELETION_HEADERS);
+  }
+
+  var headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
+  DELETION_HEADERS.forEach(function(header) {
+    if (headers.indexOf(header) === -1) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header);
+      headers.push(header);
+    }
+  });
+  var columns = {};
+  headers.forEach(function(header, index) { columns[header] = index; });
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][columns.FileID] && !data[i][columns.RequestId]) {
+      var legacyRequestId = 'DEL-' + Utilities.getUuid();
+      sheet.getRange(i + 1, columns.RequestId + 1).setValue(legacyRequestId);
+    }
+  }
+  return { sheet: sheet, columns: columns };
+}
+
+function findProgramFolder_(mqaCode) {
+  var root = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID);
+  var folders = root.getFoldersByName(String(mqaCode || '').trim());
+  return folders.hasNext() ? folders.next() : null;
+}
+
+function fileBelongsToFolder_(file, folder) {
+  if (!file || !folder) return false;
+  var parents = file.getParents();
+  while (parents.hasNext()) {
+    if (parents.next().getId() === folder.getId()) return true;
+  }
+  return false;
+}
+
 function uploadFile(mqaCode, fileType, fileBlob) {
   var lock = LockService.getScriptLock();
   try {
@@ -51,6 +98,8 @@ function uploadFile(mqaCode, fileType, fileBlob) {
 }
 
 function suggestDeleteFile(fileId, mqaCode) {
+  var access = requireProgrammeAccess_(mqaCode, 'request-document-deletion');
+  if (!fileId || !mqaCode) throw new Error('Maklumat fail tidak lengkap.');
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
@@ -59,25 +108,43 @@ function suggestDeleteFile(fileId, mqaCode) {
   }
 
   try {
-    if (!fileId || !mqaCode) throw new Error('Maklumat fail tidak lengkap.');
-    var ss = getSpreadsheet();
-    var sheet = ss.getSheetByName('PendingDeletions');
-    if (!sheet) {
-      sheet = ss.insertSheet('PendingDeletions');
-      sheet.appendRow(['FileID', 'FileName', 'Programme', 'RequestedBy', 'RequestedDate', 'Status']);
-    }
     var file = DriveApp.getFileById(fileId);
-    var user = getCurrentUser();
-    sheet.appendRow([fileId, file.getName(), mqaCode, user.email, new Date(), 'Pending']);
-    return { success: true };
+    var folder = findProgramFolder_(mqaCode);
+    if (!fileBelongsToFolder_(file, folder)) throw new Error('Fail tidak sepadan dengan program.');
+
+    var deletion = getDeletionSheet_();
+    var data = deletion.sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][deletion.columns.FileID]) === String(fileId) &&
+          String(data[i][deletion.columns.Programme]) === String(mqaCode) &&
+          String(data[i][deletion.columns.Status]) === 'Pending') {
+        throw new Error('Permohonan Pending untuk fail ini sudah wujud.');
+      }
+    }
+
+    var requestId = 'DEL-' + Utilities.getUuid();
+    var row = [];
+    row[deletion.columns.RequestId] = requestId;
+    row[deletion.columns.FileID] = fileId;
+    row[deletion.columns.FileName] = file.getName();
+    row[deletion.columns.Programme] = mqaCode;
+    row[deletion.columns.RequestedBy] = access.user.email;
+    row[deletion.columns.RequestedDate] = new Date();
+    row[deletion.columns.Status] = 'Pending';
+    row[deletion.columns.ApproverEmail] = '';
+    row[deletion.columns.ApprovedDate] = '';
+    row[deletion.columns.DecisionNote] = '';
+    deletion.sheet.appendRow(row);
+    return { success: true, requestId: requestId };
   } finally {
     lock.releaseLock();
   }
 }
 
-function approveDeleteFile(fileId) {
+function approveDeleteFile(requestId) {
   var user = getCurrentUser();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
+  if (!requestId) throw new Error('Request ID diperlukan.');
 
   var lock = LockService.getScriptLock();
   try {
@@ -87,19 +154,28 @@ function approveDeleteFile(fileId) {
   }
 
   try {
-    var file = DriveApp.getFileById(fileId);
-    file.setTrashed(true);
-    var ss = getSpreadsheet();
-    var sheet = ss.getSheetByName('PendingDeletions');
-    if (sheet) {
-      var data = sheet.getDataRange().getValues();
-      for (var i = 1; i < data.length; i++) {
-        if (data[i][0] === fileId) {
-          sheet.getRange(i + 1, 6).setValue('Approved');
-          break;
-        }
+    var deletion = getDeletionSheet_();
+    var data = deletion.sheet.getDataRange().getValues();
+    var rowIndex = -1;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][deletion.columns.RequestId]) === String(requestId)) {
+        rowIndex = i;
+        break;
       }
     }
+    if (rowIndex === -1) throw new Error('Permohonan pemadaman tidak dijumpai.');
+    var row = data[rowIndex];
+    if (String(row[deletion.columns.Status]) !== 'Pending') throw new Error('Permohonan telah diproses.');
+
+    var fileId = row[deletion.columns.FileID];
+    var mqaCode = row[deletion.columns.Programme];
+    var file = DriveApp.getFileById(fileId);
+    var folder = findProgramFolder_(mqaCode);
+    if (!fileBelongsToFolder_(file, folder)) throw new Error('Fail tidak sepadan dengan program.');
+    file.setTrashed(true);
+    deletion.sheet.getRange(rowIndex + 1, deletion.columns.Status + 1).setValue('Approved');
+    deletion.sheet.getRange(rowIndex + 1, deletion.columns.ApproverEmail + 1).setValue(user.email);
+    deletion.sheet.getRange(rowIndex + 1, deletion.columns.ApprovedDate + 1).setValue(new Date());
     return { success: true };
   } finally {
     lock.releaseLock();
