@@ -50,12 +50,24 @@ const created = context.createAccessRequestApi_({
 assert.strictEqual(created.status, 'Pending');
 assert.strictEqual(sheet.rows[1][3], 'Faculty B', 'Stored target faculty must be authoritative');
 
+const futureExpiry = new Date(Date.now() + 60 * 60 * 1000);
+sheet.rows.push(['LEGACY-FACULTY', 'faculty@example.com', 'Faculty A', 'Faculty B', '', 'Legacy faculty grant', 'faculty', new Date(), 'Approved', 'admin@example.com', new Date(), futureExpiry, '', '']);
+assert.strictEqual(
+  context.getActiveAccessGrant_('faculty@example.com', 'MQA/RESEARCH'),
+  null,
+  'Legacy approved grants without an explicit MQA code must be rejected'
+);
+sheet.rows.push(['EXPLICIT-PROGRAMME', 'faculty@example.com', 'Faculty A', 'Faculty B', 'MQA/RESEARCH', 'Explicit programme grant', 'programme', new Date(), 'Approved', 'admin@example.com', new Date(), futureExpiry, '', '']);
+const explicitGrant = context.getActiveAccessGrant_('faculty@example.com', 'MQA/RESEARCH');
+assert.strictEqual(explicitGrant.mqaCode, 'MQA/RESEARCH', 'Explicit programme grants must remain active');
+assert.strictEqual(explicitGrant.targetFaculty, 'Faculty B', 'Explicit grants must retain canonical faculty');
+
 currentUser = { email: 'admin@example.com', faculty: 'Faculty A', role: 'Admin', capabilities: { graduateSchoolAdmin: true } };
 sheet.rows.push(['STALE', 'faculty@example.com', 'Faculty A', 'Faculty B', 'MQA/LEGACY', 'Old', 'programme', new Date(), 'Pending', '', '', '', '', '']);
 assert.throws(() => context.decideAccessRequestApi_('STALE', 'Approved', ''), /invalid research programme/i);
-assert.strictEqual(sheet.rows[2][8], 'Pending', 'Stale decision must not change state');
+assert.strictEqual(sheet.rows[4][8], 'Pending', 'Stale decision must not change state');
 assert.throws(() => context.revokeAccessGrantApi_('STALE', ''), /invalid research programme/i);
-assert.strictEqual(sheet.rows[2][8], 'Pending', 'Stale revocation must not change state');
+assert.strictEqual(sheet.rows[4][8], 'Pending', 'Stale revocation must not change state');
 
 console.log('Task 7 boundary regression tests passed.');
 

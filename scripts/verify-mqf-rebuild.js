@@ -246,6 +246,12 @@ assertContains(access, /function\s+createAccessRequestApi_\s*\(/, 'Missing acces
 assertContains(access, /function\s+decideAccessRequestApi_\s*\(/, 'Missing access request decision');
 assertContains(access, /function\s+revokeAccessGrantApi_\s*\(/, 'Missing access grant revocation');
 assertContains(access, /getActiveAccessGrant_\s*\(/, 'Missing active access grant lookup');
+assertContains(access, /function\s+getActiveAccessGrant_[\s\S]*?if \(!requestedMqaCode \|\| !canonicalFaculty\) return null;/,
+  'Active access grants must require a canonical research programme identity');
+assertContains(access, /function\s+getActiveAccessGrant_[\s\S]*?if \(!grantMqaCode \|\| grantMqaCode !== requestedMqaCode\) continue;/,
+  'Active access grants must reject blank or mismatched MQA codes');
+assertContains(access, /function\s+getActiveAccessGrant_[\s\S]*?if \(!grantFaculty \|\| grantFaculty !== canonicalFaculty\) continue;/,
+  'Active access grants must reject blank or mismatched faculties');
 assertContains(access, /function\s+createAccessRequestApi_[\s\S]*?isResearchProgramme_\s*\(programme\)/,
   'Access request creation must reject non-research programmes');
 assertContains(access, /function\s+createAccessRequestApi_[\s\S]*?programme\.faculty[\s\S]*?targetFaculty[\s\S]*?throw new Error/,

@@ -112,7 +112,7 @@ function canViewProgramme_(user, mqaCode, optAccess) {
   if (programme.faculty === String(user.faculty || '').trim()) return true;
 
   if (!optAccess || optAccess.email !== user.email) return false;
-  if (optAccess.mqaCode && optAccess.mqaCode === mqaCode) return true;
+  if (!optAccess.mqaCode || optAccess.mqaCode !== mqaCode) return false;
   return !!optAccess.targetFaculty && optAccess.targetFaculty === programme.faculty;
 }
 

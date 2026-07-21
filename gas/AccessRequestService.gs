@@ -136,14 +136,19 @@ function getActiveAccessGrant_(email, mqaCode) {
   var data = sheet.getDataRange().getValues();
   var programme = findProgrammeByMqaCode_(mqaCode);
   if (!programme || !isResearchProgramme_(programme)) return null;
+  var requestedMqaCode = String(mqaCode || '').trim();
+  var canonicalFaculty = String(programme.faculty || '').trim();
+  if (!requestedMqaCode || !canonicalFaculty) return null;
   for (var i = data.length - 1; i >= 1; i--) {
     var row = data[i];
     if (String(row[1]) !== String(email) || String(row[8]) !== 'Approved') continue;
     if (row[12]) continue;
     if (!row[11] || new Date(row[11]).getTime() <= Date.now()) continue;
-    if (row[4] && String(row[4]) !== String(mqaCode)) continue;
-    if (row[3] && String(row[3]) !== String(programme.faculty)) continue;
-    return { email: row[1], mqaCode: row[4] || '', targetFaculty: row[3] || '', expiresAt: row[11] };
+    var grantMqaCode = String(row[4] || '').trim();
+    var grantFaculty = String(row[3] || '').trim();
+    if (!grantMqaCode || grantMqaCode !== requestedMqaCode) continue;
+    if (!grantFaculty || grantFaculty !== canonicalFaculty) continue;
+    return { email: row[1], mqaCode: grantMqaCode, targetFaculty: grantFaculty, expiresAt: row[11] };
   }
   return null;
 }
