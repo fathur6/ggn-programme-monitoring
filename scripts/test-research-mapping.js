@@ -72,6 +72,7 @@ assert.strictEqual(JSON.stringify(helpers.RESEARCH_SHEET_HEADERS), JSON.stringif
   PR_SCReference: ['Code', 'Title', 'Description', 'Active']
 }));
 assert.strictEqual(getResearchProgrammeKey_({mqaCode: ' MQA/TEST '}), 'MQA/TEST');
+assert.throws(() => getResearchProgrammeKey_({mqaCode: 'MQA/UNKNOWN'}), /programme directory/i);
 assert.throws(() => getResearchProgrammeKey_({programmeId: 'arbitrary-id'}), /programme/i);
 assert.deepStrictEqual(Array.from(validateReferenceIds_([' MQF2 ', 'MQF2', ''], ['MQF1', 'MQF2'])), ['MQF2']);
 assert.throws(() => validateReferenceIds_(['INVALID'], ['MQF1', 'MQF2']), /invalid/i);
