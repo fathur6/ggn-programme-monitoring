@@ -68,7 +68,8 @@ function loadResearchHelpers() {
   const source = [
     fs.readFileSync('gas/ResearchDataService.gs', 'utf8'),
     fs.readFileSync('gas/ResearchReferenceService.gs', 'utf8'),
-    fs.readFileSync('gas/ResearchMappingService.gs', 'utf8')
+    fs.readFileSync('gas/ResearchMappingService.gs', 'utf8'),
+    fs.readFileSync('gas/ResearchReviewService.gs', 'utf8'),
   ].join('\n');
   vm.runInNewContext(source, context);
   return context;
@@ -78,6 +79,21 @@ const helpers = loadResearchHelpers();
 const researchSheetNames = Object.keys(helpers.RESEARCH_SHEET_HEADERS);
 const { getResearchProgrammeKey_, validateReferenceIds_ } = helpers;
 const researchMappingSource = fs.readFileSync('gas/ResearchMappingService.gs', 'utf8');
+
+const incomplete = helpers.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: '', parentPEO: 'PEO1', mqfDomains: [], taxonomy: ''}],
+  mappings: []
+});
+assert(incomplete.critical.some(function(issue) { return issue.code === 'PLO_STATEMENT_REQUIRED'; }));
+assert.strictEqual(incomplete.status, 'Needs attention');
+
+const ready = helpers.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: 'Outcome', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
+  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}]
+});
+assert.strictEqual(ready.status, 'Ready for review');
 
 assert.deepStrictEqual(JSON.parse(JSON.stringify(helpers.deriveTFIds_(['MQF2', 'MQF3d'], {
   TF1: ['MQF1', 'MQF4a'],
@@ -236,6 +252,19 @@ assert.strictEqual(coverage.peoCoverage[0].coverage.derivedLabel, 'Derived from 
 assert.strictEqual(helpers.__lockState.unlockedDataReads, 0);
 assert.throws(() => helpers.saveResearchPLOMappingApi_('MQA/TEST', savedPLOs[0].ploId, {sdgIds: ['SDG99']}), /invalid/i);
 assert.strictEqual(helpers.__lockState.waitLockCalls >= 3, true);
+
+const review = helpers.getResearchReviewApi_('MQA/TEST');
+assert.strictEqual(review.status, 'Ready for review');
+assert.strictEqual(review.metrics.ploTotal, 1);
+assert.strictEqual(review.metrics.ploWithMQF, 1);
+assert.strictEqual(typeof review.updatedAt, 'string');
+assert.strictEqual(helpers.saveResearchStatusApi_('MQA/TEST', {status: 'Draft'}).status, 'Draft');
+assert.strictEqual(helpers.submitResearchProgrammeApi_('MQA/TEST').status, 'Submitted');
+assert.strictEqual(sheets.PR_ProgrammeProfile.values[1][10], 'Submitted');
+
+sheets.PR_PLORecords.values[1][4] = '';
+assert.throws(function() { helpers.submitResearchProgrammeApi_('MQA/TEST'); }, /critical review issues/i);
+sheets.PR_PLORecords.values[1][4] = 'Outcome';
 
 helpers.requireProgrammeAccess_ = function() { throw new Error('programme access denied'); };
 assert.throws(() => helpers.getResearchMappingsApi_('MQA/TEST'), /access denied/i);

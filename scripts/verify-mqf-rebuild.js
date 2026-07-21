@@ -32,6 +32,7 @@ const claspExample = read('gas/.clasp.json.example');
 const researchData = read('gas/ResearchDataService.gs');
 const researchReferences = read('gas/ResearchReferenceService.gs');
 const researchMapping = read('gas/ResearchMappingService.gs');
+const researchReview = read('gas/ResearchReviewService.gs');
 
 [
   'gas/Index.html',
@@ -53,6 +54,7 @@ const researchMapping = read('gas/ResearchMappingService.gs');
   'gas/ResearchDataService.gs',
   'gas/ResearchReferenceService.gs',
   'gas/ResearchMappingService.gs',
+  'gas/ResearchReviewService.gs',
   'scripts/test-research-mapping.js',
   'scripts/test-coor-access.js'
 ].forEach(function(path) {
@@ -72,6 +74,16 @@ assertContains(researchReferences, /function\s+deriveTFIds_\s*\(/, 'TF derivatio
 assertContains(researchMapping, /function\s+calculatePEOCoverage_\s*\(/, 'PEO coverage helper is missing');
 assertContains(researchMapping, /function\s+saveResearchPLOMappingApi_\s*\(/, 'PLO mapping save API is missing');
 assertContains(researchMapping, /function\s+getResearchCoverageApi_\s*\(/, 'Research coverage API is missing');
+assertContains(researchReview, /function\s+validateResearchProgramme_\s*\(/, 'Research review validation is missing');
+assertContains(researchReview, /function\s+getResearchReviewApi_\s*\(/, 'Research review API is missing');
+assertContains(researchReview, /function\s+saveResearchStatusApi_\s*\(/, 'Research status save API is missing');
+assertContains(researchReview, /function\s+submitResearchProgrammeApi_\s*\(/, 'Research submission API is missing');
+['critical', 'warnings', 'peoCoverage', 'ploTotal', 'mqfDomainCoverage', 'peosWithIssues'].forEach(function(marker) {
+  assertContains(researchReview, new RegExp(marker), 'Research review output is missing: ' + marker);
+});
+assertContains(researchReview, /requireProgrammeAccess_\s*\(/, 'Research review APIs are not programme scoped');
+assertContains(researchReview, /withResearchLock_\s*\(/, 'Research review mutations are not locked');
+assertContains(researchReview, /updatedBy/, 'Research review audit field is missing');
 assertContains(researchMapping, /Derived from PLO mappings/, 'Derived mapping label is missing');
 assert(!/\b(getPEOs|savePEOs|getPLOs|savePLOs)\s*\(/.test(researchMapping), 'Research service calls legacy PEO/PLO services');
 [
@@ -80,6 +92,9 @@ assert(!/\b(getPEOs|savePEOs|getPLOs|savePLOs)\s*\(/.test(researchMapping), 'Res
   'saveResearchPLOMappingApi_', 'getResearchCoverageApi_'
 ].forEach(function(name) {
   assertContains(researchMapping, new RegExp('function\\s+' + name + '[\\s\\S]*?requireProgrammeAccess_\\s*\\('), name + ' is not guarded');
+});
+['getResearchReviewApi', 'saveResearchStatusApi', 'submitResearchProgrammeApi'].forEach(function(name) {
+  assertContains(code, new RegExp('function\\s+' + name + '[\\s\\S]*?return\\s+' + name + '_'), name + ' wrapper is missing');
 });
 [
   'getResearchProgrammeApi', 'saveResearchProfileApi', 'getResearchPEOsApi',
@@ -157,6 +172,7 @@ assertContains(auth, /programme\.faculty\s*===\s*String\(user\.faculty\s*\|\|\s*
 assertContains(code, /function\s+approveDeleteFileApi[\s\S]*?isGraduateSchoolAdmin_/, 'Admin delete endpoint is not Graduate School-admin guarded');
 assertContains(governance, /function\s+ensureGovernanceSheets_\s*\(/, 'Missing additive governance sheet setup');
 assertContains(governance, /function\s+getUniversityDashboardApi_\s*\(/, 'Missing university dashboard API implementation');
+assertContains(governance, /function\s+computeResearchProgrammeStatus_\s*\([\s\S]*?getResearchReviewApi_\s*\(/, 'Research dashboard status does not use server review results');
 assertContains(governance, /MQFDomainState/, 'Dashboard does not monitor MQF Domain state');
 assertContains(governance, /TaxonomyState/, 'Dashboard does not monitor Taxonomy state');
 assertContains(governance, /var complete = peoComplete && ploComplete && mqfComplete && taxonomyComplete && mappingComplete;/, 'Supporting documents must not block completion readiness');

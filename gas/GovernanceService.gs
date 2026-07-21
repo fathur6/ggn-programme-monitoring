@@ -191,6 +191,7 @@ function saveGovernanceItemApi_(item) {
 }
 
 function computeProgrammeStatus_(programme) {
+  if (isResearchProgramme_(programme)) return computeResearchProgrammeStatus_(programme);
   var peos = getPEOs(programme.mqaCode);
   var plos = getPLOs(programme.mqaCode);
   var filesReady = hasProgrammeDocuments_(programme.mqaCode);
@@ -218,6 +219,41 @@ function computeProgrammeStatus_(programme) {
       mqfDomainComplete: plos.filter(function(item) { return String(item.mqfDomain || '').trim(); }).length,
       taxonomyComplete: plos.filter(function(item) { return String(item.taxonomy || '').trim(); }).length,
       mappingComplete: plos.filter(function(item) { return String(item.embeddedPEO || '').trim(); }).length
+    }
+  };
+}
+
+function isResearchProgramme_(programme) {
+  var level = String(programme && programme.level || '').toLowerCase();
+  return !!programme && (programme.research === true || level === 'masters' || level === 'doctorate');
+}
+
+function computeResearchProgrammeStatus_(programme) {
+  var review = getResearchReviewApi_(programme.mqaCode);
+  var metrics = review.metrics || {};
+  var ready = review.status === 'Ready for review' || review.status === 'Submitted' || review.status === 'Approved';
+  var submitted = review.status === 'Submitted' || review.status === 'Approved';
+  var peoReady = (metrics.peosWithIssues || 0) === 0 && metrics.ploTotal > 0;
+  var ploReady = metrics.ploStatementsComplete === metrics.ploTotal && metrics.ploTotal > 0;
+  var mqfReady = metrics.ploWithMQF === metrics.ploTotal && metrics.ploTotal > 0;
+  var mappingReady = (metrics.tfCoverage || 0) > 0;
+  return {
+    completionState: review.status,
+    peoState: peoReady ? 'Complete' : 'Needs attention',
+    ploState: ploReady ? 'Complete' : 'Needs attention',
+    mqfDomainState: mqfReady ? 'Complete' : 'Needs attention',
+    taxonomyState: ploReady ? 'Complete' : 'Needs attention',
+    mappingState: mappingReady ? 'Complete' : 'Needs attention',
+    documentState: 'Not required',
+    reviewState: review.critical && review.critical.length ? 'Blocked' : 'Ready',
+    submissionState: submitted ? 'Submitted' : (ready ? 'Ready' : review.status),
+    overdue: isProgrammeOverdue_({completionState: submitted ? 'Submitted' : review.status}),
+    counts: {
+      peos: review.peoCoverage ? review.peoCoverage.length : 0,
+      plos: metrics.ploTotal || 0,
+      mqfDomainComplete: metrics.ploWithMQF || 0,
+      taxonomyComplete: ploReady ? metrics.ploTotal : metrics.ploStatementsComplete || 0,
+      mappingComplete: mappingReady ? metrics.ploTotal : 0
     }
   };
 }
