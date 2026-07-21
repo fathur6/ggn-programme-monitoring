@@ -29,6 +29,8 @@ const styles = read('gas/Styles.html');
 const readme = read('README.md');
 const configExample = read('gas/Config.gs.example');
 const claspExample = read('gas/.clasp.json.example');
+const researchData = read('gas/ResearchDataService.gs');
+const researchReferences = read('gas/ResearchReferenceService.gs');
 
 [
   'gas/Index.html',
@@ -46,7 +48,10 @@ const claspExample = read('gas/.clasp.json.example');
   'gas/EmailService.gs',
   'gas/appsscript.json',
   'README.md',
-  'scripts/test-mqf-overdue.js'
+  'scripts/test-mqf-overdue.js',
+  'gas/ResearchDataService.gs',
+  'gas/ResearchReferenceService.gs',
+  'scripts/test-research-mapping.js'
 ].forEach(function(path) {
   assert(fs.existsSync(path), 'Required project file is missing: ' + path);
 });
@@ -154,5 +159,19 @@ assertContains(index, /Access requests/, 'Admin access request queue is missing'
 assertContains(index, /Governance queue/, 'Admin governance queue is missing');
 assertContains(javascript, /loadAccessRequests:\s*function\s*\(/, 'Access request loader is missing');
 assertContains(javascript, /loadGovernanceItems:\s*function\s*\(/, 'Governance queue loader is missing');
+
+const researchSheetNames = [
+  'PR_ProgrammeProfile', 'PR_PEORecords', 'PR_PLORecords', 'PR_PLOMappings',
+  'PR_MQFReference', 'PR_TFReference', 'PR_SDGReference', 'PR_SCReference'
+];
+researchSheetNames.forEach(function(name) {
+  assertContains(researchData, new RegExp(name + ':\\s*\\['), 'Research sheet boundary is missing: ' + name);
+});
+assertContains(researchReferences, /TF1[\s\S]*?MQF1[\s\S]*?MQF4a/, 'TF1 MQF relationship is missing');
+assertContains(researchReferences, /TF2[\s\S]*?MQF2[\s\S]*?MQF3a[\s\S]*?MQF3d[\s\S]*?MQF3e/, 'TF2 MQF relationships are missing');
+assertContains(researchReferences, /TF3[\s\S]*?MQF3a[\s\S]*?MQF3b[\s\S]*?MQF3c[\s\S]*?MQF3f/, 'TF3 MQF relationships are missing');
+assertContains(researchReferences, /TF4[\s\S]*?MQF3a[\s\S]*?MQF3b[\s\S]*?MQF4a[\s\S]*?MQF4b[\s\S]*?MQF5/, 'TF4 MQF relationships are missing');
+assert(!/Course|Subject|Credit|CLO|DCI/i.test(researchData), 'Research headers must not contain course fields');
+assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\(/, 'Research references API is missing');
 
 console.log('MQF rebuild static checks passed.');
