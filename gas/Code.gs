@@ -159,6 +159,8 @@ function saveResearchPEOsApi(mqaCode, peos) { return saveResearchPEOsApi_(mqaCod
 function getResearchPLOsApi(mqaCode) { return getResearchPLOsApi_(mqaCode); }
 function saveResearchPLOsApi(mqaCode, plos) { return saveResearchPLOsApi_(mqaCode, plos || []); }
 function getResearchMappingsApi(mqaCode) { return getResearchMappingsApi_(mqaCode); }
+function saveResearchPLOMappingApi(mqaCode, ploId, mapping) { return saveResearchPLOMappingApi_(mqaCode, ploId, mapping || {}); }
+function getResearchCoverageApi(mqaCode) { return getResearchCoverageApi_(mqaCode); }
 
 function getGraphDataApi(mqaCode) {
   requireProgrammeAccess_(mqaCode, 'view-graph');

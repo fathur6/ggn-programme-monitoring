@@ -89,6 +89,15 @@ function validateReferenceIds_(ids, allowedIds) {
   return result;
 }
 
+function deriveTFIds_(mqfDomains, tfReference) {
+  var selected = uniqueTrimmed_(mqfDomains || []);
+  return Object.keys(tfReference || {}).filter(function(tfId) {
+    return (tfReference[tfId] || []).some(function(domain) {
+      return selected.indexOf(String(domain).trim()) !== -1;
+    });
+  }).sort();
+}
+
 function getResearchReferencesApi() {
   if (!getCurrentUser()) throw new Error('Unauthorized');
   return getResearchReferences_();

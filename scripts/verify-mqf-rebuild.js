@@ -68,16 +68,23 @@ assertContains(researchMapping, /function\s+saveResearchPEOsApi_\s*\(/, 'Researc
 assertContains(researchMapping, /function\s+getResearchPLOsApi_\s*\(/, 'Research PLO API is missing');
 assertContains(researchMapping, /function\s+saveResearchPLOsApi_\s*\(/, 'Research PLO save API is missing');
 assertContains(researchMapping, /function\s+getResearchMappingsApi_\s*\(/, 'Research mapping API is missing');
+assertContains(researchReferences, /function\s+deriveTFIds_\s*\(/, 'TF derivation helper is missing');
+assertContains(researchMapping, /function\s+calculatePEOCoverage_\s*\(/, 'PEO coverage helper is missing');
+assertContains(researchMapping, /function\s+saveResearchPLOMappingApi_\s*\(/, 'PLO mapping save API is missing');
+assertContains(researchMapping, /function\s+getResearchCoverageApi_\s*\(/, 'Research coverage API is missing');
+assertContains(researchMapping, /Derived from PLO mappings/, 'Derived mapping label is missing');
 assert(!/\b(getPEOs|savePEOs|getPLOs|savePLOs)\s*\(/.test(researchMapping), 'Research service calls legacy PEO/PLO services');
 [
   'getResearchProgrammeApi_', 'saveResearchProfileApi_', 'getResearchPEOsApi_',
-  'saveResearchPEOsApi_', 'getResearchPLOsApi_', 'saveResearchPLOsApi_', 'getResearchMappingsApi_'
+  'saveResearchPEOsApi_', 'getResearchPLOsApi_', 'saveResearchPLOsApi_', 'getResearchMappingsApi_',
+  'saveResearchPLOMappingApi_', 'getResearchCoverageApi_'
 ].forEach(function(name) {
   assertContains(researchMapping, new RegExp('function\\s+' + name + '[\\s\\S]*?requireProgrammeAccess_\\s*\\('), name + ' is not guarded');
 });
 [
   'getResearchProgrammeApi', 'saveResearchProfileApi', 'getResearchPEOsApi',
-  'saveResearchPEOsApi', 'getResearchPLOsApi', 'saveResearchPLOsApi', 'getResearchMappingsApi'
+  'saveResearchPEOsApi', 'getResearchPLOsApi', 'saveResearchPLOsApi', 'getResearchMappingsApi',
+  'saveResearchPLOMappingApi', 'getResearchCoverageApi'
 ].forEach(function(name) {
   assertContains(code, new RegExp('function\\s+' + name + '[\\s\\S]*?return\\s+' + name + '_'), name + ' wrapper is missing');
 });

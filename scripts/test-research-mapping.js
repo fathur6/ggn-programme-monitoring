@@ -76,6 +76,19 @@ const researchSheetNames = Object.keys(helpers.RESEARCH_SHEET_HEADERS);
 const { getResearchProgrammeKey_, validateReferenceIds_ } = helpers;
 const researchMappingSource = fs.readFileSync('gas/ResearchMappingService.gs', 'utf8');
 
+assert.deepStrictEqual(JSON.parse(JSON.stringify(helpers.deriveTFIds_(['MQF2', 'MQF3d'], {
+  TF1: ['MQF1', 'MQF4a'],
+  TF2: ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']
+}))), ['TF2']);
+assert.deepStrictEqual(JSON.parse(JSON.stringify(helpers.calculatePEOCoverage_([
+  {parentPEO: 'PEO1', derivedTFIds: ['TF1'], sdgIds: ['SDG4'], scIds: ['SC2']},
+  {parentPEO: 'PEO1', derivedTFIds: ['TF2'], sdgIds: ['SDG4'], scIds: ['SC3']}
+], 'PEO1'))), {
+  tfIds: ['TF1', 'TF2'], sdgIds: ['SDG4'], scIds: ['SC2', 'SC3'], childCount: 2,
+  derivedLabel: 'Derived from PLO mappings'
+});
+assert.throws(() => helpers.calculatePEOCoverage_([], 'PEO1'), /no child PLO/i);
+
 assert.deepStrictEqual(JSON.parse(JSON.stringify(helpers.normalizeResearchPLO_({
   code: ' PLO1 ',
   statement: ' Outcome ',
@@ -194,6 +207,24 @@ const readPLOs = helpers.getResearchPLOsApi_('MQA/TEST');
 assert.strictEqual(readPLOs[0].taxonomy, 'C4');
 assert.deepStrictEqual(JSON.parse(JSON.stringify(readPLOs[0].mqfDomains)), ['MQF2']);
 assert.strictEqual(typeof readPLOs[0].updatedAt, 'string');
+const savedMapping = helpers.saveResearchPLOMappingApi_('MQA/TEST', savedPLOs[0].ploId, {
+  sdgIds: ['SDG4', 'SDG4'], scIds: ['SC2'], derivedTFIds: ['TF1'], mappingNote: 'Research rationale'
+});
+assert.deepStrictEqual(JSON.parse(JSON.stringify(savedMapping.sdgIds)), ['SDG4']);
+assert.deepStrictEqual(JSON.parse(JSON.stringify(savedMapping.scIds)), ['SC2']);
+assert.deepStrictEqual(JSON.parse(JSON.stringify(savedMapping.derivedTFIds)), ['TF2']);
+assert.strictEqual(savedMapping.derivedLabel, 'Derived from PLO mappings');
+assert.strictEqual(savedMapping.mappingNote, 'Research rationale');
+assert.deepStrictEqual(JSON.parse(JSON.stringify(helpers.getResearchMappingsApi_('MQA/TEST').map(function(mapping) {
+  return {ploId: mapping.ploId, derivedTFIds: mapping.derivedTFIds, derivedLabel: mapping.derivedLabel};
+}))), [{ploId: savedPLOs[0].ploId, derivedTFIds: ['TF2'], derivedLabel: 'Derived from PLO mappings'}]);
+const coverage = helpers.getResearchCoverageApi_('MQA/TEST');
+assert.deepStrictEqual(JSON.parse(JSON.stringify(coverage.globalCoverage)), {
+  mqfIds: ['MQF2'], tfIds: ['TF2'], sdgIds: ['SDG4'], scIds: ['SC2']
+});
+assert.strictEqual(coverage.ploReadiness[0].ready, true);
+assert.strictEqual(coverage.peoCoverage[0].coverage.derivedLabel, 'Derived from PLO mappings');
+assert.throws(() => helpers.saveResearchPLOMappingApi_('MQA/TEST', savedPLOs[0].ploId, {sdgIds: ['SDG99']}), /invalid/i);
 assert.strictEqual(helpers.__lockState.waitLockCalls >= 3, true);
 
 helpers.LockService.getScriptLock = function() {
