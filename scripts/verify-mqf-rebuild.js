@@ -42,6 +42,13 @@ const researchMapping = read('gas/ResearchMappingService.gs');
 const researchReview = read('gas/ResearchReviewService.gs');
 const programmeService = read('gas/ProgrammeService.gs');
 
+function functionSource(source, name) {
+  const start = source.indexOf('function ' + name + '(');
+  assert(start !== -1, 'Function is missing: ' + name);
+  const next = source.indexOf('\nfunction ', start + 1);
+  return source.slice(start, next === -1 ? source.length : next);
+}
+
 [
   'gas/Index.html',
   'gas/JavaScript.html',
@@ -176,6 +183,7 @@ assertContains(auth, /isGraduateSchoolAdmin_\s*\(/, 'Missing Graduate School adm
 assertContains(auth, /canViewProgramme_\s*\(/, 'Missing programme access helper');
 assertContains(auth, /requireProgrammeAccess_\s*\(/, 'Missing programme access guard');
 assertContains(auth, /capabilities\s*[:=]/, 'Current user does not expose normalized capabilities');
+assertContains(auth, /function\s+requireResearchProgrammeAccess_\s*\(/, 'Legacy service research/access guard is missing');
 
 [
   'getPEOsApi',
@@ -193,8 +201,8 @@ assertContains(auth, /capabilities\s*[:=]/, 'Current user does not expose normal
 assertContains(code, /function\s+approveDeleteFileApi[\s\S]*?isGraduateSchoolAdmin_/, 'Admin delete endpoint is not Graduate School-admin guarded');
 assertContains(governance, /function\s+ensureGovernanceSheets_\s*\(/, 'Missing additive governance sheet setup');
 assertContains(governance, /function\s+getUniversityDashboardApi_\s*\(/, 'Missing university dashboard API implementation');
-assertContains(governance, /getProgrammes\(admin \? null : user\.faculty\)\.filter\(isResearchProgramme_\)/, 'University dashboard is not research scoped');
-assertContains(governance, /getProgrammes\(faculty\)\.filter\(isResearchProgramme_\)/, 'Faculty report is not research scoped');
+assertContains(governance, /getProgrammes_\(admin \? null : user\.faculty\)\.filter\(isResearchProgramme_\)/, 'University dashboard is not research scoped');
+assertContains(governance, /getProgrammes_\(faculty\)\.filter\(isResearchProgramme_\)/, 'Faculty report is not research scoped');
 assertContains(governance, /MQFDomainState/, 'Dashboard does not monitor MQF Domain state');
 assertContains(governance, /TaxonomyState/, 'Dashboard does not monitor Taxonomy state');
 assertContains(governance, /function\s+computeResearchProgrammeStatus_\s*\(/, 'Research programme status integration is missing');
@@ -215,6 +223,27 @@ assertContains(graph, /'Taxonomy'/, 'Graph does not emit taxonomy nodes');
 assertContains(graph, /type:\s*'classified_as'/, 'Graph does not emit classification edges');
 assertContains(upload, /isGraduateSchoolAdmin_\(user\)/, 'File deletion is not Graduate School-admin guarded');
 assertContains(suggestions, /isGraduateSchoolAdmin_\(user\)/, 'Suggestion admin operations are not Graduate School-admin guarded');
+[
+  ['getPEOs', peo], ['savePEOs', peo], ['getPLOs', plo], ['savePLOs', plo],
+  ['getGraphData', graph], ['getUploadedFiles', upload], ['uploadFile', upload]
+].forEach(function(entry) {
+  assertContains(functionSource(entry[1], entry[0]), /requireResearchProgrammeAccess_\s*\(/,
+    entry[0] + ' is directly callable without research programme access protection');
+});
+assert(!/function\s+getProgrammes\s*\(/.test(programmeService),
+  'Internal programme loader remains directly callable as getProgrammes');
+assertContains(programmeService, /function\s+getProgrammes_\s*\(/,
+  'Internal programme loader must be private');
+assertContains(code, /function\s+getProgrammesApi[\s\S]*?getCurrentUser\(\)[\s\S]*?filter\(isResearchProgramme_\)/,
+  'Public programme directory lacks authentication and research-only filtering');
+assertContains(functionSource(code, 'suggestAddProgrammeApi'), /requireResearchProgrammeAccess_\s*\(/,
+  'Programme add suggestion route is not research/access guarded');
+assertContains(functionSource(code, 'suggestRemoveProgrammeApi'), /requireResearchProgrammeAccess_\s*\(/,
+  'Programme remove suggestion route is not research/access guarded');
+assertContains(functionSource(suggestions, 'suggestAddProgramme'), /requireResearchProgrammeAccess_\s*\(/,
+  'Direct add suggestion function is not research/access guarded');
+assertContains(functionSource(suggestions, 'suggestRemoveProgramme'), /requireResearchProgrammeAccess_\s*\(/,
+  'Direct remove suggestion function is not research/access guarded');
 assertContains(code, /function\s+prepareAllSheetsApi[\s\S]*?isGraduateSchoolAdmin_/, 'Sheet preparation is not Graduate School-admin guarded');
 assertContains(index, /class="app-nav"/, 'Persistent application navigation is missing');
 assertContains(index, /currentView === 'dashboard'/, 'University dashboard view is missing');

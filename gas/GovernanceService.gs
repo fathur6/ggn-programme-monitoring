@@ -44,7 +44,7 @@ function getUniversityDashboardApi_() {
   if (!user) throw new Error('Unauthorized');
 
   var admin = isGraduateSchoolAdmin_(user);
-  var programmes = getProgrammes(admin ? null : user.faculty).filter(isResearchProgramme_);
+  var programmes = getProgrammes_(admin ? null : user.faculty).filter(isResearchProgramme_);
   var byFaculty = {};
   var totals = createEmptyStatusTotals_();
 
@@ -93,7 +93,7 @@ function getFacultyReportApi_(faculty) {
     throw new Error('Forbidden: faculty report is outside your authorized scope');
   }
 
-  var programmes = getProgrammes(faculty).filter(isResearchProgramme_);
+  var programmes = getProgrammes_(faculty).filter(isResearchProgramme_);
   return {
     faculty: faculty,
     programmeCount: programmes.length,

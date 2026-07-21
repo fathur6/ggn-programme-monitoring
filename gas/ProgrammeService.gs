@@ -1,6 +1,6 @@
 /** ProgrammeService.gs — Programme listing and filtering */
 
-function getProgrammes(userFilterFaculty) {
+function getProgrammes_(userFilterFaculty) {
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('Programme');
   if (!sheet) throw new Error('Sheet "Programme" not found');
@@ -42,7 +42,7 @@ function isResearchProgramme_(programme) {
 function findProgrammeByMqaCode_(mqaCode) {
   var code = String(mqaCode || '').trim();
   if (!code) return null;
-  var programmes = getProgrammes(null);
+  var programmes = getProgrammes_(null);
   for (var i = 0; i < programmes.length; i++) {
     if (String(programmes[i].mqaCode).trim() === code) return programmes[i];
   }

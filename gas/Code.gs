@@ -89,7 +89,7 @@ function debugGetProgrammesApi() {
 function getProgrammesApi() {
   var user = getCurrentUser();
   if (!user) throw new Error('Unauthorized');
-  return getProgrammes(user.role === 'Admin' ? null : user.faculty).filter(isResearchProgramme_);
+  return getProgrammes_(user.role === 'Admin' ? null : user.faculty).filter(isResearchProgramme_);
 }
 
 function getUniversityDashboardApi() {
@@ -152,12 +152,12 @@ function approveDeleteFileApi(requestId) {
 }
 
 function suggestAddProgrammeApi(programmeData) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  requireResearchProgrammeAccess_(programmeData && programmeData.mqaCode, 'suggest-add-programme');
   return suggestAddProgramme(programmeData);
 }
 
 function suggestRemoveProgrammeApi(mqaCode) {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  requireResearchProgrammeAccess_(mqaCode, 'suggest-remove-programme');
   return suggestRemoveProgramme(mqaCode);
 }
 

@@ -129,6 +129,15 @@ function requireProgrammeAccess_(mqaCode, action) {
   return { user: user, action: action || 'view', access: access };
 }
 
+function requireResearchProgrammeAccess_(mqaCode, action) {
+  var access = requireProgrammeAccess_(mqaCode, action);
+  var programme = findProgrammeByMqaCode_(mqaCode);
+  if (!programme || !isResearchProgramme_(programme)) {
+    throw new Error('Forbidden: programme is not postgraduate by research');
+  }
+  return access;
+}
+
 function lookupUser(email) {
   var ss = getSpreadsheet();
   var emailStr = String(email).trim().toLowerCase();

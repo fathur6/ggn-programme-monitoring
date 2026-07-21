@@ -11,8 +11,8 @@ function ensureSuggestionsSheet() {
 }
 
 function suggestAddProgramme(programmeData) {
-  var user = getCurrentUser();
-  if (!user) throw new Error('Unauthorized');
+  var access = requireResearchProgrammeAccess_(programmeData && programmeData.mqaCode, 'suggest-add-programme');
+  var user = access.user;
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
@@ -27,8 +27,8 @@ function suggestAddProgramme(programmeData) {
 }
 
 function suggestRemoveProgramme(mqaCode) {
-  var user = getCurrentUser();
-  if (!user) throw new Error('Unauthorized');
+  var access = requireResearchProgrammeAccess_(mqaCode, 'suggest-remove-programme');
+  var user = access.user;
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);

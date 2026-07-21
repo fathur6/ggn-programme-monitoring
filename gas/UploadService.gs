@@ -1,6 +1,7 @@
 /** UploadService.gs — File upload, delete requests, and admin approval with LockService */
 
 function getUploadedFiles(mqaCode) {
+  requireResearchProgrammeAccess_(mqaCode, 'view-documents');
   if (!mqaCode) throw new Error('Program tidak dijumpai.');
   var folder = getProgramFolder(mqaCode);
   var files = folder.getFiles();
@@ -66,6 +67,7 @@ function fileBelongsToFolder_(file, folder) {
 }
 
 function uploadFile(mqaCode, fileType, fileBlob) {
+  requireResearchProgrammeAccess_(mqaCode, 'upload-document');
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
