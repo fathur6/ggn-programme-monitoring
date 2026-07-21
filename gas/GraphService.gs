@@ -2,8 +2,8 @@
 
 function getGraphData_(mqaCode) {
   requireResearchProgrammeAccess_(mqaCode, 'view-graph');
-  var peos = getPEOs(mqaCode);
-  var plos = getPLOs(mqaCode);
+  var peos = getPEOs_(mqaCode);
+  var plos = getPLOs_(mqaCode);
   var nodes = [];
   var edges = [];
   var nodeSet = {};

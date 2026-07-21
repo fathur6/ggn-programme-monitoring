@@ -177,7 +177,8 @@ assertContains(code, /function\s+hasDisabledLegacyRoute_\s*\([\s\S]*?updatePIC/,
 assertContains(code, /function\s+debugGetProgrammesApi[\s\S]*?isGraduateSchoolAdmin_/, 'Debug service lacks backend admin authorization');
 assertContains(code, /function\s+approveDeleteFileApi\s*\(requestId\)/, 'Delete approval must use requestId');
 assertContains(code, /function\s+getPendingDeletionsApi\s*\(\)[\s\S]*?isGraduateSchoolAdmin_/, 'Secure admin deletion queue route must remain guarded');
-assertContains(upload, /function\s+approveDeleteFile\s*\(requestId\)/, 'Delete service must use requestId');
+assertNoTopLevelFunction(upload, 'approveDeleteFile', 'Delete approval must not remain a public Apps Script global');
+assertContains(upload, /function\s+approveDeleteFile_\s*\(requestId\)/, 'Private delete service must use requestId');
 assertContains(upload, /columns\.Status\]\)\s*!==\s*['"]Pending['"]/, 'Delete service must require Pending status');
 assertContains(upload, /getParents\s*\(/, 'Delete service must verify file folder membership');
 assertContains(upload, /RequestId/, 'Delete records must include a request ID');
@@ -231,6 +232,12 @@ assertContains(access, /function\s+createAccessRequestApi_\s*\(/, 'Missing acces
 assertContains(access, /function\s+decideAccessRequestApi_\s*\(/, 'Missing access request decision');
 assertContains(access, /function\s+revokeAccessGrantApi_\s*\(/, 'Missing access grant revocation');
 assertContains(access, /getActiveAccessGrant_\s*\(/, 'Missing active access grant lookup');
+assertContains(access, /function\s+createAccessRequestApi_[\s\S]*?isResearchProgramme_\s*\(programme\)/,
+  'Access request creation must reject non-research programmes');
+assertContains(access, /function\s+getAccessRequestsApi_[\s\S]*?findProgrammeByMqaCode_[\s\S]*?isResearchProgramme_\s*\(programme\)/,
+  'Access request queue must exclude non-research programmes');
+assertContains(access, /function\s+getActiveAccessGrant_[\s\S]*?isResearchProgramme_\s*\(programme\)/,
+  'Active access grants must be research-only');
 assertContains(peo, /Kod dan penerangan PEO diperlukan/, 'PEO validation is missing');
 assertContains(plo, /Kod dan penerangan PLO diperlukan/, 'PLO validation is missing');
 assertContains(plo, /function\s+getNextPLOCode\s*\(/, 'Stable PLO code helper is missing');
@@ -248,12 +255,18 @@ assertContains(suggestions, /isGraduateSchoolAdmin_\(user\)/, 'Suggestion admin 
 assertNoTopLevelFunction(read('gas/DriveConfig.gs'), 'getProgramFolder', 'getProgramFolder remains directly callable as a public global');
 assertContains(read('gas/DriveConfig.gs'), /function\s+getProgramFolder_\s*\(/, 'Private programme folder helper is missing');
 [
-  ['getPEOs', peo], ['savePEOs', peo], ['getPLOs', plo], ['savePLOs', plo],
+  ['getPEOs_', peo], ['savePEOs_', peo], ['getPLOs_', plo], ['savePLOs_', plo],
   ['getGraphData_', graph], ['getUploadedFiles_', upload], ['uploadFile_', upload],
   ['suggestDeleteFile_', upload]
 ].forEach(function(entry) {
   assertContains(functionSource(entry[1], entry[0]), /requireResearchProgrammeAccess_\s*\(/,
     entry[0] + ' is directly callable without research programme access protection');
+});
+[
+  ['getPEOs', peo], ['savePEOs', peo], ['getPLOs', plo], ['savePLOs', plo]
+].forEach(function(entry) {
+  assertNoTopLevelFunction(entry[1], entry[0], entry[0] + ' remains a public legacy Apps Script global');
+  assertNoPublicFunctionVariants(entry[1], entry[0]);
 });
 assert(!/function\s+getProgrammes\s*\(/.test(programmeService),
   'Internal programme loader remains directly callable as getProgrammes');
@@ -271,6 +284,10 @@ assertContains(code, /function\s+getProgrammesApi[\s\S]*?getCurrentUser\(\)[\s\S
   assertContains(suggestions, new RegExp('function\\s+' + name + '_\\s*\\('), name + ' private implementation is missing');
 });
 assertContains(code, /function\s+prepareAllSheetsApi[\s\S]*?isGraduateSchoolAdmin_/, 'Sheet preparation is not Graduate School-admin guarded');
+assertContains(code, /function\s+prepareAllSheetsApi[\s\S]*?isResearchProgramme_\s*\(programme\)/,
+  'Sheet preparation must skip non-research programmes');
+assert(!/function\s+prepareAllSheetsApi[\s\S]*?delete(Row|Rows|Sheet)/.test(code),
+  'Sheet preparation must not delete programme rows or sheets');
 assertContains(index, /class="app-nav"/, 'Persistent application navigation is missing');
 assertContains(index, /currentView === 'dashboard'/, 'University dashboard view is missing');
 assertContains(index, /Faculty readiness/, 'Faculty readiness dashboard is missing');

@@ -24,19 +24,18 @@ function createAccessRequestApi_(request) {
   var targetFaculty = String(request.targetFaculty || '').trim();
   var mqaCode = String(request.mqaCode || '').trim();
   var reason = String(request.reason || '').trim();
-  if (!targetFaculty && !mqaCode) throw new Error('A target faculty or programme is required');
+  if (!mqaCode) throw new Error('A research programme is required');
   if (!reason) throw new Error('A reason is required');
   if (targetFaculty && targetFaculty === String(user.faculty || '').trim()) {
     throw new Error('You already have access to this faculty');
   }
-  if (mqaCode) {
-    var programme = findProgrammeByMqaCode_(mqaCode);
-    if (!programme) throw new Error('Programme not found');
-    if (programme.faculty === String(user.faculty || '').trim()) {
-      throw new Error('You already have access to this programme');
-    }
-    if (!targetFaculty) targetFaculty = programme.faculty;
+  var programme = findProgrammeByMqaCode_(mqaCode);
+  if (!programme) throw new Error('Programme not found');
+  if (!isResearchProgramme_(programme)) throw new Error('Only postgraduate research programmes are eligible');
+  if (programme.faculty === String(user.faculty || '').trim()) {
+    throw new Error('You already have access to this programme');
   }
+  if (!targetFaculty) targetFaculty = programme.faculty;
 
   var sheet = ensureAccessRequestsSheet_();
   var id = 'ACCESS-' + Utilities.getUuid();
@@ -57,6 +56,8 @@ function getAccessRequestsApi_(filters) {
   return data.slice(1).filter(function(row) {
     if (!row[0]) return false;
     if (!isGraduateSchoolAdmin_(user) && String(row[1]) !== String(user.email)) return false;
+    var programme = findProgrammeByMqaCode_(row[4]);
+    if (!programme || !isResearchProgramme_(programme)) return false;
     if (requestedStatus && String(row[8]) !== String(requestedStatus)) return false;
     return true;
   }).map(function(row) {
@@ -121,7 +122,7 @@ function getActiveAccessGrant_(email, mqaCode) {
   var sheet = ensureAccessRequestsSheet_();
   var data = sheet.getDataRange().getValues();
   var programme = findProgrammeByMqaCode_(mqaCode);
-  if (!programme) return null;
+  if (!programme || !isResearchProgramme_(programme)) return null;
   for (var i = data.length - 1; i >= 1; i--) {
     var row = data[i];
     if (String(row[1]) !== String(email) || String(row[8]) !== 'Approved') continue;

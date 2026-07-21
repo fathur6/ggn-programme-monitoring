@@ -1,6 +1,6 @@
 /** PEOService.gs — PEO data retrieval and save operations */
 
-function getPEOs(mqaCode) {
+function getPEOs_(mqaCode) {
   requireResearchProgrammeAccess_(mqaCode, 'view-peos');
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(mqaCode);
@@ -42,7 +42,7 @@ function getPEOs(mqaCode) {
   return peos;
 }
 
-function savePEOs(mqaCode, peos) {
+function savePEOs_(mqaCode, peos) {
   requireResearchProgrammeAccess_(mqaCode, 'edit-peos');
   if (!mqaCode || !Array.isArray(peos)) throw new Error('Data PEO tidak sah.');
   peos = peos.map(function(p) {

@@ -72,7 +72,7 @@
              <p class="text-sm text-muted">Ask Graduate School administration for a specific programme or faculty. Approved access expires automatically after seven days.</p>
              <div class="request-fields">
                <input v-model="accessRequest.targetFaculty" placeholder="Target faculty code" aria-label="Target faculty code">
-               <input v-model="accessRequest.mqaCode" placeholder="Optional MQA code" aria-label="Optional MQA code">
+               <input v-model="accessRequest.mqaCode" placeholder="Research MQA code (required)" aria-label="Research MQA code (required)">
                <input v-model="accessRequest.reason" placeholder="Reason for access" aria-label="Reason for access">
                <button class="btn btn-primary" @click="createAccessRequest">Send request</button>
              </div>

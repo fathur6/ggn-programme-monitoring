@@ -148,7 +148,7 @@ function submitResearchProgrammeApi(mqaCode) { return submitResearchProgrammeApi
 function approveDeleteFileApi(requestId) {
   var user = getCurrentUser();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
-  return approveDeleteFile(requestId);
+  return approveDeleteFile_(requestId);
 }
 
 function getPendingDeletionsApi() {
@@ -165,11 +165,17 @@ function prepareAllSheetsApi() {
   var sheet = ss.getSheetByName('Programme');
   if (!sheet) throw new Error('Programme sheet not found');
   var data = sheet.getDataRange().getValues();
-  var created = [], skipped = [], errors = [];
+  var created = [], skipped = [], errors = [], total = 0;
   
   for (var i = 1; i < data.length; i++) {
     var mqaCode = String(data[i][2] || '').trim();
     if (!mqaCode) continue;
+    var programme = findProgrammeByMqaCode_(mqaCode);
+    if (!isResearchProgramme_(programme)) {
+      skipped.push(mqaCode);
+      continue;
+    }
+    total++;
     
     try {
       var existing = ss.getSheetByName(mqaCode);
@@ -188,7 +194,7 @@ function prepareAllSheetsApi() {
     }
   }
   
-  return { created: created, skipped: skipped, errors: errors, total: data.length - 1 };
+  return { created: created, skipped: skipped, errors: errors, total: total };
 }
 
 /** Send test announcement email (to fathurrahman@unisza.edu.my only) */

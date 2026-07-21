@@ -1,6 +1,6 @@
 /** PLOService.gs — PLO data retrieval and save operations */
 
-function getPLOs(mqaCode) {
+function getPLOs_(mqaCode) {
   requireResearchProgrammeAccess_(mqaCode, 'view-plos');
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(mqaCode);
@@ -43,7 +43,7 @@ function getPLOs(mqaCode) {
   return plos;
 }
 
-function savePLOs(mqaCode, plos) {
+function savePLOs_(mqaCode, plos) {
   requireResearchProgrammeAccess_(mqaCode, 'edit-plos');
   if (!mqaCode || !Array.isArray(plos)) throw new Error('Data PLO tidak sah.');
   plos = plos.map(function(p) {
