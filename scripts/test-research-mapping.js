@@ -4,14 +4,17 @@ const vm = require('vm');
 
 function loadResearchHelpers() {
   const sheets = {};
-  const lockState = { tryLockCalls: 0, waitLockCalls: 0, releaseCalls: 0 };
+  const lockState = { tryLockCalls: 0, waitLockCalls: 0, releaseCalls: 0, depth: 0, unlockedDataReads: 0 };
   function makeSheet(name, values) {
     return {
       name,
       values: values || [],
       getLastRow: function() { return this.values.length; },
       appendRow: function(row) { this.values.push(row); },
-      getDataRange: function() { return { getValues: () => this.values }; },
+      getDataRange: function() {
+        if (lockState.depth === 0) lockState.unlockedDataReads++;
+        return { getValues: () => this.values };
+      },
       insertRowsAfter: function(after, count) {
         for (let index = 0; index < count; index++) this.values.push([]);
       },
@@ -55,8 +58,8 @@ function loadResearchHelpers() {
       getScriptLock: function() {
         return {
           tryLock: function() { lockState.tryLockCalls++; return true; },
-          waitLock: function() { lockState.waitLockCalls++; return true; },
-          releaseLock: function() { lockState.releaseCalls++; }
+          waitLock: function() { lockState.waitLockCalls++; lockState.depth++; return true; },
+          releaseLock: function() { lockState.releaseCalls++; lockState.depth--; }
         };
       }
     },
@@ -215,17 +218,27 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(savedMapping.scIds)), ['SC2']);
 assert.deepStrictEqual(JSON.parse(JSON.stringify(savedMapping.derivedTFIds)), ['TF2']);
 assert.strictEqual(savedMapping.derivedLabel, 'Derived from PLO mappings');
 assert.strictEqual(savedMapping.mappingNote, 'Research rationale');
+helpers.__lockState.unlockedDataReads = 0;
+// Persisted derived values must not be authoritative when the PLO changes.
+sheets.PR_PLOMappings.values[1][4] = JSON.stringify(['TF2']);
+sheets.PR_PLORecords.values[1][5] = JSON.stringify(['MQF1']);
 assert.deepStrictEqual(JSON.parse(JSON.stringify(helpers.getResearchMappingsApi_('MQA/TEST').map(function(mapping) {
   return {ploId: mapping.ploId, derivedTFIds: mapping.derivedTFIds, derivedLabel: mapping.derivedLabel};
-}))), [{ploId: savedPLOs[0].ploId, derivedTFIds: ['TF2'], derivedLabel: 'Derived from PLO mappings'}]);
+}))), [{ploId: savedPLOs[0].ploId, derivedTFIds: ['TF1'], derivedLabel: 'Derived from PLO mappings'}]);
+assert.deepStrictEqual(JSON.parse(sheets.PR_PLOMappings.values[1][4]), ['TF1']);
+assert.strictEqual(helpers.__lockState.unlockedDataReads, 0);
 const coverage = helpers.getResearchCoverageApi_('MQA/TEST');
 assert.deepStrictEqual(JSON.parse(JSON.stringify(coverage.globalCoverage)), {
-  mqfIds: ['MQF2'], tfIds: ['TF2'], sdgIds: ['SDG4'], scIds: ['SC2']
+  mqfIds: ['MQF1'], tfIds: ['TF1'], sdgIds: ['SDG4'], scIds: ['SC2']
 });
 assert.strictEqual(coverage.ploReadiness[0].ready, true);
 assert.strictEqual(coverage.peoCoverage[0].coverage.derivedLabel, 'Derived from PLO mappings');
+assert.strictEqual(helpers.__lockState.unlockedDataReads, 0);
 assert.throws(() => helpers.saveResearchPLOMappingApi_('MQA/TEST', savedPLOs[0].ploId, {sdgIds: ['SDG99']}), /invalid/i);
 assert.strictEqual(helpers.__lockState.waitLockCalls >= 3, true);
+
+helpers.requireProgrammeAccess_ = function() { throw new Error('programme access denied'); };
+assert.throws(() => helpers.getResearchMappingsApi_('MQA/TEST'), /access denied/i);
 
 helpers.LockService.getScriptLock = function() {
   return { tryLock: function() { return false; }, waitLock: function() { throw new Error('must not wait'); }, releaseLock: function() { throw new Error('must not release'); } };
