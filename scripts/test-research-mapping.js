@@ -4,14 +4,31 @@ const vm = require('vm');
 
 function loadResearchHelpers() {
   const sheets = {};
-  const lockState = { tryLockCalls: 0, releaseCalls: 0 };
+  const lockState = { tryLockCalls: 0, waitLockCalls: 0, releaseCalls: 0 };
   function makeSheet(name, values) {
     return {
       name,
       values: values || [],
       getLastRow: function() { return this.values.length; },
       appendRow: function(row) { this.values.push(row); },
-      getDataRange: function() { return { getValues: () => this.values }; }
+      getDataRange: function() { return { getValues: () => this.values }; },
+      insertRowsAfter: function(after, count) {
+        for (let index = 0; index < count; index++) this.values.push([]);
+      },
+      getRange: function(row, column, numRows, numColumns) {
+        return {
+          clearContent: function() {
+            for (let rowIndex = row - 1; rowIndex < row - 1 + numRows; rowIndex++) {
+              if (this.values) this.values[rowIndex] = [];
+            }
+          }.bind(this),
+          setValues: function(rows) {
+            for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+              this.values[row - 1 + rowIndex] = rows[rowIndex].slice(0, numColumns);
+            }
+          }.bind(this)
+        };
+      }
     };
   }
   const spreadsheet = {
@@ -27,12 +44,18 @@ function loadResearchHelpers() {
       return { email: 'test@unisza.edu.my' };
     },
     findProgrammeByMqaCode_: function(code) {
-      return code === 'MQA/TEST' ? { mqaCode: code } : null;
+      return code === 'MQA/TEST' ? {
+        mqaCode: code, faculty: 'Research Faculty', name: 'Test Research Programme', level: 'Doctoral'
+      } : null;
+    },
+    requireProgrammeAccess_: function() {
+      return { user: { email: 'test@unisza.edu.my' } };
     },
     LockService: {
       getScriptLock: function() {
         return {
           tryLock: function() { lockState.tryLockCalls++; return true; },
+          waitLock: function() { lockState.waitLockCalls++; return true; },
           releaseLock: function() { lockState.releaseCalls++; }
         };
       }
@@ -129,8 +152,52 @@ assert.strictEqual(helpers.getResearchReferences_().mqf.some(row => row.code ===
 sheets.PR_MQFReference.appendRow(['MQF-INACTIVE', 'Hidden', '', false]);
 assert.strictEqual(helpers.getResearchReferences_().mqf.some(row => row.code === 'MQF-INACTIVE'), false);
 
+const savedProfile = helpers.saveResearchProfileApi_('MQA/TEST', {
+  studyMode: 'Part-time', studyField: 'Computing', session: '2026',
+  documentVersion: 'v1', dataOwner: 'owner@example.com', mappingStatus: 'Submitted'
+});
+assert.strictEqual(savedProfile.mappingStatus, 'Draft');
+assert.strictEqual(typeof savedProfile.createdAt, 'string');
+assert.strictEqual(typeof savedProfile.updatedAt, 'string');
+assert.strictEqual(helpers.getResearchProgrammeApi_('MQA/TEST').mappingStatus, 'Draft');
+assert.strictEqual(sheets.PR_ProgrammeProfile.values[1][10], 'Draft');
+
+const savedPEOs = helpers.saveResearchPEOsApi_('MQA/TEST', [
+  { code: ' PEO1 ', statement: ' Lead research ' }
+]);
+assert.deepStrictEqual(JSON.parse(JSON.stringify(savedPEOs.map(function(peo) {
+  return { code: peo.code, statement: peo.statement };
+}))), [{ code: 'PEO1', statement: 'Lead research' }]);
+assert.strictEqual(typeof savedPEOs[0].updatedAt, 'string');
+assert.deepStrictEqual(JSON.parse(JSON.stringify(helpers.getResearchPEOsApi_('MQA/TEST').map(function(peo) {
+  return { code: peo.code, statement: peo.statement };
+}))), [{ code: 'PEO1', statement: 'Lead research' }]);
+
+assert.throws(function() {
+  helpers.saveResearchPLOsApi_('MQA/TEST', [{
+    code: 'PLO1', statement: 'Outcome', parentPEO: '   ', mqfDomains: ['MQF2'], taxonomy: 'c4'
+  }]);
+}, /parent PEO/i);
+assert.strictEqual(sheets.PR_PLORecords.getLastRow(), 1);
+
+const savedPLOs = helpers.saveResearchPLOsApi_('MQA/TEST', [{
+  code: ' PLO1 ', statement: ' Outcome ', parentPEO: 'PEO1',
+  mqfDomains: [' MQF2 ', 'MQF2'], taxonomy: ' c4 ', rationale: ' rationale '
+}]);
+assert.strictEqual(savedPLOs[0].taxonomy, 'C4');
+assert.deepStrictEqual(JSON.parse(JSON.stringify(savedPLOs[0].mqfDomains)), ['MQF2']);
+assert.strictEqual(savedPLOs[0].status, 'Draft');
+assert.strictEqual(typeof savedPLOs[0].updatedAt, 'string');
+assert.strictEqual(sheets.PR_PLORecords.values[1][6], 'C4');
+assert.strictEqual(sheets.PR_PLORecords.values[1][8], 'Draft');
+const readPLOs = helpers.getResearchPLOsApi_('MQA/TEST');
+assert.strictEqual(readPLOs[0].taxonomy, 'C4');
+assert.deepStrictEqual(JSON.parse(JSON.stringify(readPLOs[0].mqfDomains)), ['MQF2']);
+assert.strictEqual(typeof readPLOs[0].updatedAt, 'string');
+assert.strictEqual(helpers.__lockState.waitLockCalls >= 3, true);
+
 helpers.LockService.getScriptLock = function() {
-  return { tryLock: function() { return false; }, releaseLock: function() { throw new Error('must not release'); } };
+  return { tryLock: function() { return false; }, waitLock: function() { throw new Error('must not wait'); }, releaseLock: function() { throw new Error('must not release'); } };
 };
 assert.throws(() => helpers.ensureResearchSheets_(), /initialize research sheets/i);
 
