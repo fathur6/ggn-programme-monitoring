@@ -26,6 +26,16 @@ assert(/researchError\s*=/.test(methodSource('researchFailure')), 'Research fail
 assert(/researchDirty\s*=\s*true/.test(methodSource('researchFailure')), 'Research failures do not preserve dirty state');
 assert(/researchSaveState\s*=\s*['"]error['"]/.test(methodSource('researchFailure')), 'Research failures do not set error save state');
 assert(/submitResearchProgramme[\s\S]*?researchFailure/.test(source), 'Submission failure does not use persistent research failure state');
+assert(/@keydown="handleResearchCategoryKeydown"/.test(index), 'Research category tabs do not handle keyboard navigation');
+assert(/:tabindex="researchCategory === 'information' \? 0 : -1"/.test(index), 'Information tab does not participate in roving tabindex');
+assert(/:tabindex="researchCategory === 'mapping' \? 0 : -1"/.test(index), 'Mapping tab does not participate in roving tabindex');
+
+const categoryKeydown = methodSource('handleResearchCategoryKeydown');
+assert(/ArrowRight/.test(categoryKeydown) && /ArrowLeft/.test(categoryKeydown), 'Research category tabs do not support arrow navigation');
+assert(/Home/.test(categoryKeydown) && /End/.test(categoryKeydown), 'Research category tabs do not support Home and End navigation');
+assert(/preventDefault\s*\(\)/.test(categoryKeydown), 'Research category key handling does not prevent native scrolling');
+assert(/researchCategory\s*=/.test(categoryKeydown), 'Research category key handling does not update the selected category');
+assert(/\$nextTick/.test(categoryKeydown) && /\.focus\s*\(\)/.test(categoryKeydown), 'Research category key handling does not move focus to the selected tab');
 
 const mappingSave = methodSource('saveResearchPLOMapping');
 assert(/saveResearchPLOsApi/.test(mappingSave), 'Mapping save does not persist PLO fields first');

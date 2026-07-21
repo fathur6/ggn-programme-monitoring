@@ -222,9 +222,9 @@
             <div><p class="eyebrow">POSTGRADUATE RESEARCH PROGRAMME</p><h2 class="section-title">{{ currentProgramme.name }}</h2><p class="text-sm text-muted">{{ currentProgramme.mqaCode }} · {{ currentProgramme.progCode }} · Postgraduate by Research</p></div>
            <div class="context-status"><span class="status-chip">{{ researchStatus }}</span><span class="save-state" :class="researchSaveState">{{ researchLoading ? 'Loading workspace...' : researchError ? 'Action required' : researchDirty ? 'Unsaved changes' : researchSaveState === 'saved' ? 'All changes saved' : 'Ready to edit' }}</span></div>
          </section>
-          <nav class="research-tabs" role="tablist" aria-label="Programme workspace">
-            <button id="research-information-tab" type="button" role="tab" aria-controls="research-information-panel" :aria-selected="researchCategory === 'information'" :class="{active: researchCategory === 'information'}" @click="researchCategory = 'information'">Maklumat Program</button>
-            <button id="research-mapping-tab" type="button" role="tab" aria-controls="research-mapping-panel" :aria-selected="researchCategory === 'mapping'" :class="{active: researchCategory === 'mapping'}" @click="researchCategory = 'mapping'">Pemetaan</button>
+           <nav class="research-tabs" role="tablist" aria-label="Programme workspace">
+             <button id="research-information-tab" type="button" role="tab" aria-controls="research-information-panel" :aria-selected="researchCategory === 'information'" :tabindex="researchCategory === 'information' ? 0 : -1" :class="{active: researchCategory === 'information'}" @click="researchCategory = 'information'" @keydown="handleResearchCategoryKeydown">Maklumat Program</button>
+             <button id="research-mapping-tab" type="button" role="tab" aria-controls="research-mapping-panel" :aria-selected="researchCategory === 'mapping'" :tabindex="researchCategory === 'mapping' ? 0 : -1" :class="{active: researchCategory === 'mapping'}" @click="researchCategory = 'mapping'" @keydown="handleResearchCategoryKeydown">Pemetaan</button>
          </nav>
 
           <div v-if="researchLoading" class="loading-panel" role="status">Loading research workspace...</div>

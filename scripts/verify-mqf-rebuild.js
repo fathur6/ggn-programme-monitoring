@@ -14,6 +14,10 @@ function assertContains(source, pattern, message) {
   assert(pattern.test(source), message);
 }
 
+function hasLegacySingularMQFControl(source) {
+  return /<(?:input|select)\b[^>]*(?:\bv-model(?:\.[\w-]+)*|:value|\bv-bind:value)\s*=\s*["']\s*(?:(?:[A-Za-z_$][\w$]*\s*\.\s*)*)mqfDomain\s*["'][^>]*>/.test(source);
+}
+
 const auth = read('gas/Auth.gs');
 const code = read('gas/Code.gs');
 const governance = read('gas/GovernanceService.gs');
@@ -229,14 +233,26 @@ assertContains(researchDetailSource, /PLO Workspace/, 'PLO workspace is missing'
 assertContains(researchDetailSource, /Coverage Matrix/, 'Coverage matrix is missing');
 assertContains(researchDetailSource, /TF derived from MQF mapping/, 'Derived TF label is missing');
 assertContains(researchDetailSource, /Derived from PLO mappings/, 'PEO derived label is missing');
-assert(!/Coursework|DCI|CLO|credit hour|Subject|Course Mapping|embeddedPEO|\bmqfDomain\b/.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
+assert(!/Coursework|DCI|CLO|credit hour|Subject|Course Mapping|embeddedPEO/.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
+assert(!hasLegacySingularMQFControl(researchDetailSource), 'Research workspace still binds a singular legacy mqfDomain control');
+assert(hasLegacySingularMQFControl('<select v-model="plo.mqfDomain"></select>'), 'Singular legacy MQF select binding is not detected');
+assert(hasLegacySingularMQFControl('<input :value="mqfDomain">'), 'Singular legacy MQF input binding is not detected');
+assert(!hasLegacySingularMQFControl('<input v-model="plo.mqfDomains">'), 'Plural MQF domain binding is incorrectly rejected');
+assert(!hasLegacySingularMQFControl('<span data-domain="mqfDomain">metadata</span>'), 'Non-control MQF metadata is incorrectly rejected');
 assertContains(researchDetailSource, /<button[^>]*class="back-link"[^>]*@click="leaveResearchWorkspace"/, 'Research workspace back control must be a button');
 assertContains(researchDetailSource, /role="tablist"/, 'Research categories need tablist semantics');
 assertContains(researchDetailSource, /role="tab"/, 'Research category controls need tab semantics');
 assertContains(researchDetailSource, /:aria-selected="researchCategory === 'information'"/, 'Information category must expose its selected state');
 assertContains(researchDetailSource, /:aria-selected="researchCategory === 'mapping'"/, 'Mapping category must expose its selected state');
-['profile-programme-id', 'profile-created', 'profile-updated', 'profile-updated-by'].forEach(function(id) {
-  assertContains(researchDetailSource, new RegExp('id="' + id + '"'), 'Research profile audit field is missing: ' + id);
+[
+  ['profile-programme-id', 'Programme ID', 'programmeId'],
+  ['profile-created', 'Created', 'createdAt'],
+  ['profile-updated', 'Last updated', 'updatedAt'],
+  ['profile-updated-by', 'Last updated by', 'updatedBy']
+].forEach(function(field) {
+  var id = field[0];
+  var control = new RegExp('<label\\s+for="' + id + '">' + field[1] + '</label>\\s*<input\\s+id="' + id + '"(?=[^>]*:value="researchProfile\\.' + field[2] + '")(?=[^>]*\\b(?:disabled|readonly)\\b)[^>]*>');
+  assertContains(researchDetailSource, control, 'Research profile audit field must have a labeled read-only profile binding: ' + id);
 });
 assertContains(styles, /\.research-tabs button:focus-visible/, 'Research category focus treatment is missing');
 assertContains(index, /Request temporary access/, 'Faculty access request workspace is missing');

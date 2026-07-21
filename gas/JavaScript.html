@@ -545,6 +545,24 @@ new Vue({
     selectAllMQFDomains: function(plo) {
       plo.mqfDomains = this.researchReferences.mqf.map(function(domain) { return domain.code; }); this.markResearchDirty();
     },
+    handleResearchCategoryKeydown: function(event) {
+      var categories = ['information', 'mapping'];
+      var currentIndex = categories.indexOf(this.researchCategory);
+      var nextIndex = currentIndex;
+      if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % categories.length;
+      else if (event.key === 'ArrowLeft') nextIndex = (currentIndex + categories.length - 1) % categories.length;
+      else if (event.key === 'Home') nextIndex = 0;
+      else if (event.key === 'End') nextIndex = categories.length - 1;
+      else return;
+
+      event.preventDefault();
+      var category = categories[nextIndex];
+      this.researchCategory = category;
+      this.$nextTick(function() {
+        var tab = document.getElementById('research-' + category + '-tab');
+        if (tab) tab.focus();
+      });
+    },
     toggleSDG: function(plo) { this.markResearchDirty(); },
     toggleSC: function(plo) { this.markResearchDirty(); },
     leaveResearchWorkspace: function() { this.setView('programmes'); },
