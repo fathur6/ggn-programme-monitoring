@@ -95,6 +95,15 @@ const ready = helpers.validateResearchProgramme_({
   mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}]
 });
 assert.strictEqual(ready.status, 'Ready for review');
+const mixedInvalidMQF = helpers.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: 'Outcome', parentPEO: 'PEO1', mqfDomains: ['MQF2', 'MQF-ILLEGAL'], taxonomy: 'C4'}],
+  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}]
+});
+assert.strictEqual(mixedInvalidMQF.status, 'Needs attention');
+assert(mixedInvalidMQF.critical.some(function(issue) { return issue.code === 'PLO_MQF_INVALID'; }));
+assert.strictEqual(mixedInvalidMQF.metrics.ploWithMQF, 0);
+assert.strictEqual(mixedInvalidMQF.metrics.ploWithValidTF, 0);
 assert.strictEqual(helpers.isLegalResearchStatusTransition_('Draft', 'Needs attention'), true);
 assert.strictEqual(helpers.isLegalResearchStatusTransition_('Draft', 'Ready for review'), true);
 assert.strictEqual(helpers.isLegalResearchStatusTransition_('Draft', 'Submitted'), true);
@@ -272,6 +281,7 @@ assert.strictEqual(helpers.submitResearchProgrammeApi_('MQA/TEST').status, 'Subm
 assert.strictEqual(sheets.PR_ProgrammeProfile.values[1][10], 'Submitted');
 assert.strictEqual(helpers.__lockState.waitLockCalls, submitWaitLocks + 1);
 assert.strictEqual(helpers.__lockState.unlockedDataReads, submitUnlockedReads);
+assert.throws(function() { helpers.saveResearchStatusApi_('MQA/TEST', 'Draft'); }, /illegal research review status transition/i);
 
 sheets.PR_PLORecords.values[1][4] = '';
 assert.throws(function() { helpers.submitResearchProgrammeApi_('MQA/TEST'); }, /critical review issues/i);
@@ -296,15 +306,14 @@ helpers.getCurrentUser = function() { return { email: 'faculty@unisza.edu.my', f
 helpers.isGraduateSchoolAdmin_ = function() { return false; };
 helpers.getProgrammes = function(faculty) {
   assert.strictEqual(faculty, 'Faculty A');
-  return [{faculty: 'Faculty A', facultyFull: 'Faculty A', mqaCode: 'MQA/A'}];
-};
-helpers.computeProgrammeStatus_ = function(programme) {
-  assert.strictEqual(programme.faculty, 'Faculty A');
-  return {completionState: 'Draft', mqfDomainState: 'Needs attention', taxonomyState: 'Needs attention', mappingState: 'Needs attention', documentState: 'Not required', reviewState: 'Blocked', submissionState: 'Draft', overdue: false};
+  return [{faculty: 'Faculty A', facultyFull: 'Faculty A', mqaCode: 'MQA/TEST', level: 'Doctorate'}];
 };
 helpers.Utilities = {formatDate: function() { return '2026-07'; }};
 helpers.Session = {getScriptTimeZone: function() { return 'UTC'; }};
-assert.strictEqual(helpers.getUniversityDashboardApi_().programmeCount, 1);
+const dashboard = helpers.getUniversityDashboardApi_();
+assert.strictEqual(dashboard.programmeCount, 1);
+assert.strictEqual(dashboard.faculties[0].submissionCount, 1);
+assert.strictEqual(dashboard.faculties[0].mappingCompleteCount, 1);
 
 helpers.requireProgrammeAccess_ = function() { throw new Error('programme access denied'); };
 assert.throws(() => helpers.getResearchMappingsApi_('MQA/TEST'), /access denied/i);

@@ -116,7 +116,9 @@ function validateResearchProgramme_(input) {
     var mapping = reviewMappingForPLO_(plo, index, mappings);
     var sdgIds = uniqueTrimmed_(mapping && mapping.sdgIds || []);
     var scIds = uniqueTrimmed_(mapping && mapping.scIds || []);
-    var expectedTF = deriveTFIds_(domains, tfMap);
+    var validDomains = domains.filter(function(domain) { return mqfCodes.indexOf(domain) !== -1; });
+    var hasValidMQF = domains.length > 0 && mqfCodes.length > 0 && validDomains.length === domains.length;
+    var expectedTF = deriveTFIds_(validDomains, tfMap);
     var actualTF = uniqueTrimmed_(mapping && mapping.derivedTFIds || []);
 
     if (!code) critical.push(reviewIssue_('PLO_CODE_REQUIRED', 'PLO code is required'));
@@ -128,10 +130,10 @@ function validateResearchProgramme_(input) {
     else peoChildren[parent] = (peoChildren[parent] || 0) + 1;
     if (!domains.length) critical.push(reviewIssue_('PLO_MQF_REQUIRED', 'At least one MQF domain is required', code));
     else {
-      withMQF++;
+      if (hasValidMQF) withMQF++;
       domains.forEach(function(domain) {
-        allMQF.push(domain);
-        if (mqfCodes.length && mqfCodes.indexOf(domain) === -1) {
+        if (mqfCodes.indexOf(domain) !== -1) allMQF.push(domain);
+        if (!hasValidMQF && mqfCodes.indexOf(domain) === -1) {
           critical.push(reviewIssue_('PLO_MQF_INVALID', 'Invalid MQF domain: ' + domain, code));
         }
       });
@@ -141,11 +143,11 @@ function validateResearchProgramme_(input) {
     else warnings.push(reviewWarning_('PLO_SDG_MISSING', 'PLO should map to at least one SDG', code));
     if (scIds.length) withSC++;
     else warnings.push(reviewWarning_('PLO_SC_MISSING', 'PLO should map to at least one sustainability competency', code));
-    if (expectedTF.length && JSON.stringify(expectedTF) !== JSON.stringify(actualTF.sort())) {
+    if (hasValidMQF && expectedTF.length && JSON.stringify(expectedTF) !== JSON.stringify(actualTF.sort())) {
       critical.push(reviewIssue_('PLO_TF_DERIVATION_FAILED', 'Derived TF mapping does not match MQF domains', code));
-    } else if (!expectedTF.length && domains.length) {
+    } else if (hasValidMQF && !expectedTF.length && domains.length) {
       critical.push(reviewIssue_('PLO_TF_DERIVATION_FAILED', 'No TF can be derived from the MQF domains', code));
-    } else if (domains.length && expectedTF.length) {
+    } else if (hasValidMQF && expectedTF.length) {
       withValidTF++;
     }
     allTF = allTF.concat(actualTF);
