@@ -155,4 +155,167 @@ assert.throws(function() { task2Helpers.validatePLOParents_([{code: 'PLO1', pare
 assert.throws(function() { task2Helpers.validateDuplicateCodes_([{code: 'PLO1'}, {code: 'PLO1'}], 'PLO'); }, /duplicate/i);
 assert.throws(function() { task2Helpers.validateDuplicateCodes_([{code: 'PLO1'}, {code: ' PLO1'}], 'PLO'); }, /duplicate/i);
 
+var reviewSource = fs.readFileSync('gas/ResearchReviewService.gs', 'utf8');
+var reviewDepsSource = [
+  'uniqueTrimmed_', 'canonicalResearchTaxonomy_', 'deriveTFIds_'
+].map(function(name) { return extractFunction(name, mappingSource); }).join('\n');
+var reviewHelpersSource = [
+  'reviewIssue_', 'reviewWarning_', 'researchReviewReferences_',
+  'reviewReferenceCodes_', 'reviewTFMap_', 'reviewMappingForPLO_',
+  'reviewPolicyRequires_', 'validateResearchProgramme_'
+].map(function(name) { return extractFunction(name, reviewSource); }).join('\n');
+var RESEARCH_TAXONOMY_IDS = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'];
+var reviewHelperApi = new Function(
+  'RESEARCH_TAXONOMY_IDS',
+  reviewDepsSource + '\n' + reviewHelpersSource + '\n' +
+  'return { validateResearchProgramme_: validateResearchProgramme_ };'
+)(RESEARCH_TAXONOMY_IDS);
+
+var incomplete = reviewHelperApi.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: '', parentPEO: 'PEO1', mqfDomains: [], taxonomy: ''}],
+  mappings: []
+});
+assert(incomplete.critical.some(function(issue) { return issue.code === 'PLO_STATEMENT_REQUIRED'; }), 'Missing statement not detected');
+assert(incomplete.critical.some(function(issue) { return issue.code === 'PLO_MQF_REQUIRED'; }), 'Missing MQF not detected');
+assert(incomplete.critical.some(function(issue) { return issue.code === 'PLO_TAXONOMY_REQUIRED'; }), 'Missing taxonomy not detected');
+assert.strictEqual(incomplete.status, 'Needs attention');
+
+var peoWithoutChild = reviewHelperApi.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective 1'}, {code: 'PEO2', statement: 'No child'}],
+  plos: [{code: 'PLO1', statement: 'Analyse critically', parentPEO: 'PEO1', mqfDomains: ['MQF1'], taxonomy: 'C4'}],
+  mappings: [],
+  references: {mqf: [{code: 'MQF1'}], tf: [{code: 'TF1', mqfDomains: ['MQF1']}]}
+});
+assert(peoWithoutChild.critical.some(function(i) { return i.code === 'PEO_CHILD_REQUIRED'; }), 'PEO without child not detected');
+
+var ready = reviewHelperApi.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: 'Demonstrate critical evaluation skills',
+    parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
+  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  references: {
+    mqf: [{code: 'MQF2', title: 'Knowledge'}],
+    tf: [{code: 'TF2', title: 'Critical thinking', mqfDomains: ['MQF2']}]
+  }
+});
+assert.strictEqual(ready.critical.length, 0, 'Ready programme has critical issues: ' + JSON.stringify(ready.critical));
+assert.strictEqual(ready.warnings.some(function(w) { return w.code === 'PLO_STATEMENT_BROAD'; }), false, 'Long statement should not fire broad');
+assert.strictEqual(ready.status, 'Ready for review');
+
+var duplicatePlo = reviewHelperApi.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [
+    {code: 'PLO1', statement: 'Analyse', parentPEO: 'PEO1', mqfDomains: ['MQF1'], taxonomy: 'C4'},
+    {code: 'PLO1', statement: 'Evaluate', parentPEO: 'PEO1', mqfDomains: ['MQF1'], taxonomy: 'C4'}
+  ],
+  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF1']}],
+  references: {mqf: [{code: 'MQF1'}], tf: [{code: 'TF1', mqfDomains: ['MQF1']}]}
+});
+assert(duplicatePlo.critical.some(function(i) { return i.code === 'PLO_CODE_DUPLICATE'; }), 'Duplicate PLO code not detected');
+
+var invalidParent = reviewHelperApi.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: 'Analyse', parentPEO: 'PEO99', mqfDomains: ['MQF1'], taxonomy: 'C4'}],
+  mappings: [],
+  references: {mqf: [{code: 'MQF1'}], tf: [{code: 'TF1', mqfDomains: ['MQF1']}]}
+});
+assert(invalidParent.critical.some(function(i) { return i.code === 'PLO_PARENT_INVALID'; }), 'Invalid parent PEO not detected');
+
+var invalidDomain = reviewHelperApi.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: 'Analyse', parentPEO: 'PEO1', mqfDomains: ['MQF99'], taxonomy: 'C4'}],
+  mappings: [],
+  references: {mqf: [{code: 'MQF1'}], tf: [{code: 'TF1', mqfDomains: ['MQF1']}]}
+});
+assert(invalidDomain.critical.some(function(i) { return i.code === 'PLO_MQF_INVALID'; }), 'Invalid MQF domain not detected');
+
+var invalidTaxonomy = reviewHelperApi.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: 'Analyse', parentPEO: 'PEO1', mqfDomains: ['MQF1'], taxonomy: 'C99'}],
+  mappings: [],
+  references: {mqf: [{code: 'MQF1'}], tf: [{code: 'TF1', mqfDomains: ['MQF1']}]}
+});
+assert(invalidTaxonomy.critical.some(function(i) { return i.code === 'PLO_TAXONOMY_INVALID'; }), 'Invalid taxonomy not detected');
+
+var broadWarning = reviewHelperApi.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: 'Short', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
+  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  references: {mqf: [{code: 'MQF2'}], tf: [{code: 'TF2', mqfDomains: ['MQF2']}]}
+});
+assert(broadWarning.warnings.some(function(w) { return w.code === 'PLO_STATEMENT_BROAD'; }), 'Short statement broad warning not detected');
+
+var missingSdgWarning = reviewHelperApi.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: 'Analyse critically', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
+  mappings: [{ploId: 'P1', sdgIds: [], scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  references: {mqf: [{code: 'MQF2'}], tf: [{code: 'TF2', mqfDomains: ['MQF2']}]}
+});
+assert(missingSdgWarning.warnings.some(function(w) { return w.code === 'PLO_SDG_MISSING'; }), 'Missing SDG warning not detected');
+
+var policySdgCritical = reviewHelperApi.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: 'Analyse critically', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
+  mappings: [{ploId: 'P1', sdgIds: [], scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  references: {mqf: [{code: 'MQF2'}], tf: [{code: 'TF2', mqfDomains: ['MQF2']}]},
+  policy: {sdg: true}
+});
+assert(policySdgCritical.critical.some(function(i) { return i.code === 'SDG_REQUIRED'; }), 'SDG policy critical not triggered');
+
+var concentrationWarning = reviewHelperApi.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [
+    {code: 'PLO1', statement: 'Analyse critically', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'},
+    {code: 'PLO2', statement: 'Evaluate critically', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C5'}
+  ],
+  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  references: {mqf: [{code: 'MQF2'}], tf: [{code: 'TF2', mqfDomains: ['MQF2']}]}
+});
+assert(concentrationWarning.warnings.some(function(w) { return w.code === 'MQF_DOMAIN_CONCENTRATION'; }), 'MQF concentration warning not detected');
+
+var metrics = reviewHelperApi.validateResearchProgramme_({
+  peos: [
+    {code: 'PEO1', statement: 'Objective 1'},
+    {code: 'PEO2', statement: 'Objective 2'}
+  ],
+  plos: [
+    {code: 'PLO1', statement: 'Analyse critically', parentPEO: 'PEO1', mqfDomains: ['MQF1', 'MQF2'], taxonomy: 'C4'},
+    {code: 'PLO2', statement: 'Evaluate systematically', parentPEO: 'PEO2', mqfDomains: ['MQF3'], taxonomy: 'C5'}
+  ],
+  mappings: [
+    {ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF1', 'TF2']},
+    {ploId: 'P2', sdgIds: ['SDG4', 'SDG13'], scIds: ['SC2', 'SC3'], derivedTFIds: ['TF3']}
+  ],
+  references: {
+    mqf: [{code: 'MQF1'}, {code: 'MQF2'}, {code: 'MQF3'}],
+    tf: [
+      {code: 'TF1', mqfDomains: ['MQF1']},
+      {code: 'TF2', mqfDomains: ['MQF2']},
+      {code: 'TF3', mqfDomains: ['MQF3']}
+    ]
+  }
+});
+assert.strictEqual(metrics.metrics.ploTotal, 2, 'ploTotal mismatch');
+assert.strictEqual(metrics.metrics.ploStatementsComplete, 2, 'ploStatementsComplete mismatch');
+assert.strictEqual(metrics.metrics.ploWithMQF, 2, 'ploWithMQF mismatch');
+assert.strictEqual(metrics.metrics.ploWithValidTaxonomy, 2, 'ploWithValidTaxonomy mismatch');
+assert.strictEqual(metrics.metrics.ploWithValidTF, 2, 'ploWithValidTF mismatch');
+assert.strictEqual(metrics.metrics.ploWithSDG, 2, 'ploWithSDG mismatch');
+assert.strictEqual(metrics.metrics.ploWithSC, 2, 'ploWithSC mismatch');
+assert.strictEqual(metrics.metrics.mqfDomainCoverage, 3, 'mqfDomainCoverage mismatch');
+assert.strictEqual(metrics.metrics.tfCoverage, 3, 'tfCoverage mismatch');
+assert.strictEqual(metrics.metrics.peosWithIssues, 0, 'peosWithIssues mismatch');
+assert.strictEqual(metrics.peoCoverage.length, 2, 'peoCoverage length mismatch');
+assert.strictEqual(metrics.peoCoverage[0].ploCount, 1, 'PEO1 child count mismatch');
+assert.strictEqual(metrics.peoCoverage[1].ploCount, 1, 'PEO2 child count mismatch');
+
+var emptyProgramme = reviewHelperApi.validateResearchProgramme_({
+  peos: [],
+  plos: [],
+  mappings: []
+});
+assert.strictEqual(emptyProgramme.critical.length, 0, 'Empty programme has unexpected critical issues');
+assert.strictEqual(emptyProgramme.status, 'Ready for review', 'Empty programme should be Ready for review');
+
 console.log('Research mapping tests passed.');

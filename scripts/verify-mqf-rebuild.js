@@ -88,12 +88,18 @@ assertContains(researchReview, /function\s+validateResearchProgramme_\s*\(/, 'Re
 assertContains(researchReview, /function\s+getResearchReviewApi_\s*\(/, 'Research review API is missing');
 assertContains(researchReview, /function\s+saveResearchStatusApi_\s*\(/, 'Research status save API is missing');
 assertContains(researchReview, /function\s+submitResearchProgrammeApi_\s*\(/, 'Research submission API is missing');
+assertContains(researchReview, /function\s+isLegalResearchStatusTransition_\s*\(/, 'Research status transition legality check is missing');
+assertContains(researchReview, /function\s+researchReviewAdmin_\s*\(/, 'Research review admin check is missing');
 ['critical', 'warnings', 'peoCoverage', 'ploTotal', 'mqfDomainCoverage', 'peosWithIssues'].forEach(function(marker) {
   assertContains(researchReview, new RegExp(marker), 'Research review output is missing: ' + marker);
 });
 assertContains(researchReview, /requireProgrammeAccess_\s*\(/, 'Research review APIs are not programme scoped');
 assertContains(researchReview, /withResearchLock_\s*\(/, 'Research review mutations are not locked');
 assertContains(researchReview, /updatedBy/, 'Research review audit field is missing');
+assertContains(researchReview, /function\s+submitResearchProgrammeApi_[\s\S]*?validateResearchProgramme_\(/, 'Submission does not recompute review server-side');
+assertContains(researchReview, /function\s+submitResearchProgrammeApi_[\s\S]*?critical\.length/, 'Submission does not reject critical issues');
+assertContains(researchReview, /function\s+saveResearchStatusApi_[\s\S]*?isLegalResearchStatusTransition_/, 'Status save does not check transition legality');
+assertContains(researchReview, /function\s+saveResearchStatusApi_[\s\S]*?['"]Submitted['"][\s\S]*?throws?\s*new\s+Error/, 'Status save does not redirect Submitted to guarded submission');
 assertContains(researchMapping, /Derived from PLO mappings/, 'Derived mapping label is missing');
 assertContains(programmeService, /mode:\s*String\(data\[i\]\[10\]/, 'Programme mode metadata is not exposed');
 assertContains(researchMapping, /function\s+requireResearchProgramme_\s*\(/, 'Research programme mode guard is missing');
@@ -184,6 +190,8 @@ assertContains(governance, /function\s+ensureGovernanceSheets_\s*\(/, 'Missing a
 assertContains(governance, /function\s+getUniversityDashboardApi_\s*\(/, 'Missing university dashboard API implementation');
 assertContains(governance, /MQFDomainState/, 'Dashboard does not monitor MQF Domain state');
 assertContains(governance, /TaxonomyState/, 'Dashboard does not monitor Taxonomy state');
+assertContains(governance, /function\s+computeResearchProgrammeStatus_\s*\(/, 'Research programme status integration is missing');
+assertContains(governance, /function\s+isResearchMappingComplete_\s*\(/, 'Research mapping completion check is missing');
 assertContains(governance, /var complete = peoComplete && ploComplete && mqfComplete && taxonomyComplete && mappingComplete;/, 'Supporting documents must not block completion readiness');
 assertContains(code, /function\s+getUniversityDashboardApi\s*\(/, 'Missing university dashboard API endpoint');
 assertContains(access, /7\s*\*\s*24\s*\*\s*60\s*\*\s*60\s*\*\s*1000/, 'Cross-faculty access does not expire after one week');
