@@ -34,11 +34,9 @@ function getProgrammes(userFilterFaculty) {
 
 function isResearchProgramme_(programme) {
   if (!programme) return false;
-  if (programme.research === true) return true;
   var mode = String(programme.mode || '').trim().toLowerCase();
   if (mode) return mode === 'research' || mode === 'postgraduate by research';
-  var level = String(programme.level || '').trim().toLowerCase();
-  return level === 'masters' || level === 'master' || level === 'doctorate' || level === 'doctoral';
+  return false;
 }
 
 function findProgrammeByMqaCode_(mqaCode) {

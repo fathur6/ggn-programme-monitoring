@@ -28,6 +28,25 @@ function computedSource(name) {
   throw new Error('Computed property is not closed: ' + name);
 }
 
+function propertyFunctionSource(name) {
+  const start = source.indexOf(name + ': function');
+  assert(start >= 0, 'Missing client property function: ' + name);
+  const functionStart = source.indexOf('function', start);
+  const bodyStart = source.indexOf('{', functionStart);
+  let depth = 0;
+  for (let i = bodyStart; i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}') {
+      depth--;
+      if (depth === 0) return source.slice(functionStart, i + 1);
+    }
+  }
+  throw new Error('Client property function is not closed: ' + name);
+}
+
+const researchPredicateSource = propertyFunctionSource('isResearchProgramme');
+const clientResearchPredicate = new Function('return ' + researchPredicateSource)();
+
 assert(/researchLoading:\s*false/.test(source), 'Research loading state is missing');
 assert(/researchError:\s*null/.test(source), 'Research error state is missing');
 assert(/researchLoading\s*=\s*true/.test(methodSource('loadResearchWorkspace')), 'Workspace loading does not start before API calls');
@@ -39,6 +58,17 @@ assert(/PLO Workspace[\s\S]*?\+ Add PLO/.test(index), 'PLO Workspace does not ex
 assert(/type="button"/.test(index), 'Research workspace actions are missing explicit button types');
 assert(/addResearchPLO:\s*function/.test(source), 'Research PLO add flow is missing');
 assert(/isResearchProgramme/.test(source), 'Client research programme guard is missing');
+[
+  {programme: {mode: 'Research', level: 'Other'}, expected: true},
+  {programme: {mode: 'Postgraduate by Research', level: 'Masters'}, expected: true},
+  {programme: {mode: '', level: 'Masters'}, expected: false},
+  {programme: {level: 'Doctorate'}, expected: false},
+  {programme: {mode: 'Coursework', level: 'Doctorate'}, expected: false},
+  {programme: {mode: 'Unknown', level: 'Masters'}, expected: false},
+  {programme: {research: true, mode: 'Unknown', level: 'Masters'}, expected: false}
+].forEach(function(example) {
+  assert.strictEqual(clientResearchPredicate(example.programme), example.expected, 'Client research predicate mismatch for ' + JSON.stringify(example.programme));
+});
 assert(/researchError\s*=/.test(methodSource('researchFailure')), 'Research failures are not retained');
 assert(/researchDirty\s*=\s*true/.test(methodSource('researchFailure')), 'Research failures do not preserve dirty state');
 assert(/researchSaveState\s*=\s*['"]error['"]/.test(methodSource('researchFailure')), 'Research failures do not set error save state');

@@ -132,26 +132,6 @@ function revokeAccessGrantApi(requestId, note) {
   return revokeAccessGrantApi_(requestId, note || '');
 }
 
-function getPEOsApi(mqaCode) {
-  requireProgrammeAccess_(mqaCode, 'view-peos');
-  return getPEOs(mqaCode);
-}
-
-function getPLOsApi(mqaCode) {
-  requireProgrammeAccess_(mqaCode, 'view-plos');
-  return getPLOs(mqaCode);
-}
-
-function savePEOsApi(mqaCode, peos) {
-  requireProgrammeAccess_(mqaCode, 'edit-peos');
-  return savePEOs(mqaCode, peos);
-}
-
-function savePLOsApi(mqaCode, plos) {
-  requireProgrammeAccess_(mqaCode, 'edit-plos');
-  return savePLOs(mqaCode, plos);
-}
-
 function getResearchProgrammeApi(mqaCode) { return getResearchProgrammeApi_(mqaCode); }
 function saveResearchProfileApi(mqaCode, profile) { return saveResearchProfileApi_(mqaCode, profile || {}); }
 function getResearchPEOsApi(mqaCode) { return getResearchPEOsApi_(mqaCode); }
@@ -164,26 +144,6 @@ function getResearchCoverageApi(mqaCode) { return getResearchCoverageApi_(mqaCod
 function getResearchReviewApi(mqaCode) { return getResearchReviewApi_(mqaCode); }
 function saveResearchStatusApi(mqaCode, status) { return saveResearchStatusApi_(mqaCode, status); }
 function submitResearchProgrammeApi(mqaCode) { return submitResearchProgrammeApi_(mqaCode); }
-
-function getGraphDataApi(mqaCode) {
-  requireProgrammeAccess_(mqaCode, 'view-graph');
-  return getGraphData(mqaCode);
-}
-
-function getUploadedFilesApi(mqaCode) {
-  requireProgrammeAccess_(mqaCode, 'view-documents');
-  return getUploadedFiles(mqaCode);
-}
-
-function uploadFileApi(mqaCode, fileType, fileBlob) {
-  requireProgrammeAccess_(mqaCode, 'upload-document');
-  return uploadFile(mqaCode, fileType, fileBlob);
-}
-
-function suggestDeleteFileApi(fileId, mqaCode) {
-  requireProgrammeAccess_(mqaCode, 'request-document-deletion');
-  return suggestDeleteFile(fileId, mqaCode);
-}
 
 function approveDeleteFileApi(requestId) {
   var user = getCurrentUser();

@@ -17,6 +17,7 @@ function extractFunction(name, source) {
 const dataSource = fs.readFileSync('gas/ResearchDataService.gs', 'utf8');
 const referenceSource = fs.readFileSync('gas/ResearchReferenceService.gs', 'utf8');
 const mappingSource = fs.readFileSync('gas/ResearchMappingService.gs', 'utf8');
+const programmeSource = fs.readFileSync('gas/ProgrammeService.gs', 'utf8');
 const api = new Function('getSpreadsheet', 'getCurrentUser', 'LockService', dataSource + '\n' + referenceSource + '\nreturn { RESEARCH_SHEET_HEADERS: RESEARCH_SHEET_HEADERS, getResearchProgrammeKey_: getResearchProgrammeKey_, validateReferenceIds_: validateReferenceIds_, getResearchReferences_: getResearchReferences_, getResearchReferencesApi: getResearchReferencesApi };')(undefined, undefined, undefined);
 
 var task2HelpersSource = [
@@ -25,6 +26,7 @@ var task2HelpersSource = [
   'validateDuplicateCodes_', 'validatePLOParents_'
 ].map(function(name) { return extractFunction(name, mappingSource); }).join('\n');
 var task2Helpers = new Function(task2HelpersSource + '\nreturn { uniqueTrimmed_: uniqueTrimmed_, canonicalResearchTaxonomy_: canonicalResearchTaxonomy_, normalizeResearchPEO_: normalizeResearchPEO_, normalizeResearchPLO_: normalizeResearchPLO_, validateDuplicateCodes_: validateDuplicateCodes_, validatePLOParents_: validatePLOParents_ };')();
+const serverResearchPredicate = new Function(extractFunction('isResearchProgramme_', programmeSource) + '\nreturn isResearchProgramme_;')();
 
 const researchSheetNames = Object.keys(api.RESEARCH_SHEET_HEADERS);
 assert.deepStrictEqual(researchSheetNames, [
@@ -169,6 +171,18 @@ assert.deepStrictEqual(task2Helpers.normalizeResearchPLO_({
 assert.throws(function() { task2Helpers.validatePLOParents_([{code: 'PLO1', parentPEO: 'PEO9'}], [{code: 'PEO1'}]); }, /parent PEO/i);
 assert.throws(function() { task2Helpers.validateDuplicateCodes_([{code: 'PLO1'}, {code: 'PLO1'}], 'PLO'); }, /duplicate/i);
 assert.throws(function() { task2Helpers.validateDuplicateCodes_([{code: 'PLO1'}, {code: ' PLO1'}], 'PLO'); }, /duplicate/i);
+
+[
+  {programme: {mode: 'Research', level: 'Other'}, expected: true},
+  {programme: {mode: 'Postgraduate by Research', level: 'Masters'}, expected: true},
+  {programme: {mode: '', level: 'Masters'}, expected: false},
+  {programme: {level: 'Doctorate'}, expected: false},
+  {programme: {mode: 'Coursework', level: 'Doctorate'}, expected: false},
+  {programme: {mode: 'Unknown', level: 'Masters'}, expected: false},
+  {programme: {research: true, mode: 'Unknown', level: 'Masters'}, expected: false}
+].forEach(function(example) {
+  assert.strictEqual(serverResearchPredicate(example.programme), example.expected, 'Server research predicate mismatch for ' + JSON.stringify(example.programme));
+});
 
 var reviewSource = fs.readFileSync('gas/ResearchReviewService.gs', 'utf8');
 var reviewDepsSource = [

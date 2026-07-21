@@ -15,7 +15,7 @@ function assertContains(source, pattern, message) {
 }
 
 function hasLegacySingularMQFControl(source) {
-  return /<(?:input|select|textarea)\b[^>]*(?:\bv-model(?:\.[\w-]+)*|:value|\bv-bind:value)\s*=\s*["']\s*(?:(?:(?:[A-Za-z_$][\w$]*\s*(?:(?:\.\s*[A-Za-z_$][\w$]*)|(?:\[\s*['"][^'"]+['"]\s*\]))*\s*\.\s*)?)mqfDomain|(?:[A-Za-z_$][\w$]*\s*(?:(?:\.\s*[A-Za-z_$][\w$]*)|(?:\[\s*['"][^'"]+['"]\s*\]))*\s*)\[\s*['"]mqfDomain['"]\s*\])\s*["'][^>]*>/.test(source);
+  return /<(?:input|select|textarea)\b[^>]*(?:\bv-model(?:\.[\w-]+)*|:value|\bv-bind:value)\s*=\s*["']\s*(?:(?:(?:[A-Za-z_$][\w$]*\s*(?:(?:\.\s*[A-Za-z_$][\w$]*)|(?:\[\s*['"][^'"]+['"]\s*\]))*\s*\.\s*)?)mqfDomain|(?:[A-Za-z_$][\w$]*\s*(?:(?:\.\s*[A-Za-z_$][\w$]*)|(?:\[\s*['"][^'"]+['"]\s*\]))*\s*)\[\s*['"]mqfDomain['"]\s*\])\s*["'][^>]*>/i.test(source);
 }
 
 const auth = read('gas/Auth.gs');
@@ -106,6 +106,7 @@ assertContains(researchReview, /function\s+saveResearchStatusApi_[\s\S]*?isLegal
 assertContains(researchReview, /function\s+saveResearchStatusApi_[\s\S]*?['"]Submitted['"][\s\S]*?throws?\s*new\s+Error/, 'Status save does not redirect Submitted to guarded submission');
 assertContains(researchMapping, /Derived from PLO mappings/, 'Derived mapping label is missing');
 assertContains(programmeService, /mode:\s*String\(data\[i\]\[10\]/, 'Programme mode metadata is not exposed');
+assertContains(programmeService, /function\s+isResearchProgramme_[\s\S]*?if \(mode\) return mode === 'research' \|\| mode === 'postgraduate by research';[\s\S]*?return false;/, 'Research programme predicate must fail closed when mode is missing or unknown');
 assertContains(researchMapping, /function\s+requireResearchProgramme_\s*\(/, 'Research programme mode guard is missing');
 assertContains(researchMapping, /requireResearchProgramme_\(mqaCode\)/, 'Research APIs do not enforce the research programme guard');
 assertContains(researchMapping, /Postgraduate by Research/, 'Research profile mode is not canonical');
@@ -186,13 +187,14 @@ assertContains(auth, /capabilities\s*[:=]/, 'Current user does not expose normal
   'uploadFileApi',
   'suggestDeleteFileApi'
 ].forEach(function(name) {
-  const endpoint = new RegExp('function\\s+' + name + '[\\s\\S]*?requireProgrammeAccess_\\s*\\(');
-  assertContains(code, endpoint, name + ' is not guarded by requireProgrammeAccess_');
+  assert(!new RegExp('function\\s+' + name + '\\s*\\(').test(code), name + ' remains publicly callable from Code.gs');
 });
 
 assertContains(code, /function\s+approveDeleteFileApi[\s\S]*?isGraduateSchoolAdmin_/, 'Admin delete endpoint is not Graduate School-admin guarded');
 assertContains(governance, /function\s+ensureGovernanceSheets_\s*\(/, 'Missing additive governance sheet setup');
 assertContains(governance, /function\s+getUniversityDashboardApi_\s*\(/, 'Missing university dashboard API implementation');
+assertContains(governance, /getProgrammes\(admin \? null : user\.faculty\)\.filter\(isResearchProgramme_\)/, 'University dashboard is not research scoped');
+assertContains(governance, /getProgrammes\(faculty\)\.filter\(isResearchProgramme_\)/, 'Faculty report is not research scoped');
 assertContains(governance, /MQFDomainState/, 'Dashboard does not monitor MQF Domain state');
 assertContains(governance, /TaxonomyState/, 'Dashboard does not monitor Taxonomy state');
 assertContains(governance, /function\s+computeResearchProgrammeStatus_\s*\(/, 'Research programme status integration is missing');
@@ -253,7 +255,7 @@ assertContains(styles, /\.mapping-matrix-wrap\s*\{\s*max-width:\s*100%;\s*overfl
 assertContains(researchDetailSource, /mapping-matrix-wrap"\s+role="region"\s+tabindex="0"/, 'PLO matrix scrolling container must be keyboard focusable');
 assertContains(researchDetailSource, /mapping-matrix-wrap"\s+role="region"\s+tabindex="0"\s+aria-label="PLO mapping matrix scrolling region"/, 'PLO matrix scrolling container must have an accessible name');
 assertContains(researchDetailSource, /aria-describedby="mapping-matrix-instructions"/, 'PLO matrix must describe keyboard scrolling');
-assert(!/\b(?:Coursework|CLO|creditHour|credit hour|Subject|Course|DCI|embeddedPEO|mqfDomain)\b/.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
+assert(!/\b(?:Coursework|CLO|creditHour|credit hour|Subject|Course|DCI|embeddedPEO|mqfDomain)\b/i.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
 assert(!hasLegacySingularMQFControl(researchDetailSource), 'Research workspace still binds a singular legacy mqfDomain control');
 assert(hasLegacySingularMQFControl('<select v-model="plo.mqfDomain"></select>'), 'Singular legacy MQF select binding is not detected');
 assert(hasLegacySingularMQFControl('<select v-model="plo[\'mqfDomain\']"></select>'), 'Singular legacy MQF bracket binding is not detected');
