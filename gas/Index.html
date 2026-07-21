@@ -216,21 +216,21 @@
 
       </div>
 
-       <div v-if="currentView === 'detail' && currentProgramme" class="research-workspace">
-         <div class="back-link" @click="leaveResearchWorkspace">&larr; Back to list</div>
+        <div v-if="currentView === 'detail' && currentProgramme" class="research-workspace">
+          <button type="button" class="back-link" @click="leaveResearchWorkspace">&larr; Back to list</button>
            <section class="programme-context">
             <div><p class="eyebrow">POSTGRADUATE RESEARCH PROGRAMME</p><h2 class="section-title">{{ currentProgramme.name }}</h2><p class="text-sm text-muted">{{ currentProgramme.mqaCode }} · {{ currentProgramme.progCode }} · Postgraduate by Research</p></div>
            <div class="context-status"><span class="status-chip">{{ researchStatus }}</span><span class="save-state" :class="researchSaveState">{{ researchLoading ? 'Loading workspace...' : researchError ? 'Action required' : researchDirty ? 'Unsaved changes' : researchSaveState === 'saved' ? 'All changes saved' : 'Ready to edit' }}</span></div>
          </section>
-         <nav class="research-tabs" aria-label="Programme workspace">
-           <button :class="{active: researchCategory === 'information'}" @click="researchCategory = 'information'">Maklumat Program</button>
-           <button :class="{active: researchCategory === 'mapping'}" @click="researchCategory = 'mapping'">Pemetaan</button>
+          <nav class="research-tabs" role="tablist" aria-label="Programme workspace">
+            <button id="research-information-tab" type="button" role="tab" aria-controls="research-information-panel" :aria-selected="researchCategory === 'information'" :class="{active: researchCategory === 'information'}" @click="researchCategory = 'information'">Maklumat Program</button>
+            <button id="research-mapping-tab" type="button" role="tab" aria-controls="research-mapping-panel" :aria-selected="researchCategory === 'mapping'" :class="{active: researchCategory === 'mapping'}" @click="researchCategory = 'mapping'">Pemetaan</button>
          </nav>
 
           <div v-if="researchLoading" class="loading-panel" role="status">Loading research workspace...</div>
           <div v-else>
           <div v-if="researchError" class="alert alert-error" role="alert"><strong>Research action needs attention.</strong><div>{{ researchError }}</div><div class="text-sm mt-2">Review the editable records and try the action again.</div><button class="btn btn-secondary mt-3" @click="loadResearchWorkspace">Retry workspace load</button></div>
-         <section v-if="researchCategory === 'information'" class="research-panel">
+          <section v-if="researchCategory === 'information'" id="research-information-panel" class="research-panel" role="tabpanel" aria-labelledby="research-information-tab">
            <div class="panel-heading"><div><p class="eyebrow">PROGRAMME PROFILE</p><h3 class="section-title">Programme Information</h3></div><button class="btn btn-primary" @click="saveResearchProfile" :disabled="researchSaveState === 'saving'">Save profile</button></div>
            <div v-if="researchProfile" class="profile-grid">
              <div class="form-group"><label for="profile-mqa">MQA code</label><input id="profile-mqa" :value="researchProfile.mqaCode" disabled></div>
@@ -241,8 +241,12 @@
              <div class="form-group"><label for="profile-field">Study field</label><input id="profile-field" v-model="researchProfile.studyField" @input="markResearchDirty"></div>
              <div class="form-group"><label for="profile-session">Session</label><input id="profile-session" v-model="researchProfile.session" @input="markResearchDirty"></div>
              <div class="form-group"><label for="profile-version">Document version</label><input id="profile-version" v-model="researchProfile.documentVersion" @input="markResearchDirty"></div>
-             <div class="form-group"><label for="profile-owner">Data owner</label><input id="profile-owner" v-model="researchProfile.dataOwner" @input="markResearchDirty"></div>
-             <div class="form-group"><label for="profile-status">Mapping status</label><input id="profile-status" :value="researchProfile.mappingStatus" disabled></div>
+              <div class="form-group"><label for="profile-owner">Data owner</label><input id="profile-owner" v-model="researchProfile.dataOwner" @input="markResearchDirty"></div>
+              <div class="form-group"><label for="profile-status">Mapping status</label><input id="profile-status" :value="researchProfile.mappingStatus" disabled></div>
+              <div class="form-group"><label for="profile-programme-id">Programme ID</label><input id="profile-programme-id" :value="researchProfile.programmeId" disabled></div>
+              <div class="form-group"><label for="profile-created">Created</label><input id="profile-created" :value="researchProfile.createdAt" disabled></div>
+              <div class="form-group"><label for="profile-updated">Last updated</label><input id="profile-updated" :value="researchProfile.updatedAt" disabled></div>
+              <div class="form-group"><label for="profile-updated-by">Last updated by</label><input id="profile-updated-by" :value="researchProfile.updatedBy" disabled></div>
            </div>
            <div class="research-subsection"><div class="panel-heading"><div><p class="eyebrow">PROGRAMME EDUCATIONAL OBJECTIVES</p><h3 class="section-title">PEO parent records</h3></div><div><button class="btn btn-success" @click="addResearchPEO">+ Add PEO</button><button class="btn btn-primary ml-2" @click="saveResearchPEOs">Save PEOs</button></div></div>
              <article v-for="(peo, index) in researchPEOs" :key="peo.peoId || peo.code" class="peo-card"><div class="record-row"><input class="code-input" v-model="peo.code" aria-label="PEO code" @input="markResearchDirty"><button class="btn btn-danger text-xs" @click="researchPEOs.splice(index, 1); markResearchDirty()">Remove</button></div><label class="field-label" :for="'peo-statement-' + index">PEO statement <span class="required-mark">Required</span></label><textarea :id="'peo-statement-' + index" v-model="peo.statement" class="expand-textarea" @input="markResearchDirty"></textarea></article>
@@ -250,7 +254,7 @@
            <div class="research-subsection"><div class="panel-heading"><div><p class="eyebrow">PROGRAMME LEARNING OUTCOMES</p><h3 class="section-title">PLO records</h3></div><div><button class="btn btn-success" @click="addResearchPLO">+ Add PLO</button><button class="btn btn-primary ml-2" @click="saveResearchPLOs">Save PLOs</button></div></div><p class="text-sm text-muted">Define each outcome here. Mapping selections are managed in Pemetaan.</p></div>
          </section>
 
-         <section v-if="researchCategory === 'mapping'" class="research-panel">
+          <section v-if="researchCategory === 'mapping'" id="research-mapping-panel" class="research-panel" role="tabpanel" aria-labelledby="research-mapping-tab">
            <div class="panel-heading"><div><p class="eyebrow">PLO MAPPING</p><h3 class="section-title">PLO Workspace</h3></div><div><span class="status-chip">{{ researchStatus }}</span><button type="button" class="btn btn-success ml-2" aria-label="Add PLO to PLO Workspace" @click="addResearchPLO">+ Add PLO</button></div></div>
            <div v-if="researchReview && researchReview.critical && researchReview.critical.length" class="alert alert-error" role="alert"><strong>Validation alerts</strong><div v-for="issue in researchReview.critical" :key="issue.code + issue.ploCode">{{ issue.message }}</div></div>
            <article v-for="plo in researchPLOs" :key="plo.ploId || plo.code" class="plo-workspace-row">

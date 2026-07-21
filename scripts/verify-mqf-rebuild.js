@@ -219,6 +219,26 @@ assertContains(index, /PLO Workspace[\s\S]*?\+ Add PLO/, 'PLO Workspace add acti
 assertContains(index, /Postgraduate by Research/, 'Research mode label is missing');
 assertContains(index, /MQF domains/, 'MQF domain selector is missing');
 assertContains(index, /Taxonomy/, 'Taxonomy label is missing');
+const researchDetailStart = index.indexOf('<div v-if="currentView === \'detail\' && currentProgramme" class="research-workspace">');
+const researchDetailEnd = index.indexOf('</main>', researchDetailStart);
+assert(researchDetailStart !== -1 && researchDetailEnd !== -1, 'Research detail workspace source is missing');
+const researchDetailSource = index.slice(researchDetailStart, researchDetailEnd);
+assertContains(researchDetailSource, /Maklumat Program/, 'Programme Information category is missing');
+assertContains(researchDetailSource, /Pemetaan/, 'Mapping category is missing');
+assertContains(researchDetailSource, /PLO Workspace/, 'PLO workspace is missing');
+assertContains(researchDetailSource, /Coverage Matrix/, 'Coverage matrix is missing');
+assertContains(researchDetailSource, /TF derived from MQF mapping/, 'Derived TF label is missing');
+assertContains(researchDetailSource, /Derived from PLO mappings/, 'PEO derived label is missing');
+assert(!/Coursework|DCI|CLO|credit hour|Subject|Course Mapping|embeddedPEO|\bmqfDomain\b/.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
+assertContains(researchDetailSource, /<button[^>]*class="back-link"[^>]*@click="leaveResearchWorkspace"/, 'Research workspace back control must be a button');
+assertContains(researchDetailSource, /role="tablist"/, 'Research categories need tablist semantics');
+assertContains(researchDetailSource, /role="tab"/, 'Research category controls need tab semantics');
+assertContains(researchDetailSource, /:aria-selected="researchCategory === 'information'"/, 'Information category must expose its selected state');
+assertContains(researchDetailSource, /:aria-selected="researchCategory === 'mapping'"/, 'Mapping category must expose its selected state');
+['profile-programme-id', 'profile-created', 'profile-updated', 'profile-updated-by'].forEach(function(id) {
+  assertContains(researchDetailSource, new RegExp('id="' + id + '"'), 'Research profile audit field is missing: ' + id);
+});
+assertContains(styles, /\.research-tabs button:focus-visible/, 'Research category focus treatment is missing');
 assertContains(index, /Request temporary access/, 'Faculty access request workspace is missing');
 assertContains(index, /createAccessRequest/, 'Access request action is missing from the UI');
 assertContains(index, /Access requests/, 'Admin access request queue is missing');
