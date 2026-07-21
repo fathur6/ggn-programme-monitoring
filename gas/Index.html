@@ -129,23 +129,11 @@
         </div>
         <div class="card-bordered">
           <div @click="pendingOpen = !pendingOpen" class="accordion-header">
-            <h3 class="section-title" style="margin-bottom:0">Pending Approvals ({{ pendingSuggestions.length + pendingDeletions.length }})</h3>
+            <h3 class="section-title" style="margin-bottom:0">Pending Approvals ({{ pendingDeletions.length }})</h3>
             <span style="color:var(--muted);font-size:14px">{{ pendingOpen ? '▲' : '▼' }}</span>
           </div>
           <div v-show="pendingOpen" class="mt-4">
-            <h4 class="text-sm text-muted font-medium mb-2">Programme Add/Remove</h4>
-            <div v-if="pendingSuggestions.length === 0" class="text-sm text-muted">No pending suggestions.</div>
-            <div v-for="(s, idx) in pendingSuggestions" :key="'s'+idx" class="card-bordered" style="padding:12px;margin-bottom:8px;">
-              <div class="text-sm"><strong>{{ s.type === 'Add' ? 'Add' : 'Remove' }}</strong> — {{ s.programmeCode }} by {{ s.requestedBy }} on {{ s.requestedDate }}</div>
-              <div class="mt-1" v-if="s.status === 'Pending'">
-                <button @click="approveSuggestion(idx)" class="btn btn-success text-sm">Approve</button>
-                <button @click="rejectSuggestion(idx)" class="btn btn-danger text-sm ml-2">Reject</button>
-                <input v-model="s.reason" placeholder="Note (if rejecting)" class="ml-2" style="width:auto;display:inline-block;padding:4px 8px;font-size:12px;">
-              </div>
-              <div class="text-xs mt-1" v-else><span :class="s.status === 'Approved' ? 'text-action-blue' : 'text-coral'">{{ s.status }}</span></div>
-            </div>
-
-            <h4 class="text-sm text-muted font-medium mb-2 mt-4">File Delete Requests</h4>
+             <h4 class="text-sm text-muted font-medium mb-2 mt-4">File Delete Requests</h4>
             <div v-if="pendingDeletions.length === 0" class="text-sm text-muted">No pending file delete requests.</div>
              <div v-for="(d, idx) in pendingDeletions" :key="'d'+idx" class="card-bordered" style="padding:12px;margin-bottom:8px;">
                <div class="text-sm"><strong>{{ d.fileName }}</strong> — {{ d.programme }} by {{ d.requestedBy }}</div>

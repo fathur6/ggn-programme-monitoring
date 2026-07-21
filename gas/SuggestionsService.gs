@@ -1,6 +1,6 @@
 /** SuggestionsService.gs — Add/Remove programme suggestion + approval + pending deletions panel */
 
-function ensureSuggestionsSheet() {
+function ensureSuggestionsSheet_() {
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('PendingSuggestions');
   if (!sheet) {
@@ -10,13 +10,13 @@ function ensureSuggestionsSheet() {
   return sheet;
 }
 
-function suggestAddProgramme(programmeData) {
+function suggestAddProgramme_(programmeData) {
   var access = requireResearchProgrammeAccess_(programmeData && programmeData.mqaCode, 'suggest-add-programme');
   var user = access.user;
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
-    var sheet = ensureSuggestionsSheet();
+    var sheet = ensureSuggestionsSheet_();
     sheet.appendRow(['Add', JSON.stringify(programmeData), programmeData.mqaCode, user.faculty, user.email, new Date(), 'Pending', '']);
     return { success: true };
   } catch (e) {
@@ -26,13 +26,13 @@ function suggestAddProgramme(programmeData) {
   }
 }
 
-function suggestRemoveProgramme(mqaCode) {
+function suggestRemoveProgramme_(mqaCode) {
   var access = requireResearchProgrammeAccess_(mqaCode, 'suggest-remove-programme');
   var user = access.user;
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
-    var sheet = ensureSuggestionsSheet();
+    var sheet = ensureSuggestionsSheet_();
     sheet.appendRow(['Remove', mqaCode, mqaCode, user.faculty, user.email, new Date(), 'Pending', '']);
     return { success: true };
   } catch (e) {
@@ -42,7 +42,7 @@ function suggestRemoveProgramme(mqaCode) {
   }
 }
 
-function getPendingSuggestions() {
+function getPendingSuggestions_() {
   var user = getCurrentUser();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var ss = getSpreadsheet();
@@ -66,7 +66,7 @@ function getPendingSuggestions() {
   return result;
 }
 
-function findPendingRow(data, rowIndex) {
+function findPendingRow_(data, rowIndex) {
   var count = -1;
   for (var i = 1; i < data.length; i++) {
     if (data[i][6] === 'Pending') {
@@ -77,7 +77,7 @@ function findPendingRow(data, rowIndex) {
   return -1;
 }
 
-function approveSuggestion(rowIndex) {
+function approveSuggestion_(rowIndex) {
   var user = getCurrentUser();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var lock = LockService.getScriptLock();
@@ -87,7 +87,7 @@ function approveSuggestion(rowIndex) {
     var sheet = ss.getSheetByName('PendingSuggestions');
     if (!sheet) throw new Error('Sheet tidak dijumpai');
     var data = sheet.getDataRange().getValues();
-    var foundRow = findPendingRow(data, rowIndex);
+    var foundRow = findPendingRow_(data, rowIndex);
     if (foundRow === -1) throw new Error('Cadangan tidak dijumpai');
     var row = data[foundRow];
     var rowData = [row[0], row[1], row[2], row[3], row[4], row[5], 'Approved', row[7]];
@@ -117,7 +117,7 @@ function approveSuggestion(rowIndex) {
   }
 }
 
-function rejectSuggestion(rowIndex, note) {
+function rejectSuggestion_(rowIndex, note) {
   var user = getCurrentUser();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var lock = LockService.getScriptLock();
@@ -127,7 +127,7 @@ function rejectSuggestion(rowIndex, note) {
     var sheet = ss.getSheetByName('PendingSuggestions');
     if (!sheet) throw new Error('Sheet tidak dijumpai');
     var data = sheet.getDataRange().getValues();
-    var foundRow = findPendingRow(data, rowIndex);
+    var foundRow = findPendingRow_(data, rowIndex);
     if (foundRow === -1) throw new Error('Cadangan tidak dijumpai');
     var row = data[foundRow];
     var rowData = [row[0], row[1], row[2], row[3], row[4], row[5], 'Rejected', note || ''];
@@ -140,7 +140,7 @@ function rejectSuggestion(rowIndex, note) {
   }
 }
 
-function getPendingDeletions() {
+function getPendingDeletions_() {
   var user = getCurrentUser();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var deletion = getDeletionSheet_();

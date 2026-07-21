@@ -49,6 +49,14 @@ function functionSource(source, name) {
   return source.slice(start, next === -1 ? source.length : next);
 }
 
+function assertNoTopLevelFunction(source, name, message) {
+  assert(!new RegExp('function\\s+' + name + '\\s*\\(').test(source), message || (name + ' must not be a public Apps Script global'));
+}
+
+function assertNoPublicFunctionVariants(source, name) {
+  assert(!new RegExp('function\\s+' + name + '\\s*\\(', 'i').test(source), name + ' must not be callable with a case variant');
+}
+
 [
   'gas/Index.html',
   'gas/JavaScript.html',
@@ -168,6 +176,7 @@ assertContains(code, /function\s+sendAnnouncementsByFacultyListApi[\s\S]*?isGrad
 assertContains(code, /function\s+hasDisabledLegacyRoute_\s*\([\s\S]*?updatePIC/, 'PIC update legacy route is not disabled');
 assertContains(code, /function\s+debugGetProgrammesApi[\s\S]*?isGraduateSchoolAdmin_/, 'Debug service lacks backend admin authorization');
 assertContains(code, /function\s+approveDeleteFileApi\s*\(requestId\)/, 'Delete approval must use requestId');
+assertContains(code, /function\s+getPendingDeletionsApi\s*\(\)[\s\S]*?isGraduateSchoolAdmin_/, 'Secure admin deletion queue route must remain guarded');
 assertContains(upload, /function\s+approveDeleteFile\s*\(requestId\)/, 'Delete service must use requestId');
 assertContains(upload, /columns\.Status\]\)\s*!==\s*['"]Pending['"]/, 'Delete service must require Pending status');
 assertContains(upload, /getParents\s*\(/, 'Delete service must verify file folder membership');
@@ -207,8 +216,16 @@ assertContains(governance, /MQFDomainState/, 'Dashboard does not monitor MQF Dom
 assertContains(governance, /TaxonomyState/, 'Dashboard does not monitor Taxonomy state');
 assertContains(governance, /function\s+computeResearchProgrammeStatus_\s*\(/, 'Research programme status integration is missing');
 assertContains(governance, /function\s+isResearchMappingComplete_\s*\(/, 'Research mapping completion check is missing');
-assertContains(governance, /var complete = peoComplete && ploComplete && mqfComplete && taxonomyComplete && mappingComplete;/, 'Supporting documents must not block completion readiness');
+assertContains(governance, /documentState:\s*'Not required'/, 'Research governance must not require supporting documents');
+assert(!/function\s+computeProgrammeStatus_[\s\S]*?getPEOs\s*\(/.test(governance), 'Governance status must not fall back to legacy course PEO data');
+assert(!/function\s+computeProgrammeStatus_[\s\S]*?getPLOs\s*\(/.test(governance), 'Governance status must not fall back to legacy course PLO data');
 assertContains(code, /function\s+getUniversityDashboardApi\s*\(/, 'Missing university dashboard API endpoint');
+assertContains(governance, /function\s+getProgrammeStatusApi_[\s\S]*?requireResearchProgrammeAccess_\s*\(/, 'Programme status must be research-only');
+assertContains(governance, /function\s+saveProgrammeStatusApi_[\s\S]*?requireResearchProgrammeAccess_\s*\(/, 'Programme status writes must be research-only');
+assertContains(governance, /function\s+getFacultyReportApi_[\s\S]*?filter\(isResearchProgramme_\)/, 'Faculty governance reports must be research-only');
+assertContains(governance, /function\s+getGovernanceItemsApi_[\s\S]*?isResearchProgramme_/, 'Governance queue reads must be research-only');
+assertContains(governance, /function\s+saveGovernanceItemApi_[\s\S]*?isResearchProgramme_\s*\(/, 'Governance queue writes must require a research programme');
+assertContains(governance, /function\s+saveGovernanceItemApi_[\s\S]*?findProgrammeByMqaCode_\s*\(item\.mqaCode\)/, 'Governance queue writes must resolve the requested programme');
 assertContains(access, /7\s*\*\s*24\s*\*\s*60\s*\*\s*60\s*\*\s*1000/, 'Cross-faculty access does not expire after one week');
 assertContains(access, /function\s+createAccessRequestApi_\s*\(/, 'Missing access request creation');
 assertContains(access, /function\s+decideAccessRequestApi_\s*\(/, 'Missing access request decision');
@@ -223,10 +240,17 @@ assertContains(graph, /'Taxonomy'/, 'Graph does not emit taxonomy nodes');
 assertContains(graph, /type:\s*'classified_as'/, 'Graph does not emit classification edges');
 assertContains(upload, /isGraduateSchoolAdmin_\(user\)/, 'File deletion is not Graduate School-admin guarded');
 assertContains(suggestions, /isGraduateSchoolAdmin_\(user\)/, 'Suggestion admin operations are not Graduate School-admin guarded');
+['getGraphData', 'getUploadedFiles', 'uploadFile', 'suggestDeleteFile'].forEach(function(name) {
+  assertNoTopLevelFunction(graph + upload, name, name + ' remains directly callable as a public global');
+  assertNoPublicFunctionVariants(graph + upload, name);
+  assertContains(graph + upload, new RegExp('function\\s+' + name + '_\\s*\\('), name + ' private implementation is missing');
+});
+assertNoTopLevelFunction(read('gas/DriveConfig.gs'), 'getProgramFolder', 'getProgramFolder remains directly callable as a public global');
+assertContains(read('gas/DriveConfig.gs'), /function\s+getProgramFolder_\s*\(/, 'Private programme folder helper is missing');
 [
   ['getPEOs', peo], ['savePEOs', peo], ['getPLOs', plo], ['savePLOs', plo],
-  ['getGraphData', graph], ['getUploadedFiles', upload], ['uploadFile', upload],
-  ['suggestDeleteFile', upload]
+  ['getGraphData_', graph], ['getUploadedFiles_', upload], ['uploadFile_', upload],
+  ['suggestDeleteFile_', upload]
 ].forEach(function(entry) {
   assertContains(functionSource(entry[1], entry[0]), /requireResearchProgrammeAccess_\s*\(/,
     entry[0] + ' is directly callable without research programme access protection');
@@ -237,14 +261,15 @@ assertContains(programmeService, /function\s+getProgrammes_\s*\(/,
   'Internal programme loader must be private');
 assertContains(code, /function\s+getProgrammesApi[\s\S]*?getCurrentUser\(\)[\s\S]*?filter\(isResearchProgramme_\)/,
   'Public programme directory lacks authentication and research-only filtering');
-assertContains(functionSource(code, 'suggestAddProgrammeApi'), /requireResearchProgrammeAccess_\s*\(/,
-  'Programme add suggestion route is not research/access guarded');
-assertContains(functionSource(code, 'suggestRemoveProgrammeApi'), /requireResearchProgrammeAccess_\s*\(/,
-  'Programme remove suggestion route is not research/access guarded');
-assertContains(functionSource(suggestions, 'suggestAddProgramme'), /requireResearchProgrammeAccess_\s*\(/,
-  'Direct add suggestion function is not research/access guarded');
-assertContains(functionSource(suggestions, 'suggestRemoveProgramme'), /requireResearchProgrammeAccess_\s*\(/,
-  'Direct remove suggestion function is not research/access guarded');
+['suggestAddProgrammeApi', 'suggestRemoveProgrammeApi'].forEach(function(name) {
+  assertNoTopLevelFunction(code, name, name + ' remains publicly callable');
+  assertNoPublicFunctionVariants(code, name);
+});
+['suggestAddProgramme', 'suggestRemoveProgramme'].forEach(function(name) {
+  assertNoTopLevelFunction(suggestions, name, name + ' remains directly callable as a public global');
+  assertNoPublicFunctionVariants(suggestions, name);
+  assertContains(suggestions, new RegExp('function\\s+' + name + '_\\s*\\('), name + ' private implementation is missing');
+});
 assertContains(code, /function\s+prepareAllSheetsApi[\s\S]*?isGraduateSchoolAdmin_/, 'Sheet preparation is not Graduate School-admin guarded');
 assertContains(index, /class="app-nav"/, 'Persistent application navigation is missing');
 assertContains(index, /currentView === 'dashboard'/, 'University dashboard view is missing');

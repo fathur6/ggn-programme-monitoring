@@ -1,9 +1,9 @@
 /** UploadService.gs — File upload, delete requests, and admin approval with LockService */
 
-function getUploadedFiles(mqaCode) {
+function getUploadedFiles_(mqaCode) {
   requireResearchProgrammeAccess_(mqaCode, 'view-documents');
   if (!mqaCode) throw new Error('Program tidak dijumpai.');
-  var folder = getProgramFolder(mqaCode);
+  var folder = getProgramFolder_(mqaCode);
   var files = folder.getFiles();
   var result = [];
   while (files.hasNext()) {
@@ -66,7 +66,7 @@ function fileBelongsToFolder_(file, folder) {
   return false;
 }
 
-function uploadFile(mqaCode, fileType, fileBlob) {
+function uploadFile_(mqaCode, fileType, fileBlob) {
   requireResearchProgrammeAccess_(mqaCode, 'upload-document');
   var lock = LockService.getScriptLock();
   try {
@@ -87,7 +87,7 @@ function uploadFile(mqaCode, fileType, fileBlob) {
     var dateStr = dd + MM + yy;
     var fileName = mqaCode + '-' + fileType + '-' + dateStr + '.pdf';
 
-    var folder = getProgramFolder(mqaCode);
+    var folder = getProgramFolder_(mqaCode);
     var existing = folder.getFilesByName(fileName);
     if (existing.hasNext()) throw new Error('Fail dengan nama yang sama sudah wujud.');
 
@@ -99,7 +99,7 @@ function uploadFile(mqaCode, fileType, fileBlob) {
   }
 }
 
-function suggestDeleteFile(fileId, mqaCode) {
+function suggestDeleteFile_(fileId, mqaCode) {
   var access = requireResearchProgrammeAccess_(mqaCode, 'request-document-deletion');
   if (!fileId || !mqaCode) throw new Error('Maklumat fail tidak lengkap.');
   var lock = LockService.getScriptLock();

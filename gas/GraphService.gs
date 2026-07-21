@@ -1,6 +1,6 @@
 /** GraphService.gs — PEO/PLO visualisation graph data builder */
 
-function getGraphData(mqaCode) {
+function getGraphData_(mqaCode) {
   requireResearchProgrammeAccess_(mqaCode, 'view-graph');
   var peos = getPEOs(mqaCode);
   var plos = getPLOs(mqaCode);

@@ -151,34 +151,9 @@ function approveDeleteFileApi(requestId) {
   return approveDeleteFile(requestId);
 }
 
-function suggestAddProgrammeApi(programmeData) {
-  requireResearchProgrammeAccess_(programmeData && programmeData.mqaCode, 'suggest-add-programme');
-  return suggestAddProgramme(programmeData);
-}
-
-function suggestRemoveProgrammeApi(mqaCode) {
-  requireResearchProgrammeAccess_(mqaCode, 'suggest-remove-programme');
-  return suggestRemoveProgramme(mqaCode);
-}
-
-function getPendingSuggestionsApi() {
-  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
-  return getPendingSuggestions();
-}
-
-function approveSuggestionApi(rowIndex) {
-  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
-  return approveSuggestion(rowIndex);
-}
-
-function rejectSuggestionApi(rowIndex, note) {
-  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
-  return rejectSuggestion(rowIndex, note);
-}
-
 function getPendingDeletionsApi() {
   if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
-  return getPendingDeletions();
+  return getPendingDeletions_();
 }
 
 /** One-time: create per-program tabs for all programmes from the Programme sheet */

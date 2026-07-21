@@ -179,7 +179,6 @@ new Vue({
     loading: false,
     error: null,
     pendingOpen: false,
-    pendingSuggestions: [],
     pendingDeletions: [],
     toast: null,
     toastTimer: null,
@@ -596,38 +595,12 @@ new Vue({
     toggleSDG: function(plo) { this.markResearchDirty(); },
     toggleSC: function(plo) { this.markResearchDirty(); },
     leaveResearchWorkspace: function() { this.setView('programmes'); },
-    loadPendingSuggestions: function() {
-      var self = this;
-      if (this.user.role !== 'Admin') return;
-      google.script.run
-        .withSuccessHandler(function(r) { self.pendingSuggestions = r; })
-        .getPendingSuggestionsApi();
-    },
     loadPendingDeletions: function() {
       var self = this;
       if (this.user.role !== 'Admin') return;
       google.script.run
         .withSuccessHandler(function(r) { self.pendingDeletions = r; })
         .getPendingDeletionsApi();
-    },
-    approveSuggestion: function(idx) {
-      var self = this;
-      google.script.run
-        .withSuccessHandler(function() {
-          self.loadPendingSuggestions();
-          self.loadProgrammes();
-        })
-        .approveSuggestionApi(idx);
-    },
-    rejectSuggestion: function(idx) {
-      var self = this;
-      var note = this.pendingSuggestions[idx].reason || '';
-      google.script.run
-        .withSuccessHandler(function() {
-          self.loadPendingSuggestions();
-          self.loadProgrammes();
-        })
-        .rejectSuggestionApi(idx, note);
     },
     prepareSheets: function() {
       this.preparing = true;
@@ -653,7 +626,6 @@ new Vue({
      mounted: function() {
     this.loadDashboard();
     this.loadProgrammes();
-    this.loadPendingSuggestions();
     this.loadPendingDeletions();
     this.loadAccessRequests();
     this.loadGovernanceItems();

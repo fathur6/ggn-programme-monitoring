@@ -105,15 +105,15 @@ function getFacultyReportApi_(faculty) {
 }
 
 function getProgrammeStatusApi_(mqaCode) {
-  var access = requireProgrammeAccess_(mqaCode, 'view-status');
-  var programme = findProgrammeByMqaCode_(mqaCode);
-  if (!programme) throw new Error('Programme not found');
+  var access = requireResearchProgrammeAccess_(mqaCode, 'view-status');
+  var programme = requireResearchProgramme_(mqaCode);
   return shapeStatusForUser_(programme, computeProgrammeStatus_(programme), access.user);
 }
 
 function saveProgrammeStatusApi_(mqaCode, status) {
-  var access = requireProgrammeAccess_(mqaCode, 'save-status');
-  if (!isGraduateSchoolAdmin_(access.user) && access.user.faculty !== findProgrammeByMqaCode_(mqaCode).faculty) {
+  var access = requireResearchProgrammeAccess_(mqaCode, 'save-status');
+  var programme = requireResearchProgramme_(mqaCode);
+  if (!isGraduateSchoolAdmin_(access.user) && access.user.faculty !== programme.faculty) {
     throw new Error('Forbidden: only authorized programme editors may save status');
   }
   var allowed = ['Draft', 'In Progress', 'Needs Attention', 'Complete', 'Submitted', 'Under Revision', 'Under Audit'];
@@ -125,7 +125,7 @@ function saveProgrammeStatusApi_(mqaCode, status) {
   var user = access.user;
   var values = [
     mqaCode,
-    findProgrammeByMqaCode_(mqaCode).faculty,
+    programme.faculty,
     status.completionState,
     status.peoState || '',
     status.ploState || '',
@@ -158,7 +158,9 @@ function getGovernanceItemsApi_(filters) {
   var status = filters && filters.status;
   return data.slice(1).filter(function(row) {
     if (!row[0]) return false;
-    if (!isGraduateSchoolAdmin_(user) && String(row[2]) !== String(user.faculty)) return false;
+    var programme = findProgrammeByMqaCode_(row[1]);
+    if (!programme || !isResearchProgramme_(programme)) return false;
+    if (!isGraduateSchoolAdmin_(user) && String(programme.faculty) !== String(user.faculty)) return false;
     if (faculty && String(row[2]) !== String(faculty)) return false;
     if (status && String(row[6]) !== String(status)) return false;
     return true;
@@ -174,6 +176,9 @@ function getGovernanceItemsApi_(filters) {
 function saveGovernanceItemApi_(item) {
   var user = getCurrentUser();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
+  if (!item || !item.mqaCode) throw new Error('Research programme is required');
+  var programme = findProgrammeByMqaCode_(item.mqaCode);
+  if (!programme || !isResearchProgramme_(programme)) throw new Error('Forbidden: programme is not postgraduate by research');
   var types = ['Revision', 'Audit', 'Administration Request'];
   var statuses = ['Open', 'In Progress', 'Blocked', 'Complete', 'Closed'];
   if (types.indexOf(String(item.type)) === -1) throw new Error('Invalid governance item type');
@@ -183,7 +188,7 @@ function saveGovernanceItemApi_(item) {
   var now = new Date();
   var id = item.itemId || ('GOV-' + Utilities.getUuid());
   sheet.appendRow([
-    id, item.mqaCode || '', item.faculty || '', item.type, item.title || '',
+    id, programme.mqaCode, programme.faculty, item.type, item.title || '',
     item.description || '', item.status, item.ownerEmail || '', item.dueDate || '',
     now, now, user.email
   ]);
@@ -191,36 +196,8 @@ function saveGovernanceItemApi_(item) {
 }
 
 function computeProgrammeStatus_(programme) {
-  if (isResearchProgramme_(programme)) return computeResearchProgrammeStatus_(programme);
-  var peos = getPEOs(programme.mqaCode);
-  var plos = getPLOs(programme.mqaCode);
-  var filesReady = hasProgrammeDocuments_(programme.mqaCode);
-  var peoComplete = peos.length > 0 && peos.every(function(item) { return String(item.description || '').trim(); });
-  var ploComplete = plos.length > 0 && plos.every(function(item) { return String(item.description || '').trim(); });
-  var mqfComplete = plos.length > 0 && plos.every(function(item) { return String(item.mqfDomain || '').trim(); });
-  var taxonomyComplete = plos.length > 0 && plos.every(function(item) { return String(item.taxonomy || '').trim(); });
-  var mappingComplete = plos.length > 0 && plos.every(function(item) { return String(item.embeddedPEO || '').trim(); });
-  var complete = peoComplete && ploComplete && mqfComplete && taxonomyComplete && mappingComplete;
-  var completionState = complete ? 'Complete' : 'Needs Attention';
-  return {
-    completionState: completionState,
-    peoState: peoComplete ? 'Complete' : 'Needs Attention',
-    ploState: ploComplete ? 'Complete' : 'Needs Attention',
-    mqfDomainState: mqfComplete ? 'Complete' : 'Needs Attention',
-    taxonomyState: taxonomyComplete ? 'Complete' : 'Needs Attention',
-    mappingState: mappingComplete ? 'Complete' : 'Needs Attention',
-    documentState: filesReady ? 'Ready' : 'Needs Attention',
-    reviewState: complete ? 'Ready' : 'Blocked',
-    submissionState: complete ? 'Ready' : 'Draft',
-    overdue: isProgrammeOverdue_({ completionState: completionState }),
-    counts: {
-      peos: peos.length,
-      plos: plos.length,
-      mqfDomainComplete: plos.filter(function(item) { return String(item.mqfDomain || '').trim(); }).length,
-      taxonomyComplete: plos.filter(function(item) { return String(item.taxonomy || '').trim(); }).length,
-      mappingComplete: plos.filter(function(item) { return String(item.embeddedPEO || '').trim(); }).length
-    }
-  };
+  requireResearchProgramme_(programme.mqaCode);
+  return computeResearchProgrammeStatus_(programme);
 }
 
 function computeResearchProgrammeStatus_(programme) {
