@@ -163,8 +163,10 @@ function lookupUser(email) {
   if (coorSheet) {
     var coorData = coorSheet.getDataRange().getValues();
     for (var i = 1; i < coorData.length; i++) {
+      var coorFaculty = String(coorData[i][0] || '').trim();
       if (String(coorData[i][2]).trim().toLowerCase() === emailStr) {
-        return { email: email, role: 'Faculty Coordinator', faculty: coorData[i][0], name: coorData[i][1] };
+        if (!coorFaculty) continue;
+        return { email: email, role: 'Faculty Coordinator', faculty: coorFaculty, name: String(coorData[i][1] || '').trim() };
       }
     }
   }

@@ -51,7 +51,8 @@ const researchReferences = read('gas/ResearchReferenceService.gs');
   'scripts/test-mqf-overdue.js',
   'gas/ResearchDataService.gs',
   'gas/ResearchReferenceService.gs',
-  'scripts/test-research-mapping.js'
+  'scripts/test-research-mapping.js',
+  'scripts/test-coor-access.js'
 ].forEach(function(path) {
   assert(fs.existsSync(path), 'Required project file is missing: ' + path);
 });
@@ -104,7 +105,7 @@ assertContains(auth, /capabilities\s*[:=]/, 'Current user does not expose normal
 assertContains(auth, /var\s+coorSheet\s*=\s*ss\.getSheetByName\(['"]COOR['"]\)/, 'COOR sheet lookup is missing');
 assertContains(auth, /coorData\[i\]\[2\].*trim\(\)\.toLowerCase\(\)\s*===\s*emailStr/, 'COOR lookup must normalize the third-column email');
 assertContains(auth, /role:\s*['"]Faculty Coordinator['"]/, 'COOR lookup must return the Faculty Coordinator role');
-assertContains(auth, /faculty:\s*coorData\[i\]\[0\].*name:\s*coorData\[i\]\[1\]/, 'COOR lookup must return faculty and display name');
+assertContains(auth, /faculty:\s*coorFaculty.*name:\s*String\(coorData\[i\]\[1\]\s*\|\|\s*['"]['"]\)\.trim\(\)/, 'COOR lookup must return normalized faculty and display name');
 assertContains(auth, /programme\.faculty\s*===\s*String\(user\.faculty\s*\|\|\s*['"]['"]\)\.trim\(\)/, 'Non-admin programme access must remain faculty scoped');
 
 [
