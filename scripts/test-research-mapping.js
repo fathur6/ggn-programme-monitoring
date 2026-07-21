@@ -29,6 +29,7 @@ assert.throws(() => api.validateReferenceIds_(['INVALID'], ['MQF1', 'MQF2']), /i
 function FakeSheet(name, rows) {
   this.name = name;
   this.rows = rows || [];
+  this.clearContentsCalls = 0;
   this.appendRow = row => this.rows.push(row.slice());
   this.getLastRow = () => this.rows.length;
   this.getDataRange = () => ({getValues: () => this.rows.map(row => row.slice())});
@@ -40,7 +41,7 @@ function FakeSheet(name, rows) {
       this.rows = this.rows.slice(0, row - 1);
     }
   });
-  this.clearContents = () => { this.rows = []; };
+  this.clearContents = () => { this.clearContentsCalls++; this.rows = []; };
 }
 function FakeSpreadsheet(existing) {
   this.sheets = existing || {};
@@ -49,8 +50,16 @@ function FakeSpreadsheet(existing) {
 }
 const spreadsheet = new FakeSpreadsheet({
   LegacyProgramme: new FakeSheet('LegacyProgramme', [['legacy', 'data']]),
-  PR_MQFReference: new FakeSheet('PR_MQFReference', [['Wrong', 'Headers'], ['MQF1', 'stale', 'row', false]]),
-  PR_TFReference: new FakeSheet('PR_TFReference', [['Code', 'Title', 'Description', 'MQFDomainsJson', 'Active'], ['TF1', 'bad', 'bad', '{not-json', true]])
+  PR_MQFReference: new FakeSheet('PR_MQFReference', [
+    ['Code', 'Title', 'Description', 'Active'],
+    ['MQF1', 'Curated knowledge', 'Curated row', false],
+    ['MQFX', 'Inactive custom', 'Preserve this row', false]
+  ]),
+  PR_TFReference: new FakeSheet('PR_TFReference', [
+    ['Code', 'Title', 'Description', 'MQFDomainsJson', 'Active'],
+    ['TF1', 'Curated taxonomy', 'Preserve this row', '{not-json', true],
+    ['TFX', 'Inactive custom', 'Preserve this row', '["MQF1"]', false]
+  ])
 });
 let lockCount = 0;
 const runtimeApi = new Function('getSpreadsheet', 'getCurrentUser', 'LockService', dataSource + '\n' + referenceSource + '\nreturn { getResearchReferences_: getResearchReferences_, getResearchReferencesApi: getResearchReferencesApi };')(
@@ -59,17 +68,27 @@ const runtimeApi = new Function('getSpreadsheet', 'getCurrentUser', 'LockService
   {getScriptLock: () => ({waitLock: () => { lockCount++; }, releaseLock: () => {}})}
 );
 const references = runtimeApi.getResearchReferences_();
-assert.deepStrictEqual(references.TF[0].mqfDomains, ['MQF1', 'MQF4a']);
-assert.strictEqual(references.MQF.length, 11);
-assert.strictEqual(references.TF.length, 4);
+assert.strictEqual(references.TF.some(row => row.code === 'TF1'), false, 'Malformed active TF JSON must be ignored');
+assert.strictEqual(references.TF.some(row => row.code === 'TFX'), false, 'Inactive TF rows must be ignored');
+assert.strictEqual(references.TF.some(row => row.code === 'TF2'), true, 'Missing approved TF rows must be seeded');
+assert.strictEqual(references.MQF.some(row => row.code === 'MQF1'), false, 'Inactive curated MQF rows must be ignored');
+assert.strictEqual(references.MQF.some(row => row.code === 'MQF2'), true, 'Missing approved MQF rows must be seeded');
+assert.strictEqual(references.MQF.length, 10);
+assert.strictEqual(references.TF.length, 3);
 assert.strictEqual(references.SDG.length, 1);
 assert.strictEqual(references.SC.length, 2);
 assert.deepStrictEqual(runtimeApi.getResearchReferencesApi(), references);
 assert.deepStrictEqual(Object.keys(spreadsheet.sheets).filter(name => name.indexOf('PR_') === 0).sort(), researchSheetNames.slice().sort());
 assert.deepStrictEqual(spreadsheet.sheets.LegacyProgramme.rows, [['legacy', 'data']]);
+assert.strictEqual(spreadsheet.sheets.PR_MQFReference.clearContentsCalls, 0, 'Reference seeding must not clear MQF rows');
+assert.strictEqual(spreadsheet.sheets.PR_TFReference.clearContentsCalls, 0, 'Reference seeding must not clear TF rows');
+assert.deepStrictEqual(spreadsheet.sheets.PR_MQFReference.rows[1], ['MQF1', 'Curated knowledge', 'Curated row', false]);
+assert.deepStrictEqual(spreadsheet.sheets.PR_MQFReference.rows[2], ['MQFX', 'Inactive custom', 'Preserve this row', false]);
+assert.deepStrictEqual(spreadsheet.sheets.PR_TFReference.rows[1], ['TF1', 'Curated taxonomy', 'Preserve this row', '{not-json', true]);
+assert.deepStrictEqual(spreadsheet.sheets.PR_TFReference.rows[2], ['TFX', 'Inactive custom', 'Preserve this row', '["MQF1"]', false]);
 assert(lockCount > 0, 'First-use research sheet creation must use the script lock');
 researchSheetNames.forEach(name => assert.deepStrictEqual(spreadsheet.sheets[name].rows[0], api.RESEARCH_SHEET_HEADERS[name]));
-assert.deepStrictEqual(JSON.parse(spreadsheet.sheets.PR_TFReference.rows[1][3]), ['MQF1', 'MQF4a']);
+assert.deepStrictEqual(JSON.parse(spreadsheet.sheets.PR_TFReference.rows[3][3]), ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']);
 const unauthenticatedApi = new Function('getSpreadsheet', 'getCurrentUser', 'LockService', dataSource + '\n' + referenceSource + '\nreturn getResearchReferencesApi;')(
   () => spreadsheet,
   () => null,

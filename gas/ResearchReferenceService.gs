@@ -44,12 +44,19 @@ function seedResearchReferences_(sheets) {
     Object.keys(RESEARCH_REFERENCE_SEEDS_).forEach(function(name) {
       var sheet = sheets[name];
       var rows = RESEARCH_REFERENCE_SEEDS_[name];
-      var expected = [RESEARCH_SHEET_HEADERS[name]].concat(rows);
       var actual = sheet.getDataRange().getValues();
-      if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-        sheet.clearContents();
-        sheet.getRange(1, 1, expected.length, expected[0].length).setValues(expected);
-      }
+      var existingCodes = Object.create(null);
+      actual.slice(1).forEach(function(row) {
+        var code = String(row[0] || '').trim();
+        if (code) existingCodes[code] = true;
+      });
+      rows.forEach(function(row) {
+        var code = String(row[0] || '').trim();
+        if (!existingCodes[code]) {
+          sheet.appendRow(row);
+          existingCodes[code] = true;
+        }
+      });
     });
   } finally {
     lock.releaseLock();
@@ -64,21 +71,35 @@ function getResearchReferences_() {
     var rows = sheets[name].getDataRange().getValues();
     var activeColumn = RESEARCH_SHEET_HEADERS[name].indexOf('Active');
     result[name.replace('PR_', '').replace('Reference', '')] = rows.slice(1).filter(function(row) {
-      return isActiveReference_(row[activeColumn]);
+      return isValidReferenceRow_(row, name, activeColumn);
     }).map(function(row) {
       if (name === 'PR_TFReference') {
         var mqfDomains;
         try {
           mqfDomains = JSON.parse(row[3] || '[]');
         } catch (e) {
-          throw new Error('Malformed MQF domains JSON for reference ' + row[0]);
+          return null;
         }
         return { code: String(row[0]).trim(), title: row[1], description: row[2], mqfDomains: mqfDomains };
       }
       return { code: String(row[0]).trim(), title: row[1], description: row[2] };
-    });
+    }).filter(function(row) { return row !== null; });
   });
   return result;
+}
+
+function isValidReferenceRow_(row, name, activeColumn) {
+  var code = String(row[0] || '').trim();
+  if (!code || !String(row[1] || '').trim() || !isActiveReference_(row[activeColumn])) return false;
+  if (name !== 'PR_TFReference') return true;
+  try {
+    var mqfDomains = JSON.parse(row[3] || '');
+    return Array.isArray(mqfDomains) && mqfDomains.length > 0 && mqfDomains.every(function(domain) {
+      return typeof domain === 'string' && domain.trim();
+    });
+  } catch (e) {
+    return false;
+  }
 }
 
 function validateReferenceIds_(ids, allowedIds) {
