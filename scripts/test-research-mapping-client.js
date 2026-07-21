@@ -12,6 +12,22 @@ function methodSource(name) {
   return source.slice(start, next < 0 ? source.length : next);
 }
 
+function computedSource(name) {
+  const start = source.indexOf(name + ': function');
+  assert(start >= 0, 'Missing computed property: ' + name);
+  const functionStart = source.indexOf('function', start);
+  const bodyStart = source.indexOf('{', functionStart);
+  let depth = 0;
+  for (let i = bodyStart; i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}') {
+      depth--;
+      if (depth === 0) return source.slice(functionStart, i + 1);
+    }
+  }
+  throw new Error('Computed property is not closed: ' + name);
+}
+
 assert(/researchLoading:\s*false/.test(source), 'Research loading state is missing');
 assert(/researchError:\s*null/.test(source), 'Research error state is missing');
 assert(/researchLoading\s*=\s*true/.test(methodSource('loadResearchWorkspace')), 'Workspace loading does not start before API calls');
@@ -44,6 +60,20 @@ assert.deepStrictEqual(matrixProjection({
 ]), {
   code: 'PLO-unmapped', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sdg: [], sc: []
 }, 'An unmapped PLO must derive TF coverage from loaded reference data');
+const mappingMatrixRows = new Function(
+  source.slice(source.indexOf('function projectMappingMatrixRow_'), source.indexOf('\nfunction initVueApp')) +
+  '\nreturn ' + computedSource('mappingMatrixRows') + ';'
+)();
+assert.deepStrictEqual(mappingMatrixRows.call({
+  researchPLOs: [{ploId: 'plo-unmapped', code: 'PLO-unmapped', mqfDomains: ['MQF2', 'MQF3d']}],
+  researchMappings: {},
+  researchReferences: {tf: [
+    {code: 'TF1', mqfDomains: ['MQF1']},
+    {code: 'TF2', mqfDomains: ['MQF2', 'MQF3a', 'MQF3d']}
+  ]}
+}), [{
+  code: 'PLO-unmapped', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sdg: [], sc: []
+}], 'The matrix runtime must derive TF coverage for a PLO without a mapping row');
 assert(/PLO Mapping Matrix/.test(index), 'Read-only PLO mapping matrix is missing');
 assert(/aria-label="PLO mapping matrix"/.test(index), 'PLO mapping matrix needs an accessible name');
 assert(/scope="col">\{\{ domain \}\}<\/th>/.test(index), 'Matrix MQF columns need table headers');
@@ -53,6 +83,7 @@ assert(/Explicit PLO mapping/.test(index) && /TF derived from MQF mapping/.test(
 assert(/SDG coverage/.test(index) && /SC coverage/.test(index), 'Matrix needs distinct SDG and SC coverage columns');
 assert(/\.mapping-matrix-wrap \{ max-width: 100%; overflow-x: auto; \}/.test(styles), 'Matrix scrolling is not contained');
 assert(/mapping-matrix-wrap"\s+role="region"\s+tabindex="0"/.test(index), 'Scrollable mapping matrix must be keyboard focusable');
+assert(/mapping-matrix-wrap"\s+role="region"\s+tabindex="0"\s+aria-label="PLO mapping matrix scrolling region"/.test(index), 'Scrollable mapping matrix needs an accessible name');
 assert(/aria-describedby="mapping-matrix-instructions"/.test(index) && /id="mapping-matrix-instructions"/.test(index), 'Scrollable mapping matrix must provide keyboard scrolling instructions');
 
 const categoryKeydown = methodSource('handleResearchCategoryKeydown');

@@ -250,6 +250,7 @@ assertContains(javascript, /function\s+projectMappingMatrixRow_\s*\(/, 'Pure PLO
 assertContains(javascript, /mappingMatrixRows:\s*function/, 'PLO matrix does not project current mappings');
 assertContains(styles, /\.mapping-matrix-wrap\s*\{\s*max-width:\s*100%;\s*overflow-x:\s*auto;\s*\}/, 'PLO matrix scrolling is not contained');
 assertContains(researchDetailSource, /mapping-matrix-wrap"\s+role="region"\s+tabindex="0"/, 'PLO matrix scrolling container must be keyboard focusable');
+assertContains(researchDetailSource, /mapping-matrix-wrap"\s+role="region"\s+tabindex="0"\s+aria-label="PLO mapping matrix scrolling region"/, 'PLO matrix scrolling container must have an accessible name');
 assertContains(researchDetailSource, /aria-describedby="mapping-matrix-instructions"/, 'PLO matrix must describe keyboard scrolling');
 assert(!/Coursework|DCI|CLO|credit hour|Subject|Course Mapping|embeddedPEO/.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
 assert(!hasLegacySingularMQFControl(researchDetailSource), 'Research workspace still binds a singular legacy mqfDomain control');
