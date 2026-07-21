@@ -67,6 +67,7 @@ const programmeService = read('gas/ProgrammeService.gs');
   assert(fs.existsSync(path), 'Required project file is missing: ' + path);
 });
 assertContains(researchMapping, /function\s+uniqueTrimmed_\s*\(/, 'Shared trimming helper is missing');
+assertContains(researchMapping, /function\s+deriveTFIds_\s*\(/, 'TF derivation helper is missing');
 assertContains(researchMapping, /function\s+canonicalResearchTaxonomy_\s*\(/, 'Taxonomy canonicalization helper is missing');
 assertContains(researchMapping, /function\s+normalizeResearchPEO_\s*\(/, 'Research PEO normalization is missing');
 assertContains(researchMapping, /function\s+normalizeResearchPLO_\s*\(/, 'Research PLO normalization is missing');
@@ -98,6 +99,7 @@ assertContains(programmeService, /mode:\s*String\(data\[i\]\[10\]/, 'Programme m
 assertContains(researchMapping, /function\s+requireResearchProgramme_\s*\(/, 'Research programme mode guard is missing');
 assertContains(researchMapping, /requireResearchProgramme_\(mqaCode\)/, 'Research APIs do not enforce the research programme guard');
 assertContains(researchMapping, /Postgraduate by Research/, 'Research profile mode is not canonical');
+assertContains(researchMapping, /deriveTFIds_\(/, 'TF derivation is not invoked by mapping functions');
 assert(!/\b(getPEOs|savePEOs|getPLOs|savePLOs)\s*\(/.test(researchMapping), 'Research service calls legacy PEO/PLO services');
 [
   'getResearchProgrammeApi_', 'saveResearchProfileApi_', 'getResearchPEOsApi_',

@@ -25,6 +25,15 @@ function uniqueTrimmed_(values) {
   return result;
 }
 
+function deriveTFIds_(mqfDomains, tfReference) {
+  var selected = uniqueTrimmed_(mqfDomains || []);
+  return Object.keys(tfReference || {}).filter(function(tfId) {
+    return (tfReference[tfId] || []).some(function(domain) {
+      return selected.indexOf(domain) !== -1;
+    });
+  }).sort();
+}
+
 function normalizeResearchPEO_(input) {
   return {
     code: String(input && input.code || '').trim(),

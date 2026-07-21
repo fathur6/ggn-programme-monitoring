@@ -117,6 +117,26 @@ const unauthenticatedApi = new Function('getSpreadsheet', 'getCurrentUser', 'Loc
 );
 assert.throws(() => unauthenticatedApi(), /unauthorized/i);
 
+var task3HelpersSource = [
+  'uniqueTrimmed_', 'deriveTFIds_', 'calculatePEOCoverage_'
+].map(function(name) { return extractFunction(name, mappingSource); }).join('\n');
+var task3Helpers = new Function(task3HelpersSource + '\nreturn { deriveTFIds_: deriveTFIds_, calculatePEOCoverage_: calculatePEOCoverage_ };')();
+
+assert.deepStrictEqual(task3Helpers.deriveTFIds_(['MQF2', 'MQF3d'], {
+  TF1: ['MQF1', 'MQF4a'],
+  TF2: ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']
+}), ['TF2']);
+assert.deepStrictEqual(task3Helpers.deriveTFIds_([], {TF1: ['MQF1']}), []);
+assert.deepStrictEqual(task3Helpers.deriveTFIds_(['MQF1', 'MQF999'], {TF1: ['MQF1']}), ['TF1']);
+assert.deepStrictEqual(task3Helpers.calculatePEOCoverage_([
+  {parentPEO: 'PEO1', derivedTFIds: ['TF1'], sdgIds: ['SDG4'], scIds: ['SC2']},
+  {parentPEO: 'PEO1', derivedTFIds: ['TF2'], sdgIds: ['SDG4'], scIds: ['SC3']}
+], 'PEO1'), {
+  tfIds: ['TF1', 'TF2'], sdgIds: ['SDG4'], scIds: ['SC2', 'SC3'], childCount: 2,
+  derivedLabel: 'Derived from PLO mappings'
+});
+assert.throws(function() { task3Helpers.calculatePEOCoverage_([], 'PEO-EMPTY'); }, /no child plo mappings/i);
+
 assert.deepStrictEqual(task2Helpers.uniqueTrimmed_([' MQF2 ', 'MQF1', ' MQF2 ', '']), ['MQF2', 'MQF1']);
 assert.strictEqual(task2Helpers.canonicalResearchTaxonomy_(' c4 '), 'C4');
 assert.strictEqual(task2Helpers.canonicalResearchTaxonomy_(null), '');
