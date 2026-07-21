@@ -122,6 +122,18 @@ var task3HelpersSource = [
 ].map(function(name) { return extractFunction(name, mappingSource); }).join('\n');
 var task3Helpers = new Function(task3HelpersSource + '\nreturn { deriveTFIds_: deriveTFIds_, calculatePEOCoverage_: calculatePEOCoverage_ };')();
 
+var clientSource = fs.readFileSync('gas/JavaScript.html', 'utf8');
+var matrixHelpers = new Function(
+  extractFunction('projectMappingMatrixRow_', clientSource) +
+  '\nreturn { projectMappingMatrixRow_: projectMappingMatrixRow_ };'
+)();
+
+assert.deepStrictEqual(matrixHelpers.projectMappingMatrixRow_({
+  code: 'PLO1', mqfDomains: ['MQF2', 'MQF3d'], derivedTFIds: ['TF2'], sdgIds: ['SDG4'], scIds: ['SC2']
+}), {
+  code: 'PLO1', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sdg: ['SDG4'], sc: ['SC2']
+});
+
 assert.deepStrictEqual(task3Helpers.deriveTFIds_(['MQF2', 'MQF3d'], {
   TF1: ['MQF1', 'MQF4a'],
   TF2: ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']

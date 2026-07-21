@@ -233,6 +233,22 @@ assertContains(researchDetailSource, /PLO Workspace/, 'PLO workspace is missing'
 assertContains(researchDetailSource, /Coverage Matrix/, 'Coverage matrix is missing');
 assertContains(researchDetailSource, /TF derived from MQF mapping/, 'Derived TF label is missing');
 assertContains(researchDetailSource, /Derived from PLO mappings/, 'PEO derived label is missing');
+assertContains(researchDetailSource, /PLO Mapping Matrix/, 'Read-only PLO mapping matrix is missing');
+assertContains(researchDetailSource, /aria-label="PLO mapping matrix"/, 'PLO mapping matrix needs an accessible name');
+['MQF1', 'MQF2', 'MQF3a', 'MQF3b', 'MQF3c', 'MQF3d', 'MQF3e', 'MQF3f', 'MQF4a', 'MQF4b', 'MQF5'].forEach(function(domain) {
+  assertContains(researchDetailSource, new RegExp("'" + domain + "'"), 'PLO mapping matrix is missing MQF column: ' + domain);
+});
+assertContains(researchDetailSource, /scope="col">\{\{ domain \}\}<\/th>/, 'PLO matrix MQF columns need table headers');
+assertContains(researchDetailSource, /scope="row">\{\{ row\.code \}\}<\/th>/, 'PLO matrix PLO rows need row headers');
+assertContains(researchDetailSource, /Explicit PLO mapping to/, 'PLO matrix checks need accessible labels');
+assertContains(researchDetailSource, /not checked/, 'PLO matrix must expose unchecked cells');
+assertContains(researchDetailSource, /Explicit PLO mapping/, 'PLO matrix legend must explain explicit mappings');
+assertContains(researchDetailSource, /TF derived from MQF mapping/, 'PLO matrix legend must explain derived TF mappings');
+assertContains(researchDetailSource, /SDG coverage/, 'PLO matrix needs a distinct SDG coverage column');
+assertContains(researchDetailSource, /SC coverage/, 'PLO matrix needs a distinct SC coverage column');
+assertContains(javascript, /function\s+projectMappingMatrixRow_\s*\(/, 'Pure PLO matrix projection is missing');
+assertContains(javascript, /mappingMatrixRows:\s*function/, 'PLO matrix does not project current mappings');
+assertContains(styles, /\.mapping-matrix-wrap\s*\{\s*max-width:\s*100%;\s*overflow-x:\s*auto;\s*\}/, 'PLO matrix scrolling is not contained');
 assert(!/Coursework|DCI|CLO|credit hour|Subject|Course Mapping|embeddedPEO/.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
 assert(!hasLegacySingularMQFControl(researchDetailSource), 'Research workspace still binds a singular legacy mqfDomain control');
 assert(hasLegacySingularMQFControl('<select v-model="plo.mqfDomain"></select>'), 'Singular legacy MQF select binding is not detected');

@@ -3,6 +3,7 @@ const fs = require('fs');
 
 const source = fs.readFileSync('gas/JavaScript.html', 'utf8');
 const index = fs.readFileSync('gas/Index.html', 'utf8');
+const styles = fs.readFileSync('gas/Styles.html', 'utf8');
 
 function methodSource(name) {
   const start = source.indexOf(name + ': function');
@@ -29,6 +30,16 @@ assert(/submitResearchProgramme[\s\S]*?researchFailure/.test(source), 'Submissio
 assert(/@keydown="handleResearchCategoryKeydown"/.test(index), 'Research category tabs do not handle keyboard navigation');
 assert(/:tabindex="researchCategory === 'information' \? 0 : -1"/.test(index), 'Information tab does not participate in roving tabindex');
 assert(/:tabindex="researchCategory === 'mapping' \? 0 : -1"/.test(index), 'Mapping tab does not participate in roving tabindex');
+assert(/function\s+projectMappingMatrixRow_\s*\(/.test(source), 'Pure matrix row projection is missing');
+assert(/mappingMatrixRows:\s*function/.test(source), 'Matrix rows are not projected from current research records');
+assert(/PLO Mapping Matrix/.test(index), 'Read-only PLO mapping matrix is missing');
+assert(/aria-label="PLO mapping matrix"/.test(index), 'PLO mapping matrix needs an accessible name');
+assert(/scope="col">\{\{ domain \}\}<\/th>/.test(index), 'Matrix MQF columns need table headers');
+assert(/scope="row">\{\{ row\.code \}\}<\/th>/.test(index), 'Matrix PLO rows need row headers');
+assert(/Explicit PLO mapping to/.test(index) && /not checked/.test(index), 'Matrix checks need accessible checked and not-checked labels');
+assert(/Explicit PLO mapping/.test(index) && /TF derived from MQF mapping/.test(index), 'Matrix legend does not distinguish explicit and derived mappings');
+assert(/SDG coverage/.test(index) && /SC coverage/.test(index), 'Matrix needs distinct SDG and SC coverage columns');
+assert(/\.mapping-matrix-wrap \{ max-width: 100%; overflow-x: auto; \}/.test(styles), 'Matrix scrolling is not contained');
 
 const categoryKeydown = methodSource('handleResearchCategoryKeydown');
 assert(/ArrowRight/.test(categoryKeydown) && /ArrowLeft/.test(categoryKeydown), 'Research category tabs do not support arrow navigation');
