@@ -6,7 +6,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.css">
   <?!= include('Styles'); ?>
 </head>
 <body>
@@ -217,186 +216,55 @@
 
       </div>
 
-      <div v-if="currentView === 'detail' && currentProgramme">
-        <div class="back-link" @click="setView('programmes')">&larr; Back to list</div>
+       <div v-if="currentView === 'detail' && currentProgramme" class="research-workspace">
+         <div class="back-link" @click="leaveResearchWorkspace">&larr; Back to list</div>
+         <section class="programme-context">
+           <div><p class="eyebrow">POSTGRADUATE RESEARCH PROGRAMME</p><h2 class="section-title">{{ currentProgramme.name }}</h2><p class="text-sm text-muted">{{ currentProgramme.mqaCode }} · {{ currentProgramme.progCode }}</p></div>
+           <div class="context-status"><span class="status-chip">{{ researchStatus }}</span><span class="save-state" :class="researchSaveState">{{ researchDirty ? 'Unsaved changes' : researchSaveState === 'saved' ? 'All changes saved' : 'Ready to edit' }}</span></div>
+         </section>
+         <nav class="research-tabs" aria-label="Programme workspace">
+           <button :class="{active: researchCategory === 'information'}" @click="researchCategory = 'information'">Maklumat Program</button>
+           <button :class="{active: researchCategory === 'mapping'}" @click="researchCategory = 'mapping'">Pemetaan</button>
+         </nav>
 
-        <div class="card-bordered">
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="section-title" style="margin-bottom:2px;font-size:24px">{{ currentProgramme.name }}</h2>
-              <p class="text-sm text-muted">{{ currentProgramme.mqaCode }} · {{ currentProgramme.progCode }}</p>
-            </div>
-            <button @click="toggleViewMode" class="btn btn-primary">
-              {{ viewMode === 'entry' ? 'Graph View' : 'Data View' }}
-            </button>
-          </div>
-         </div>
+         <section v-if="researchCategory === 'information'" class="research-panel">
+           <div class="panel-heading"><div><p class="eyebrow">PROGRAMME PROFILE</p><h3 class="section-title">Programme Information</h3></div><button class="btn btn-primary" @click="saveResearchProfile" :disabled="researchSaveState === 'saving'">Save profile</button></div>
+           <div v-if="researchProfile" class="profile-grid">
+             <div class="form-group"><label for="profile-mqa">MQA code</label><input id="profile-mqa" :value="researchProfile.mqaCode" disabled></div>
+             <div class="form-group"><label for="profile-name">Programme name</label><input id="profile-name" v-model="researchProfile.programmeName" disabled></div>
+             <div class="form-group"><label for="profile-faculty">Faculty or centre</label><input id="profile-faculty" v-model="researchProfile.facultyOrCentre" disabled></div>
+             <div class="form-group"><label for="profile-level">Study level</label><input id="profile-level" v-model="researchProfile.studyLevel" disabled></div>
+             <div class="form-group"><label for="profile-mode">Study mode</label><input id="profile-mode" v-model="researchProfile.studyMode" @input="markResearchDirty"></div>
+             <div class="form-group"><label for="profile-field">Study field</label><input id="profile-field" v-model="researchProfile.studyField" @input="markResearchDirty"></div>
+             <div class="form-group"><label for="profile-session">Session</label><input id="profile-session" v-model="researchProfile.session" @input="markResearchDirty"></div>
+             <div class="form-group"><label for="profile-version">Document version</label><input id="profile-version" v-model="researchProfile.documentVersion" @input="markResearchDirty"></div>
+             <div class="form-group"><label for="profile-owner">Data owner</label><input id="profile-owner" v-model="researchProfile.dataOwner" @input="markResearchDirty"></div>
+             <div class="form-group"><label for="profile-status">Mapping status</label><input id="profile-status" :value="researchProfile.mappingStatus" disabled></div>
+           </div>
+           <div class="research-subsection"><div class="panel-heading"><div><p class="eyebrow">PROGRAMME EDUCATIONAL OBJECTIVES</p><h3 class="section-title">PEO parent records</h3></div><div><button class="btn btn-success" @click="addResearchPEO">+ Add PEO</button><button class="btn btn-primary ml-2" @click="saveResearchPEOs">Save PEOs</button></div></div>
+             <article v-for="(peo, index) in researchPEOs" :key="peo.peoId || peo.code" class="peo-card"><div class="record-row"><input class="code-input" v-model="peo.code" aria-label="PEO code" @input="markResearchDirty"><button class="btn btn-danger text-xs" @click="researchPEOs.splice(index, 1); markResearchDirty()">Remove</button></div><label class="field-label" :for="'peo-statement-' + index">PEO statement <span class="required-mark">Required</span></label><textarea :id="'peo-statement-' + index" v-model="peo.statement" class="expand-textarea" @input="markResearchDirty"></textarea></article>
+           </div>
+           <div class="research-subsection"><div class="panel-heading"><div><p class="eyebrow">PROGRAMME LEARNING OUTCOMES</p><h3 class="section-title">PLO records</h3></div><div><button class="btn btn-success" @click="addResearchPLO">+ Add PLO</button><button class="btn btn-primary ml-2" @click="saveResearchPLOs">Save PLOs</button></div></div><p class="text-sm text-muted">Define each outcome here. Mapping selections are managed in Pemetaan.</p></div>
+         </section>
 
-         <div v-if="viewMode === 'entry'" class="workspace-progress" aria-label="Programme completion steps">
-           <button :class="{current: workspaceStep === 1, complete: workspaceStep > 1}" @click="goToStep(1)"><span>01</span> PEOs</button>
-           <i></i><button :class="{current: workspaceStep === 2, complete: workspaceStep > 2}" @click="goToStep(2)"><span>02</span> PLOs</button>
-           <i></i><button :class="{current: workspaceStep === 3}" @click="goToStep(3)"><span>03</span> Review</button>
-           <span class="save-state" :class="saveState">{{ dirty ? 'Unsaved changes' : saveState === 'saved' ? 'All changes saved' : 'Ready to edit' }}</span>
-         </div>
-
-         <div v-if="viewMode === 'entry'">
-          <div class="card-bordered">
-            <div @click="peoOpen = !peoOpen" class="accordion-header">
-              <h3 class="section-title" style="margin-bottom:0">A — Programme Educational Objectives (PEO)</h3>
-              <span style="color:var(--muted);font-size:14px">{{ peoOpen ? '▲' : '▼' }}</span>
-            </div>
-            <div v-show="peoOpen" class="mt-4">
-              <div v-if="peos.length > 0">
-                <div v-for="(peo, idx) in peos" :key="peo.code" class="peo-card" :class="{active: peoActiveIndex === idx}" @click="peoActiveIndex = idx">
-                  <div class="peo-card-header">
-                    <span class="font-mono" style="font-weight:600;color:var(--ink)">{{ peo.code }}</span>
-                    <div class="record-actions"><span v-if="peoActiveIndex !== idx" class="record-summary">{{ peo.description || 'Description needed' }}</span><button @click.stop="removeRecord(peo, 'PEO', idx)" class="btn btn-danger text-xs" style="padding:4px 10px">Remove PEO</button></div>
-                  </div>
-                  <div v-if="peoActiveIndex === idx">
-                    <label class="field-label">Objective description <span class="required-mark">Required</span></label>
-                    <textarea v-model="peo.description" class="expand-textarea" maxlength="500" placeholder="Describe what graduates will be able to achieve..." @input="autoResize($event); markDirty()"></textarea>
-                    <div class="field-hint" :class="{'field-error': !peo.description}">{{ peo.description ? peo.description.length + ' / 500 characters' : 'Add a clear objective description to complete this record.' }}</div>
-                    <div class="peo-domain-display">
-                      <span class="field-label" style="margin-right:4px">Linked PLO domains</span><template v-if="peoDomainMap[peo.code] && peoDomainMap[peo.code].domains.length > 0"><span v-for="(d, di) in peoDomainMap[peo.code].domains" :key="di" class="domain-pill">{{ d }}</span></template><span v-else class="text-muted" style="font-style:italic">Auto-derived after PLO mapping</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <button @click="addPEO" class="btn btn-success text-sm">+ Add PEO</button>
-              <button @click="savePEOs" class="btn btn-primary ml-2 text-sm" :disabled="saving">{{ saving ? 'Saving...' : 'Save PEOs' }}</button>
-            </div>
-          </div>
-
-          <div class="card-bordered">
-            <div @click="ploOpen = !ploOpen" class="accordion-header">
-              <h3 class="section-title" style="margin-bottom:0">B — Programme Learning Outcomes (PLO)</h3>
-              <span style="color:var(--muted);font-size:14px">{{ ploOpen ? '▲' : '▼' }}</span>
-            </div>
-            <div v-show="ploOpen" class="mt-4">
-              <div v-if="plos.length > 0">
-                <div v-for="(plo, idx) in plos" :key="plo.code" class="plo-card" :class="{active: ploActiveIndex === idx}" @click="ploActiveIndex = idx">
-                  <div class="plo-card-header">
-                    <span class="font-mono" style="font-weight:600;color:var(--ink)">{{ plo.code }}</span>
-                    <div class="record-actions"><span v-if="ploActiveIndex !== idx" class="record-summary">{{ plo.description || 'Description needed' }}</span><button @click.stop="removeRecord(plo, 'PLO', idx)" class="btn btn-danger text-xs" style="padding:4px 10px">Remove PLO</button></div>
-                  </div>
-                  <div v-if="ploActiveIndex === idx">
-                  <label class="field-label">Learning outcome <span class="required-mark">Required</span></label>
-                  <textarea v-model="plo.description" class="expand-textarea" maxlength="500" placeholder="Describe the observable learning outcome..." @input="autoResize($event); markDirty()"></textarea>
-                  <div class="field-hint" :class="{'field-error': !plo.description}">{{ plo.description ? plo.description.length + ' / 500 characters' : 'Add a clear learning outcome description.' }}</div>
-                  <div class="plo-fields-row">
-                    <div class="plo-field">
-                      <label class="field-label">MQF 2.0 Domain</label>
-                        <select v-model="plo.mqfDomain" class="mqf-select" @change="markDirty()">
-                        <option value="">— Select Domain —</option>
-                        <optgroup v-for="cluster in mqfClusters" :label="cluster.name">
-                          <option v-for="domain in cluster.domains" :value="domain.id"
-                            :title="domain.description">{{ domain.id }} — {{ domain.label }}</option>
-                        </optgroup>
-                      </select>
-                    </div>
-                    <div class="plo-field">
-                      <label class="field-label">Taxonomy</label>
-                      <select v-model="plo.taxonomy" class="mqf-select" @change="markDirty()">
-                        <option value="">— Select Taxonomy —</option>
-                        <optgroup label="Cognitive">
-                          <option v-for="c in taxonomyLevels.Cognitive" :value="c.id">{{ c.id }} — {{ c.label }}</option>
-                        </optgroup>
-                        <optgroup label="Affective">
-                          <option v-for="a in taxonomyLevels.Affective" :value="a.id">{{ a.id }} — {{ a.label }}</option>
-                        </optgroup>
-                        <optgroup label="Psychomotor">
-                          <option v-for="p in taxonomyLevels.Psychomotor" :value="p.id">{{ p.id }} — {{ p.label }}</option>
-                        </optgroup>
-                      </select>
-                    </div>
-                    <div class="plo-field">
-                      <label class="field-label">Embed in PEO</label>
-                      <select v-model="plo.embeddedPEO" class="mqf-select" @change="markDirty()">
-                        <option value="">—</option>
-                        <option v-for="peo in peos" :value="peo.code"
-                          :title="'Description: ' + (peo.description || '(empty)')">{{ peo.code }}</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="record-readiness"><span :class="validatePLO(plo).missing.length ? 'status-warn' : 'status-good'">{{ validatePLO(plo).missing.length ? validatePLO(plo).missing.length + ' fields still needed' : 'Ready for review' }}</span><span v-if="validatePLO(plo).missing.length" class="text-muted">{{ validatePLO(plo).missing.join(' · ') }}</span></div>
-                  </div>
-                </div>
-              </div>
-              <button @click="addPLO" class="btn btn-success text-sm">+ Add PLO</button>
-              <button @click="savePLOs" class="btn btn-primary ml-2 text-sm" :disabled="savingPLO">{{ savingPLO ? 'Saving...' : 'Save PLOs' }}</button>
-            </div>
-          </div>
-
-          <section v-if="workspaceStep === 3" class="card-bordered review-panel">
-            <p class="eyebrow">FINAL CHECK</p><h3 class="section-title">Review readiness</h3>
-            <div class="review-grid"><div><strong>{{ reviewSummary.peoCount }}</strong><span>PEOs</span><small :class="reviewSummary.peoMissing ? 'status-warn' : 'status-good'">{{ reviewSummary.peoMissing ? reviewSummary.peoMissing + ' need descriptions' : 'Descriptions complete' }}</small></div><div><strong>{{ reviewSummary.ploCount }}</strong><span>PLOs</span><small :class="reviewSummary.ploMissing ? 'status-warn' : 'status-good'">{{ reviewSummary.ploMissing ? reviewSummary.ploMissing + ' need metadata' : 'Metadata complete' }}</small></div><div><strong>{{ files.length }}</strong><span>Documents</span><small :class="files.length ? 'status-good' : 'status-warn'">{{ files.length ? 'Supporting files available' : 'Upload required files' }}</small></div></div>
-            <div class="review-blockers" v-if="reviewSummary.peoMissing || reviewSummary.ploMissing"><strong>Before submission</strong><span>Complete the highlighted PEO/PLO fields, then return here to confirm readiness.</span></div>
-            <div class="review-actions"><button class="btn btn-secondary" @click="goToStep(2)">Back to PLOs</button><button class="btn btn-primary" :disabled="reviewSummary.peoMissing || reviewSummary.ploMissing" @click="showToast('Review complete. Central submission workflow will be enabled by Graduate School administration.')">Mark ready for review</button></div>
-          </section>
-        </div>
-
-        <div v-if="viewMode === 'graph'">
-          <div v-if="graphLoading" class="text-center py-8 text-muted">Loading graph...</div>
-          <div v-if="graphError" class="alert alert-error mb-4">{{ graphError }}</div>
-          <div id="graph-container" class="graph-container" v-show="!graphLoading && !graphError"></div>
-            <div class="legend">
-              <div class="font-medium mb-2">Legend:</div>
-              <div class="flex gap-3 flex-wrap">
-                <span class="legend-item"><span class="legend-dot" style="background:#3B82F6"></span>Programme</span>
-                <span class="legend-item"><span class="legend-dot" style="background:#10B981;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);border-radius:0"></span>PEO</span>
-                <span class="legend-item"><span class="legend-dot" style="background:#F59E0B;border-radius:2px"></span>PLO</span>
-                <span class="legend-item"><span class="legend-dot" style="background:#6366F1"></span>MQF Domain</span>
-                <span class="legend-item"><span class="legend-dot" style="background:#8B5CF6;border-radius:2px"></span>Taxonomy</span>
-              </div>
-            </div>
-        </div>
-
-        <div class="card-bordered">
-          <div @click="uploadOpen = !uploadOpen" class="accordion-header">
-            <h3 class="section-title" style="margin-bottom:0">Document Upload</h3>
-            <span style="color:var(--muted);font-size:14px">{{ uploadOpen ? '▲' : '▼' }}</span>
-          </div>
-          <div v-show="uploadOpen" class="mt-4">
-            <div class="flex items-center gap-3 mb-4">
-              <select v-model="uploadType" style="width:auto">
-                <option value="DCI">DCI</option>
-                <option value="OTH">Other</option>
-              </select>
-              <input type="file" ref="fileInput" accept="application/pdf" style="max-width:300px">
-              <button @click="doUpload" class="btn btn-primary text-sm">Upload</button>
-            </div>
-
-            <table v-if="files.length > 0">
-              <thead><tr>
-                <th>File Name</th>
-                <th>Date</th>
-                <th></th>
-              </tr></thead>
-              <tbody>
-                <tr v-for="f in files" :key="f.id">
-                  <td><a :href="'https://drive.google.com/file/d/' + f.id + '/preview'" target="_blank" class="text-action-blue underline">{{ f.name }}</a></td>
-                  <td class="text-muted">{{ f.date }}</td>
-                  <td>
-                    <button @click="previewFile = (previewFile && previewFile.id === f.id) ? null : f" class="btn btn-success text-sm">View</button>
-                    <button v-if="user.role === 'Admin'" @click="deleteFile(f)" class="btn btn-danger text-sm ml-2">Delete</button>
-                    <button v-else @click="requestDelete(f)" class="btn btn-danger text-sm ml-2">Suggest Delete</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <p v-else class="text-sm text-muted">No files uploaded.</p>
-
-            <div v-if="previewFile" class="mt-4">
-              <iframe :src="'https://drive.google.com/file/d/' + previewFile.id + '/preview'" width="100%" height="500px" frameborder="0" style="border-radius:var(--radius-sm)"></iframe>
-            </div>
-          </div>
-        </div>
-      </div>
+         <section v-if="researchCategory === 'mapping'" class="research-panel">
+           <div class="panel-heading"><div><p class="eyebrow">PLO MAPPING</p><h3 class="section-title">PLO Workspace</h3></div><span class="status-chip">{{ researchStatus }}</span></div>
+           <div v-if="researchReview && researchReview.critical && researchReview.critical.length" class="alert alert-error" role="alert"><strong>Validation alerts</strong><div v-for="issue in researchReview.critical" :key="issue.code + issue.ploCode">{{ issue.message }}</div></div>
+           <article v-for="plo in researchPLOs" :key="plo.ploId || plo.code" class="plo-workspace-row">
+             <div class="plo-row-heading"><strong class="font-mono">{{ plo.code }}</strong><span class="text-sm text-muted">Parent PEO: {{ plo.parentPEO || 'Not selected' }}</span><span v-if="researchMapping(plo).derivedTFIds.length" class="derived-badge">TF derived from MQF mapping: {{ researchMapping(plo).derivedTFIds.join(', ') }}</span></div>
+             <div class="mapping-grid"><div><label class="field-label" :for="'parent-' + plo.code">parentPEO</label><select :id="'parent-' + plo.code" v-model="plo.parentPEO" @change="markResearchDirty"><option value="">Select PEO</option><option v-for="peo in researchPEOs" :value="peo.code">{{ peo.code }}</option></select></div><div><label class="field-label">MQF domains</label><div class="reference-options"><label v-for="domain in researchReferences.mqf" :key="domain.code" class="reference-option"><input type="checkbox" :value="domain.code" v-model="plo.mqfDomains" @change="markResearchDirty"><span>{{ domain.code }}</span></label></div><button class="link-button" @click="selectAllMQFDomains(plo)">Select all MQF domains</button></div><div><label class="field-label" :for="'taxonomy-' + plo.code">Taxonomy</label><select :id="'taxonomy-' + plo.code" v-model="plo.taxonomy" @change="markResearchDirty"><option value="">Select taxonomy</option><option v-for="level in taxonomyOptions" :value="level.id">{{ level.id }} — {{ level.label }}</option></select></div></div>
+             <div class="statement-field"><label class="field-label" :for="'statement-' + plo.code">PLO statement <span class="required-mark">Required</span></label><textarea :id="'statement-' + plo.code" v-model="plo.statement" class="expand-textarea" @input="markResearchDirty"></textarea></div>
+             <div class="mapping-grid"><div><label class="field-label">SDG selections</label><div class="reference-options"><label v-for="reference in researchReferences.sdg" :key="reference.code" class="reference-option"><input type="checkbox" :value="reference.code" v-model="researchMapping(plo).sdgIds" @change="toggleSDG(plo, reference.code)"><span>{{ reference.code }}</span></label></div></div><div><label class="field-label">SC selections</label><div class="reference-options"><label v-for="reference in researchReferences.sc" :key="reference.code" class="reference-option"><input type="checkbox" :value="reference.code" v-model="researchMapping(plo).scIds" @change="toggleSC(plo, reference.code)"><span>{{ reference.code }}</span></label></div></div><div><label class="field-label" :for="'rationale-' + plo.code">Rationale</label><textarea :id="'rationale-' + plo.code" v-model="plo.rationale" class="compact-textarea" @input="markResearchDirty"></textarea></div></div>
+             <div class="plo-row-actions"><span class="text-sm text-muted">{{ researchMapping(plo).mappingNote || 'Add mapping notes if needed.' }}</span><button class="btn btn-primary" @click="saveResearchPLOMapping(plo)">Save mapping</button></div>
+           </article>
+           <section class="coverage-section"><div class="panel-heading"><div><p class="eyebrow">DERIVED COVERAGE</p><h3 class="section-title">Coverage Matrix</h3></div><button class="btn btn-secondary" @click="loadResearchCoverage">Refresh coverage</button></div><div class="coverage-metrics" v-if="researchReview && researchReview.metrics"><span><strong>{{ researchReview.metrics.ploTotal }}</strong> PLOs</span><span><strong>{{ researchReview.metrics.mqfDomainCoverage }}</strong> MQF domains</span><span><strong>{{ researchReview.metrics.tfCoverage }}</strong> TFs</span><span><strong>{{ researchReview.metrics.sdgCoverage }}</strong> SDGs</span><span><strong>{{ researchReview.metrics.scCoverage }}</strong> SCs</span></div><div class="matrix-wrap"><table class="coverage-matrix"><thead><tr><th scope="col">PEO</th><th scope="col">Child PLOs</th><th scope="col">TF / PEO roll-up</th><th scope="col">SDG</th><th scope="col">SC</th></tr></thead><tbody><tr v-for="item in (researchCoverage ? researchCoverage.peoCoverage : [])" :key="item.peoId"><th scope="row">{{ item.code }}</th><td>{{ item.coverage ? item.coverage.childCount : 0 }}</td><td><span v-if="item.coverage" class="derived-badge">Derived from PLO mappings: {{ item.coverage.tfIds.join(', ') || 'None' }}</span><span v-else class="status-warn">{{ item.issue }}</span></td><td>{{ item.coverage ? item.coverage.sdgIds.join(', ') || 'None' : '—' }}</td><td>{{ item.coverage ? item.coverage.scIds.join(', ') || 'None' : '—' }}</td></tr></tbody></table></div></section>
+           <section class="review-panel research-review"><div class="panel-heading"><div><p class="eyebrow">FINAL CHECK</p><h3 class="section-title">Review &amp; Submit</h3></div><span class="review-status" :class="reviewStatusClass">{{ researchStatus }}</span></div><div v-if="researchReview" class="review-issues"><div v-for="warning in researchReview.warnings" :key="warning.code + warning.ploCode" class="issue-warning">{{ warning.message }}</div><div v-if="!researchReview.critical.length && !researchReview.warnings.length" class="status-good">No validation issues.</div></div><div class="review-actions"><button class="btn btn-secondary" @click="loadResearchReview">Refresh review</button><button class="btn btn-primary" :disabled="!researchReview || researchReview.critical.length > 0 || researchSaveState === 'saving'" @click="submitResearchProgramme">Submit for review</button></div></section>
+         </section>
+       </div>
     </main>
 
-    <div v-if="toast" class="toast">{{ toast }}<button v-if="undoSnapshot" @click="undoRemove" class="toast-action">Undo</button></div>
+    <div v-if="toast" class="toast">{{ toast }}</div>
   </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.min.js"></script>
   <?!= include('JavaScript'); ?>
 </body>

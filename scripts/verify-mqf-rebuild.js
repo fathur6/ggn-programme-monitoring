@@ -33,6 +33,8 @@ const researchData = read('gas/ResearchDataService.gs');
 const researchReferences = read('gas/ResearchReferenceService.gs');
 const researchMapping = read('gas/ResearchMappingService.gs');
 const researchReview = read('gas/ResearchReviewService.gs');
+const researchDetailStart = index.indexOf("<div v-if=\"currentView === 'detail'");
+const researchDetailSource = index.slice(researchDetailStart === -1 ? index.length : researchDetailStart);
 
 [
   'gas/Index.html',
@@ -198,14 +200,24 @@ assertContains(index, /Faculty readiness/, 'Faculty readiness dashboard is missi
 assertContains(javascript, /getUniversityDashboardApi\(\)/, 'Dashboard API is not loaded by the client');
 assertContains(javascript, /function\(faculty\)/, 'Dashboard faculty completion helper is missing');
 assertContains(styles, /--action-green/, 'Operational Clarity action token is missing');
-assertContains(javascript, /validatePEOs:\s*function\s*\(/, 'PEO validation method is missing');
-assertContains(javascript, /validatePLOs:\s*function\s*\(/, 'PLO validation method is missing');
-assertContains(javascript, /getReviewSummary:\s*function\s*\(/, 'Review summary method is missing');
-assertContains(javascript, /removeRecord:\s*function\s*\(/, 'Context-specific record removal is missing');
-assertContains(javascript, /undoRemove:\s*function\s*\(/, 'Record undo action is missing');
+[
+  'researchCategory', 'researchProfile', 'researchPEOs', 'researchPLOs',
+  'researchMappings', 'researchReferences', 'researchCoverage', 'researchReview',
+  'researchStatus', 'researchDirty', 'researchSaveState'
+].forEach(function(marker) {
+  assertContains(javascript, new RegExp(marker), 'Research state is missing: ' + marker);
+});
+[
+  'loadResearchWorkspace', 'saveResearchProfile', 'saveResearchPEOs', 'saveResearchPLOs',
+  'saveResearchPLOMapping', 'loadResearchCoverage', 'loadResearchReview',
+  'submitResearchProgramme', 'selectAllMQFDomains', 'toggleSDG', 'toggleSC', 'leaveResearchWorkspace'
+].forEach(function(name) {
+  assertContains(javascript, new RegExp(name + ':\\s*function\\s*\\('), 'Research client method is missing: ' + name);
+});
+assert(!/getPEOsApi\(|savePEOsApi\(|getPLOsApi\(|savePLOsApi\(/.test(javascript), 'Research client still calls legacy PEO/PLO APIs');
 assertContains(index, /Save PEOs/, 'PEO save action is missing');
 assertContains(index, /Save PLOs/, 'PLO save action is missing');
-assertContains(index, /MQF 2\.0 Domain/, 'MQF Domain label is missing');
+assertContains(index, /MQF domains/, 'MQF domain selector is missing');
 assertContains(index, /Taxonomy/, 'Taxonomy label is missing');
 assertContains(index, /Request temporary access/, 'Faculty access request workspace is missing');
 assertContains(index, /createAccessRequest/, 'Access request action is missing from the UI');
@@ -213,6 +225,14 @@ assertContains(index, /Access requests/, 'Admin access request queue is missing'
 assertContains(index, /Governance queue/, 'Admin governance queue is missing');
 assertContains(javascript, /loadAccessRequests:\s*function\s*\(/, 'Access request loader is missing');
 assertContains(javascript, /loadGovernanceItems:\s*function\s*\(/, 'Governance queue loader is missing');
+
+assertContains(index, /Maklumat Program/, 'Programme Information category is missing');
+assertContains(index, /Pemetaan/, 'Mapping category is missing');
+assertContains(index, /PLO Workspace/, 'PLO workspace is missing');
+assertContains(index, /Coverage Matrix/, 'Coverage matrix is missing');
+assertContains(index, /TF derived from MQF mapping/, 'Derived TF label is missing');
+assertContains(index, /Derived from PLO mappings/, 'PEO derived label is missing');
+assert(!/Coursework|DCI|CLO|credit hour|Subject|Course Mapping/.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
 
 [
   'PR_ProgrammeProfile',

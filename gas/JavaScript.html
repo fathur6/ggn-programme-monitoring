@@ -160,19 +160,6 @@ new Vue({
     search: '',
     loading: false,
     error: null,
-    viewMode: 'entry',
-    peoOpen: false,
-    ploOpen: false,
-    peos: [],
-    saving: false,
-    plos: [],
-    savingPLO: false,
-    graphLoading: false,
-    graphError: null,
-    uploadOpen: false,
-    uploadType: 'DCI',
-    files: [],
-    previewFile: null,
     showAddDialog: false,
     addProg: { name: '', mqaCode: '', nec: '', progCode: '', mode: 'Coursework' },
     pendingOpen: false,
@@ -188,12 +175,19 @@ new Vue({
     ,dashboardLoading: false
     ,dashboardError: null
     ,selectedFaculty: ''
-    ,workspaceStep: 1
-    ,peoActiveIndex: 0
-    ,ploActiveIndex: 0
-    ,saveState: 'clean'
-    ,dirty: false
-    ,undoSnapshot: null
+     ,researchCategory: 'information'
+     ,researchPanel: 'profile'
+     ,researchProfile: null
+     ,researchPEOs: []
+     ,researchPLOs: []
+     ,researchMappings: {}
+     ,researchReferences: {mqf: [], tf: [], sdg: [], sc: []}
+     ,researchCoverage: null
+     ,researchReview: null
+     ,researchStatus: 'Draft'
+     ,researchDirty: false
+     ,researchSaveState: 'clean'
+     ,dirty: false
     ,accessRequest: { targetFaculty: '', mqaCode: '', reason: '', scope: 'programme' }
     ,myAccessRequests: []
     ,accessRequests: []
@@ -275,24 +269,12 @@ new Vue({
         return result2;
       }
     },
-    peoDomainMap: function() {
-      var map = {};
-      for (var i = 0; i < this.plos.length; i++) {
-        var plo = this.plos[i];
-        if (!plo.embeddedPEO) continue;
-        if (!map[plo.embeddedPEO]) map[plo.embeddedPEO] = { domains: [], linkedPLOs: [] };
-        if (plo.mqfDomain && map[plo.embeddedPEO].domains.indexOf(plo.mqfDomain) === -1) {
-          map[plo.embeddedPEO].domains.push(plo.mqfDomain);
-        }
-        map[plo.embeddedPEO].linkedPLOs.push(plo.code);
-      }
-      return map;
-    },
-    reviewSummary: function() {
-      var peoMissing = this.validatePEOs().filter(function(item) { return item.missing.length; }).length;
-      var ploMissing = this.validatePLOs().filter(function(item) { return item.missing.length; }).length;
-      return { peoCount: this.peos.length, ploCount: this.plos.length, peoMissing: peoMissing, ploMissing: ploMissing };
-    }
+     taxonomyOptions: function() {
+       return Object.keys(this.taxonomyLevels).reduce(function(all, key) { return all.concat(this.taxonomyLevels[key]); }.bind(this), []);
+     },
+     reviewStatusClass: function() {
+       return this.researchStatus === 'Ready for review' || this.researchStatus === 'Approved' ? 'status-good' : 'status-warn';
+     }
   },
   methods: {
     showToast: function(msg) {
@@ -317,10 +299,14 @@ new Vue({
       });
     },
     markDirty: function() {
-      this.dirty = true;
-      this.saveState = 'dirty';
+      this.markResearchDirty();
     },
-    nextRecordCode: function(records, prefix) {
+    markResearchDirty: function() {
+      this.researchDirty = true;
+      this.researchSaveState = 'dirty';
+      this.dirty = true;
+    },
+    nextResearchCode: function(records, prefix) {
       var highest = 0;
       (records || []).forEach(function(record) {
         var match = String(record.code || '').toUpperCase().match(new RegExp('^' + prefix + '\\s*(\\d+)$'));
@@ -328,55 +314,18 @@ new Vue({
       });
       return prefix + (highest + 1);
     },
-    validatePEO: function(peo) {
-      return { code: peo.code, missing: peo.description ? [] : ['description'] };
+    researchMapping: function(plo) {
+      var id = plo.ploId || plo.code;
+      if (!this.researchMappings[id]) this.$set(this.researchMappings, id, {ploId: plo.ploId, sdgIds: [], scIds: [], derivedTFIds: [], mappingNote: ''});
+      return this.researchMappings[id];
     },
-    validatePEOs: function() {
-      return this.peos.map(this.validatePEO);
+    addResearchPEO: function() {
+      this.researchPEOs.push({code: this.nextResearchCode(this.researchPEOs, 'PEO'), statement: ''});
+      this.markResearchDirty();
     },
-    validatePLO: function(plo) {
-      return { code: plo.code, missing: [].concat(plo.description ? [] : ['description'], plo.mqfDomain ? [] : ['MQF Domain'], plo.taxonomy ? [] : ['Taxonomy'], plo.embeddedPEO ? [] : ['PEO mapping']) };
-    },
-    validatePLOs: function() {
-      return this.plos.map(this.validatePLO);
-    },
-    getReviewSummary: function() {
-      return this.reviewSummary;
-    },
-    addRecord: function(prefix) {
-      this.markDirty();
-      if (prefix === 'PEO') {
-        this.peos.push({ code: this.nextRecordCode(this.peos, 'PEO'), description: '', mqfDomain: '' });
-        this.peoActiveIndex = this.peos.length - 1;
-      } else {
-        this.plos.push({ code: this.nextRecordCode(this.plos, 'PLO'), description: '', mqfDomain: '', taxonomy: '', embeddedPEO: '' });
-        this.ploActiveIndex = this.plos.length - 1;
-      }
-    },
-    removeRecord: function(record, prefix, idx) {
-      if (!confirm('Remove ' + prefix + ' ' + record.code + '? This change is not saved until you select Save.')) return;
-      this.undoSnapshot = { prefix: prefix, record: JSON.parse(JSON.stringify(record)), index: idx };
-      this.markDirty();
-      if (prefix === 'PEO') { this.peos.splice(idx, 1); this.peoActiveIndex = Math.max(0, Math.min(idx, this.peos.length - 1)); }
-      else { this.plos.splice(idx, 1); this.ploActiveIndex = Math.max(0, Math.min(idx, this.plos.length - 1)); }
-      this.showToast(prefix + ' removed. Save to apply, or use the undo action in this message.');
-    },
-    undoRemove: function() {
-      if (!this.undoSnapshot) return;
-      var snapshot = this.undoSnapshot;
-      if (snapshot.prefix === 'PEO') { this.peos.splice(snapshot.index, 0, snapshot.record); this.peoActiveIndex = snapshot.index; }
-      else { this.plos.splice(snapshot.index, 0, snapshot.record); this.ploActiveIndex = snapshot.index; }
-      this.undoSnapshot = null;
-      this.markDirty();
-      this.showToast('Record restored.');
-    },
-    goToStep: function(step) {
-      if (this.dirty && !confirm('You have unsaved changes. Leave this step without saving?')) return;
-      this.workspaceStep = step;
-      this.peoOpen = step === 1;
-      this.ploOpen = step === 2;
-      if (step === 1 || step === 2) this.$nextTick(this.autoResizeAll);
-      window.scrollTo(0, 0);
+    addResearchPLO: function() {
+      this.researchPLOs.push({code: this.nextResearchCode(this.researchPLOs, 'PLO'), parentPEO: '', statement: '', mqfDomains: [], taxonomy: '', rationale: ''});
+      this.markResearchDirty();
     },
     loadProgrammes: function() {
       this.loading = true;
@@ -434,211 +383,76 @@ new Vue({
       google.script.run.withSuccessHandler(function(items) { self.governanceItems = items; }).withFailureHandler(function(err) { self.showToast('Governance: ' + err.message); }).getGovernanceItemsApi({});
     },
     openProgramme: function(prog) {
-      if (this.dirty && !confirm('You have unsaved changes. Leave this programme without saving?')) return;
+      if (this.researchDirty && !confirm('You have unsaved changes. Leave this programme without saving?')) return;
       this.currentProgramme = prog;
       this.currentView = 'detail';
-      this.workspaceStep = 1;
+      this.researchCategory = 'information';
+      this.researchDirty = false;
+      this.researchSaveState = 'clean';
       this.dirty = false;
-      this.saveState = 'clean';
+      this.loadResearchWorkspace();
     },
     toggleSub: function(sub) {
       this.$set(this.subgroupOpen, sub.key, !this.subgroupOpen[sub.key]);
     },
     setView: function(view) {
-      if (this.dirty && view !== 'detail' && !confirm('You have unsaved changes. Leave without saving?')) return;
+      if (this.researchDirty && view !== 'detail' && !confirm('You have unsaved changes. Leave without saving?')) return;
       this.currentView = view;
+      this.researchDirty = false;
       this.dirty = false;
       if (view === 'dashboard') this.loadDashboard();
       if (view === 'programmes') this.loadProgrammes();
     },
-    toggleViewMode: function() {
-      this.viewMode = this.viewMode === 'entry' ? 'graph' : 'entry';
-    },
-    loadPEOs: function() {
+    loadResearchWorkspace: function() {
       var self = this;
       if (!this.currentProgramme) return;
-      google.script.run
-         .withSuccessHandler(function(r) { self.peos = r; self.peoActiveIndex = 0; self.dirty = false; self.saveState = 'clean'; self.autoResizeAll(); })
-        .getPEOsApi(this.currentProgramme.mqaCode);
+      this.researchSaveState = 'saving';
+      google.script.run.withSuccessHandler(function(profile) { self.researchProfile = profile; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchProgrammeApi(this.currentProgramme.mqaCode);
+      google.script.run.withSuccessHandler(function(peos) { self.researchPEOs = peos || []; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchPEOsApi(this.currentProgramme.mqaCode);
+      google.script.run.withSuccessHandler(function(plos) { self.researchPLOs = plos || []; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchPLOsApi(this.currentProgramme.mqaCode);
+      google.script.run.withSuccessHandler(function(references) { self.researchReferences = references || self.researchReferences; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchReferencesApi();
+      google.script.run.withSuccessHandler(function(mappings) { self.researchMappings = {}; (mappings || []).forEach(function(mapping) { self.$set(self.researchMappings, mapping.ploId, mapping); }); }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchMappingsApi(this.currentProgramme.mqaCode);
+      this.loadResearchCoverage();
+      this.loadResearchReview();
+      this.researchSaveState = 'clean';
     },
-    addPEO: function() {
-      this.addRecord('PEO');
+    saveResearchProfile: function() {
+      var self = this; this.researchSaveState = 'saving';
+      google.script.run.withSuccessHandler(function(profile) { self.researchProfile = profile; self.researchMutationComplete('Programme profile saved.'); }).withFailureHandler(function(e) { self.researchSaveState = 'dirty'; self.showToast(e.message); }).saveResearchProfileApi(this.currentProgramme.mqaCode, this.researchProfile);
     },
-    removePEO: function(idx) {
-      this.removeRecord(this.peos[idx], 'PEO', idx);
+    saveResearchPEOs: function() {
+      var self = this; this.researchSaveState = 'saving';
+      google.script.run.withSuccessHandler(function(peos) { self.researchPEOs = peos || []; self.researchMutationComplete('PEO records saved.'); }).withFailureHandler(function(e) { self.researchSaveState = 'dirty'; self.showToast(e.message); }).saveResearchPEOsApi(this.currentProgramme.mqaCode, this.researchPEOs);
     },
-    savePEOs: function() {
-      if (this.validatePEOs().some(function(item) { return item.missing.length; })) { this.showToast('Complete each PEO description before saving.'); return; }
-      this.saving = true;
-      this.saveState = 'saving';
+    saveResearchPLOs: function() {
+      var self = this; this.researchSaveState = 'saving';
+      google.script.run.withSuccessHandler(function(plos) { self.researchPLOs = plos || []; self.researchMutationComplete('PLO records saved.'); }).withFailureHandler(function(e) { self.researchSaveState = 'dirty'; self.showToast(e.message); }).saveResearchPLOsApi(this.currentProgramme.mqaCode, self.researchPLOs);
+    },
+    saveResearchPLOMapping: function(plo) {
+      var self = this; var mapping = this.researchMapping(plo); this.researchSaveState = 'saving';
+      google.script.run.withSuccessHandler(function(saved) { self.$set(self.researchMappings, plo.ploId || plo.code, saved); self.researchMutationComplete('PLO mapping saved.'); }).withFailureHandler(function(e) { self.researchSaveState = 'dirty'; self.showToast(e.message); }).saveResearchPLOMappingApi(this.currentProgramme.mqaCode, plo.ploId, mapping);
+    },
+    researchMutationComplete: function(message) {
+      this.researchDirty = false; this.dirty = false; this.researchSaveState = 'saved'; this.showToast(message); this.loadResearchCoverage(); this.loadResearchReview();
+    },
+    loadResearchCoverage: function() {
+      var self = this; if (!this.currentProgramme) return;
+      google.script.run.withSuccessHandler(function(coverage) { self.researchCoverage = coverage; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchCoverageApi(this.currentProgramme.mqaCode);
+    },
+    loadResearchReview: function() {
+      var self = this; if (!this.currentProgramme) return;
+      google.script.run.withSuccessHandler(function(review) { self.researchReview = review; self.researchStatus = review.status || self.researchStatus; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchReviewApi(this.currentProgramme.mqaCode);
+    },
+    submitResearchProgramme: function() {
       var self = this;
-      google.script.run
-        .withSuccessHandler(function(r) {
-          self.peos = r;
-           self.saving = false;
-           self.dirty = false;
-           self.saveState = 'saved';
-          self.showToast('PEO saved.');
-        })
-        .withFailureHandler(function(e) {
-          self.saving = false;
-self.showToast('Error: ' + e.message);
-      })
-        .savePEOsApi(this.currentProgramme.mqaCode, this.peos);
+      google.script.run.withSuccessHandler(function(result) { self.researchStatus = result.status; self.researchMutationComplete('Programme submitted for review.'); }).withFailureHandler(function(e) { self.showToast(e.message); }).submitResearchProgrammeApi(this.currentProgramme.mqaCode);
     },
-    loadPLOs: function() {
-      var self = this;
-      if (!this.currentProgramme) return;
-      google.script.run
-        .withSuccessHandler(function(r) { self.plos = r; self.ploActiveIndex = 0; self.dirty = false; self.saveState = 'clean'; self.autoResizeAll(); })
-        .getPLOsApi(this.currentProgramme.mqaCode);
+    selectAllMQFDomains: function(plo) {
+      plo.mqfDomains = this.researchReferences.mqf.map(function(domain) { return domain.code; }); this.markResearchDirty();
     },
-    addPLO: function() {
-      this.addRecord('PLO');
-    },
-    removePLO: function(idx) {
-      this.removeRecord(this.plos[idx], 'PLO', idx);
-    },
-    savePLOs: function() {
-      this.savingPLO = true;
-      this.saveState = 'saving';
-      var self = this;
-      google.script.run
-        .withSuccessHandler(function(r) {
-          self.plos = r;
-           self.savingPLO = false;
-           self.dirty = false;
-           self.saveState = 'saved';
-          self.showToast('PLO saved.');
-        })
-        .withFailureHandler(function(e) {
-          self.savingPLO = false;
-self.showToast('Error: ' + e.message);
-      })
-        .savePLOsApi(this.currentProgramme.mqaCode, this.plos);
-    },
-    loadGraph: function() {
-      this.graphLoading = true;
-      this.graphError = null;
-      var self = this;
-      google.script.run
-        .withSuccessHandler(function(data) {
-          self.$nextTick(function() {
-            self.renderVisNetwork(data);
-            self.graphLoading = false;
-          });
-        })
-        .withFailureHandler(function(err) {
-          self.graphError = err.message;
-          self.graphLoading = false;
-        })
-        .getGraphDataApi(this.currentProgramme.mqaCode);
-    },
-    renderVisNetwork: function(data) {
-      var container = document.getElementById('graph-container');
-      if (!container) return;
-      container.innerHTML = '';
-
-      var colorMap = {
-        Programme: '#3B82F6',
-        PEO: '#10B981',
-        PLO: '#F59E0B',
-        MQFDomain: '#6366F1',
-        Taxonomy: '#8B5CF6'
-      };
-
-      var shapeMap = {
-        Programme: 'hexagon',
-        PEO: 'diamond',
-        PLO: 'box',
-        MQFDomain: 'ellipse',
-        Taxonomy: 'box'
-      };
-
-      var edgeColorMap = {
-        has: '#9CA3AF',
-        maps_to: '#60A5FA',
-        classified_as: '#FBBF24'
-      };
-
-      var nodes = new vis.DataSet(data.nodes.map(function(n) {
-        return {
-          id: n.id,
-          label: n.label,
-          title: '<strong>' + n.label + '</strong>',
-          shape: shapeMap[n.type] || 'dot',
-          color: { background: colorMap[n.type] || '#999', border: '#fff' },
-          borderWidth: 2
-        };
-      }));
-
-      var edges = new vis.DataSet(data.edges.map(function(e) {
-        return {
-          from: e.from,
-          to: e.to,
-          color: { color: edgeColorMap[e.type] || '#999', highlight: edgeColorMap[e.type] || '#999' },
-          title: e.type,
-          smooth: { type: 'continuous' }
-        };
-      }));
-
-      var options = {
-        physics: { enabled: true },
-        edges: { smooth: true },
-        configure: { filter: ['physics'] },
-        interaction: { hover: true, tooltipDelay: 200 },
-        nodes: { font: { size: 11 } }
-      };
-
-      var network = new vis.Network(container, { nodes: nodes, edges: edges }, options);
-
-      network.on('click', function(params) {
-        if (params.nodes.length > 0) {
-          network.selectNodes(params.nodes, true);
-        } else {
-          network.unselectAll();
-        }
-      });
-    },
-    loadFiles: function() {
-      var self = this;
-      google.script.run
-        .withSuccessHandler(function(r) { self.files = r; })
-        .getUploadedFilesApi(this.currentProgramme.mqaCode);
-    },
-    doUpload: function() {
-      var input = this.$refs.fileInput;
-      if (!input.files || !input.files[0]) { this.showToast('Please select a file.'); return; }
-      var self = this;
-      google.script.run
-        .withSuccessHandler(function() {
-          self.showToast('File uploaded.');
-          self.loadFiles();
-        })
-        .withFailureHandler(function(e) { self.showToast('Ralat: ' + e.message); })
-        .uploadFileApi(this.currentProgramme.mqaCode, this.uploadType, input);
-    },
-    deleteFile: function(file) {
-      if (!confirm('Padamkan fail ini?')) return;
-      var self = this;
-      google.script.run
-        .withSuccessHandler(function() {
-          self.showToast('File deleted.');
-          self.loadFiles();
-        })
-        .withFailureHandler(function(e) { self.showToast('Ralat: ' + e.message); })
-        .approveDeleteFileApi(file.id);
-    },
-    requestDelete: function(file) {
-      if (!confirm('Send delete request for this file?')) return;
-      var self = this;
-      google.script.run
-        .withSuccessHandler(function() {
-          self.showToast('Delete request sent for Admin approval.');
-        })
-        .withFailureHandler(function(e) { self.showToast('Error: ' + e.message); })
-        .suggestDeleteFileApi(file.id, self.currentProgramme.mqaCode);
-    },
+    toggleSDG: function(plo) { this.markResearchDirty(); },
+    toggleSC: function(plo) { this.markResearchDirty(); },
+    leaveResearchWorkspace: function() { this.setView('programmes'); },
     loadPendingSuggestions: function() {
       var self = this;
       if (this.user.role !== 'Admin') return;
@@ -726,7 +540,7 @@ self.showToast('Error: ' + e.message);
         .approveDeleteFileApi(requestId);
     }
   },
-  mounted: function() {
+     mounted: function() {
     this.loadDashboard();
     this.loadProgrammes();
     this.loadPendingSuggestions();
@@ -734,19 +548,13 @@ self.showToast('Error: ' + e.message);
     this.loadAccessRequests();
     this.loadGovernanceItems();
   },
-  watch: {
-    currentProgramme: function() {
-      if (this.currentProgramme) {
-        this.loadPEOs();
-        this.loadPLOs();
-        this.loadFiles();
-      }
-    },
-    viewMode: function(mode) {
-      if (mode === 'graph' && this.currentProgramme) {
-        this.$nextTick(function() { this.loadGraph(); });
-      }
-    }
+   watch: {
+     researchCategory: function(category) {
+       if (category === 'mapping' && this.currentProgramme) {
+         this.loadResearchCoverage();
+         this.loadResearchReview();
+       }
+     }
   }
 });
 }
