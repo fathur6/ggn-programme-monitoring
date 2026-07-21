@@ -37,7 +37,7 @@ const programmes = {
 };
 const auth = loadAuth({ COOR: makeSheet(coor) }, programmes);
 
-const coordinator = auth.lookupUser(coorEmail);
+const coordinator = auth.lookupUser_(coorEmail);
 assert.strictEqual(coordinator.role, 'Faculty Coordinator');
 assert.strictEqual(coordinator.faculty, 'Faculty of Computing');
 assert.strictEqual(coordinator.name, 'Dr Coordinator');
@@ -48,19 +48,19 @@ const blankFaculty = loadAuth({ COOR: makeSheet([
   ['Faculty', 'Name', 'Email'],
   ['', 'Malformed Coordinator', coorEmail]
 ]) }, programmes);
-assert.strictEqual(blankFaculty.lookupUser(coorEmail), null);
+assert.strictEqual(blankFaculty.lookupUser_(coorEmail), null);
 
 const ppsPrecedence = loadAuth({
   PPS: makeSheet([['Name', 'Email'], ['Admin', coorEmail]]),
   PIC: makeSheet([['Faculty', 'Coordinator Name', 'Coordinator Email', 'PIC Name', 'PIC Email', 'TDA Name', 'TDA Email']]),
   COOR: makeSheet(coor)
 }, programmes);
-assert.strictEqual(ppsPrecedence.lookupUser(coorEmail).role, 'Admin');
+assert.strictEqual(ppsPrecedence.lookupUser_(coorEmail).role, 'Admin');
 
 const picPrecedence = loadAuth({
   PIC: makeSheet([['Faculty', 'Coordinator Name', 'Coordinator Email', 'PIC Name', 'PIC Email', 'TDA Name', 'TDA Email'], ['Faculty of Business', 'Graduate Coordinator', 'PIC@EXAMPLE.COM', 'Faculty PIC', coorEmail, '', '']]),
   COOR: makeSheet(coor)
 }, programmes);
-assert.strictEqual(picPrecedence.lookupUser(coorEmail).role, 'Faculty PIC');
+assert.strictEqual(picPrecedence.lookupUser_(coorEmail).role, 'Faculty PIC');
 
 console.log('COOR access behavior tests passed.');

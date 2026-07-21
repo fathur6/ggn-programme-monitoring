@@ -43,7 +43,7 @@ function suggestRemoveProgramme_(mqaCode) {
 }
 
 function getPendingSuggestions_() {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('PendingSuggestions');
@@ -78,7 +78,7 @@ function findPendingRow_(data, rowIndex) {
 }
 
 function approveSuggestion_(rowIndex) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var lock = LockService.getScriptLock();
   try {
@@ -118,7 +118,7 @@ function approveSuggestion_(rowIndex) {
 }
 
 function rejectSuggestion_(rowIndex, note) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var lock = LockService.getScriptLock();
   try {
@@ -141,7 +141,7 @@ function rejectSuggestion_(rowIndex, note) {
 }
 
 function getPendingDeletions_() {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var deletion = getDeletionSheetReadOnly_();
   if (!deletion) throw new Error('Skema permohonan pemadaman tidak sah.');

@@ -79,7 +79,7 @@ function researchId_() {
 }
 
 function researchUser_(access) {
-  return access && access.user || getCurrentUser();
+  return access && access.user || getCurrentUser_();
 }
 
 function researchProgramme_(mqaCode) {

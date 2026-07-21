@@ -17,7 +17,7 @@ function ensureAccessRequestsSheet_() {
 }
 
 function createAccessRequestApi_(request) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!user) throw new Error('Unauthorized');
   if (isGraduateSchoolAdmin_(user)) throw new Error('Graduate School administrators already have access');
 
@@ -51,7 +51,7 @@ function createAccessRequestApi_(request) {
 }
 
 function getAccessRequestsApi_(filters) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!user) throw new Error('Unauthorized');
   var sheet = ensureAccessRequestsSheet_();
   var data = sheet.getDataRange().getValues();
@@ -79,7 +79,7 @@ function getAccessRequestsApi_(filters) {
 }
 
 function decideAccessRequestApi_(requestId, decision, note) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   if (['Approved', 'Rejected'].indexOf(String(decision)) === -1) {
     throw new Error('Invalid access request decision');
@@ -109,7 +109,7 @@ function decideAccessRequestApi_(requestId, decision, note) {
 }
 
 function revokeAccessGrantApi_(requestId, note) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var sheet = ensureAccessRequestsSheet_();
   var data = sheet.getDataRange().getValues();

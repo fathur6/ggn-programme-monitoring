@@ -109,7 +109,7 @@ function buildEmailHTML(fac, recip) {
 
 
 // PIC sheet columns: Faculty | Grad Coordinator | GC Email | PIC Name | PIC Email
-function getFacultyRecipientData(fac) {
+function getFacultyRecipientData_(fac) {
   var ss = getSpreadsheet();
   var pic = ss.getSheetByName('PIC');
   var data = pic.getDataRange().getValues();
@@ -128,8 +128,8 @@ function getFacultyRecipientData(fac) {
   return out;
 }
 
-function getFacultyRecipients(fac) {
-  var d = getFacultyRecipientData(fac);
+function getFacultyRecipients_(fac) {
+  var d = getFacultyRecipientData_(fac);
   var to = [];
   if (d.gcEmail) to.push(d.gcEmail);
   if (d.picEmail) to.push(d.picEmail);
@@ -140,9 +140,9 @@ function getFacultyRecipients(fac) {
 
 
 function sendTestAnnouncement() {
-  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
+  if (!isGraduateSchoolAdmin_(getCurrentUser_())) throw new Error('Graduate School admin only');
   var fac = 'FBK';
-  var recip = getFacultyRecipientData(fac);
+  var recip = getFacultyRecipientData_(fac);
   var subject = '[TEST] PENGISIAN MAKLUMAT PEO, PLO DAN PEMETAAN MQF 2.0 (2024) — ' + fac;
   var htmlBody = buildEmailHTML(fac, {
     gcName: recip.gcName,
@@ -160,12 +160,12 @@ function sendTestAnnouncement() {
 
 
 function sendAnnouncement(fac) {
-  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
+  if (!isGraduateSchoolAdmin_(getCurrentUser_())) throw new Error('Graduate School admin only');
   fac = String(fac).toUpperCase();
   if (!TDA_DATA[fac]) throw new Error('Unknown faculty: ' + fac);
 
-  var recip = getFacultyRecipientData(fac);
-  var toList = getFacultyRecipients(fac);
+  var recip = getFacultyRecipientData_(fac);
+  var toList = getFacultyRecipients_(fac);
   if (toList.length === 0) throw new Error('No recipients found for ' + fac);
 
   var subject = 'PENGISIAN MAKLUMAT PEO, PLO DAN PEMETAAN MQF 2.0 (2024) — ' + fac;
@@ -184,7 +184,7 @@ function sendAnnouncement(fac) {
 
 
 function sendAllAnnouncements() {
-  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
+  if (!isGraduateSchoolAdmin_(getCurrentUser_())) throw new Error('Graduate School admin only');
   var results = [];
   var faculties = Object.keys(TDA_DATA);
   for (var i = 0; i < faculties.length; i++) {
@@ -200,7 +200,7 @@ function sendAllAnnouncements() {
 
 
 function sendAnnouncementsByFacultyList(facList) {
-  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
+  if (!isGraduateSchoolAdmin_(getCurrentUser_())) throw new Error('Graduate School admin only');
   var results = [];
   var arr = JSON.parse(facList);
   for (var i = 0; i < arr.length; i++) {

@@ -40,7 +40,7 @@ function ensureGovernanceSheets_() {
 }
 
 function getUniversityDashboardApi_() {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!user) throw new Error('Unauthorized');
 
   var admin = isGraduateSchoolAdmin_(user);
@@ -87,7 +87,7 @@ function getUniversityDashboardApi_() {
 }
 
 function getFacultyReportApi_(faculty) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!user) throw new Error('Unauthorized');
   if (!isGraduateSchoolAdmin_(user) && String(faculty || '') !== String(user.faculty || '')) {
     throw new Error('Forbidden: faculty report is outside your authorized scope');
@@ -150,7 +150,7 @@ function saveProgrammeStatusApi_(mqaCode, status) {
 }
 
 function getGovernanceItemsApi_(filters) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!user) throw new Error('Unauthorized');
   var sheets = ensureGovernanceSheets_();
   var data = sheets.GovernanceItems.getDataRange().getValues();
@@ -174,7 +174,7 @@ function getGovernanceItemsApi_(filters) {
 }
 
 function saveGovernanceItemApi_(item) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   if (!item || !item.mqaCode) throw new Error('Research programme is required');
   var programme = findProgrammeByMqaCode_(item.mqaCode);

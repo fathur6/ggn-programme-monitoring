@@ -29,7 +29,7 @@ const programmes = {
   'MQA/LEGACY': { faculty: 'Faculty B', mode: 'Coursework' }
 };
 const context = {
-  getCurrentUser: () => currentUser,
+  getCurrentUser_: () => currentUser,
   isGraduateSchoolAdmin_: user => !!user && user.role === 'Admin',
   isResearchProgramme_: programme => !!programme && ['research', 'postgraduate by research'].includes(String(programme.mode || '').toLowerCase()),
   findProgrammeByMqaCode_: code => programmes[String(code || '').trim()] || null,
@@ -93,7 +93,7 @@ const deletionSheet = makeSheet(deletionRows);
 deletionSheet.getLastColumn = () => deletionHeaders.length;
 deletionSheet.getLastRow = () => deletionSheet.rows.length;
 const deletionContext = {
-  getCurrentUser: () => ({ email: 'admin@example.com', role: 'Admin' }),
+  getCurrentUser_: () => ({ email: 'admin@example.com', role: 'Admin' }),
   isGraduateSchoolAdmin_: user => !!user && user.role === 'Admin',
   isResearchProgramme_: programme => !!programme && String(programme.mode).toLowerCase() === 'research',
   findProgrammeByMqaCode_: code => programmes[String(code || '').trim()] || null,

@@ -8,13 +8,13 @@ function getSpreadsheet() {
   }
 }
 
-function getCurrentUser(optEmail) {
+function getCurrentUser_(optEmail) {
   var email = optEmail || '';
   if (!email) {
     try { email = Session.getActiveUser().getEmail(); } catch (ex) {}
   }
   if (!email || !email.endsWith('@unisza.edu.my')) return null;
-  return decorateUser_(lookupUser(email));
+  return decorateUser_(lookupUser_(email));
 }
 
 function getOAuthUrl() {
@@ -63,7 +63,7 @@ function handleOAuthCode(code, state) {
   var payload = JSON.parse(Utilities.newBlob(Utilities.base64Decode(b64)).getDataAsString());
   if (!payload.email) throw new Error('No email in OAuth response');
   if (!payload.email_verified) throw new Error('Email not verified by Google');
-  var user = decorateUser_(lookupUser(payload.email));
+  var user = decorateUser_(lookupUser_(payload.email));
   if (!user) throw new Error('Email tidak berdaftar: ' + payload.email);
   var sessionToken = Utilities.getUuid();
   cache.put('oauth_session_' + sessionToken, user.email, 86400);
@@ -75,7 +75,7 @@ function resolveSessionToken(token) {
   var cache = CacheService.getScriptCache();
   var email = cache.get('oauth_session_' + token);
   if (!email) return null;
-  return decorateUser_(lookupUser(email));
+  return decorateUser_(lookupUser_(email));
 }
 
 function decorateUser_(user) {
@@ -94,7 +94,7 @@ function isGraduateSchoolAdmin_(user) {
 }
 
 function getAuthorizedProgrammeScope_() {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!user) return null;
   return {
     mode: isGraduateSchoolAdmin_(user) ? 'graduate-school' : 'faculty',
@@ -117,7 +117,7 @@ function canViewProgramme_(user, mqaCode, optAccess) {
 }
 
 function requireProgrammeAccess_(mqaCode, action) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!user) throw new Error('Unauthorized');
 
   var access = typeof getActiveAccessGrant_ === 'function'
@@ -138,7 +138,7 @@ function requireResearchProgrammeAccess_(mqaCode, action) {
   return access;
 }
 
-function lookupUser(email) {
+function lookupUser_(email) {
   var ss = getSpreadsheet();
   var emailStr = String(email).trim().toLowerCase();
 

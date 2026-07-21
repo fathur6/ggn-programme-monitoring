@@ -42,7 +42,7 @@ function doGet(e) {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
 
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (user) {
     template.sessionEmail = user.email;
     template.sessionUser = JSON.stringify(user);
@@ -69,7 +69,7 @@ function include(file) {
 }
 
 function debugGetProgrammesApi() {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Endpoint disabled');
   var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('Programme');
@@ -87,7 +87,7 @@ function debugGetProgrammesApi() {
 }
 
 function getProgrammesApi() {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!user) throw new Error('Unauthorized');
   return getProgrammes_(user.role === 'Admin' ? null : user.faculty).filter(isResearchProgramme_);
 }
@@ -146,19 +146,19 @@ function saveResearchStatusApi(mqaCode, status) { return saveResearchStatusApi_(
 function submitResearchProgrammeApi(mqaCode) { return submitResearchProgrammeApi_(mqaCode); }
 
 function approveDeleteFileApi(requestId) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   return approveDeleteFile_(requestId);
 }
 
 function getPendingDeletionsApi() {
-  if (!isGraduateSchoolAdmin_(getCurrentUser())) throw new Error('Graduate School admin only');
+  if (!isGraduateSchoolAdmin_(getCurrentUser_())) throw new Error('Graduate School admin only');
   return getPendingDeletions_();
 }
 
 /** One-time: create per-program tabs for all programmes from the Programme sheet */
 function prepareAllSheetsApi() {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   
   var ss = getSpreadsheet();
@@ -200,7 +200,7 @@ function prepareAllSheetsApi() {
 /** Send test announcement email (to fathurrahman@unisza.edu.my only) */
 function sendTestAnnouncementApi() {
   return withErrorHandling(function() {
-    var user = getCurrentUser();
+    var user = getCurrentUser_();
     if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
     return sendTestAnnouncement();
   });
@@ -209,7 +209,7 @@ function sendTestAnnouncementApi() {
 /** Send announcement to a specific faculty */
 function sendAnnouncementApi(fac) {
   return withErrorHandling(function() {
-    var user = getCurrentUser();
+    var user = getCurrentUser_();
     if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
     return sendAnnouncement(fac);
   });
@@ -218,7 +218,7 @@ function sendAnnouncementApi(fac) {
 /** Send announcement to all faculties */
 function sendAllAnnouncementsApi() {
   return withErrorHandling(function() {
-    var user = getCurrentUser();
+    var user = getCurrentUser_();
     if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
     return sendAllAnnouncements();
   });
@@ -227,7 +227,7 @@ function sendAllAnnouncementsApi() {
 /** Send announcement to selected faculties (JSON array string) */
 function sendAnnouncementsByFacultyListApi(facList) {
   return withErrorHandling(function() {
-    var user = getCurrentUser();
+    var user = getCurrentUser_();
     if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
     return sendAnnouncementsByFacultyList(facList);
   });

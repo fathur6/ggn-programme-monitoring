@@ -141,7 +141,7 @@ function suggestDeleteFile_(fileId, mqaCode) {
 }
 
 function approveDeleteFile_(requestId) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   if (!requestId) throw new Error('Request ID diperlukan.');
 

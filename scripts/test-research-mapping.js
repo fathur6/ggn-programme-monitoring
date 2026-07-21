@@ -18,7 +18,7 @@ const dataSource = fs.readFileSync('gas/ResearchDataService.gs', 'utf8');
 const referenceSource = fs.readFileSync('gas/ResearchReferenceService.gs', 'utf8');
 const mappingSource = fs.readFileSync('gas/ResearchMappingService.gs', 'utf8');
 const programmeSource = fs.readFileSync('gas/ProgrammeService.gs', 'utf8');
-const api = new Function('getSpreadsheet', 'getCurrentUser', 'LockService', dataSource + '\n' + referenceSource + '\nreturn { RESEARCH_SHEET_HEADERS: RESEARCH_SHEET_HEADERS, getResearchProgrammeKey_: getResearchProgrammeKey_, validateReferenceIds_: validateReferenceIds_, getResearchReferences_: getResearchReferences_, getResearchReferencesApi: getResearchReferencesApi };')(undefined, undefined, undefined);
+const api = new Function('getSpreadsheet', 'getCurrentUser_', 'LockService', dataSource + '\n' + referenceSource + '\nreturn { RESEARCH_SHEET_HEADERS: RESEARCH_SHEET_HEADERS, getResearchProgrammeKey_: getResearchProgrammeKey_, validateReferenceIds_: validateReferenceIds_, getResearchReferences_: getResearchReferences_, getResearchReferencesApi: getResearchReferencesApi };')(undefined, undefined, undefined);
 
 var task2HelpersSource = [
   'uniqueTrimmed_', 'canonicalResearchTaxonomy_',
@@ -85,7 +85,7 @@ const spreadsheet = new FakeSpreadsheet({
   ])
 });
 let lockCount = 0;
-const runtimeApi = new Function('getSpreadsheet', 'getCurrentUser', 'LockService', dataSource + '\n' + referenceSource + '\nreturn { getResearchReferences_: getResearchReferences_, getResearchReferencesApi: getResearchReferencesApi };')(
+const runtimeApi = new Function('getSpreadsheet', 'getCurrentUser_', 'LockService', dataSource + '\n' + referenceSource + '\nreturn { getResearchReferences_: getResearchReferences_, getResearchReferencesApi: getResearchReferencesApi };')(
   () => spreadsheet,
   () => ({email: 'user@unisza.edu.my'}),
   {getScriptLock: () => ({waitLock: () => { lockCount++; }, releaseLock: () => {}})}
@@ -112,7 +112,7 @@ assert.deepStrictEqual(spreadsheet.sheets.PR_TFReference.rows[2], ['TFX', 'Inact
 assert(lockCount > 0, 'First-use research sheet creation must use the script lock');
 researchSheetNames.forEach(name => assert.deepStrictEqual(spreadsheet.sheets[name].rows[0], api.RESEARCH_SHEET_HEADERS[name]));
 assert.deepStrictEqual(JSON.parse(spreadsheet.sheets.PR_TFReference.rows[3][3]), ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']);
-const unauthenticatedApi = new Function('getSpreadsheet', 'getCurrentUser', 'LockService', dataSource + '\n' + referenceSource + '\nreturn getResearchReferencesApi;')(
+const unauthenticatedApi = new Function('getSpreadsheet', 'getCurrentUser_', 'LockService', dataSource + '\n' + referenceSource + '\nreturn getResearchReferencesApi;')(
   () => spreadsheet,
   () => null,
   {getScriptLock: () => ({waitLock: () => {}, releaseLock: () => {}})}

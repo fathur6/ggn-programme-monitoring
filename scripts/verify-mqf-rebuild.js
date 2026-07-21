@@ -57,6 +57,36 @@ function assertNoPublicFunctionVariants(source, name) {
   assert(!new RegExp('function\\s+' + name + '\\s*\\(', 'i').test(source), name + ' must not be callable with a case variant');
 }
 
+function topLevelGasFunctions() {
+  var files = fs.readdirSync('gas').filter(function(path) { return /\.gs$/.test(path); });
+  return files.reduce(function(names, path) {
+    var source = read('gas/' + path);
+    var matches = source.matchAll(/^function\s+([A-Za-z_$][\w$]*)\s*\(/gm);
+    for (var match of matches) {
+      if (!match[1].endsWith('_')) names[match[1]] = true;
+    }
+    return names;
+  }, {});
+}
+
+var publicGasGlobals = topLevelGasFunctions();
+[
+  'getCurrentUser', 'lookupUser', 'getFacultyRecipientData',
+  'getFacultyRecipients', 'getNextPLOCode'
+].forEach(function(name) {
+  assert(!publicGasGlobals[name], name + ' must not be a public Apps Script global');
+});
+[
+  'getCurrentUser_', 'lookupUser_', 'getFacultyRecipientData_',
+  'getFacultyRecipients_', 'getNextPLOCode_'
+].forEach(function(name) {
+  assertContains(read('gas/' + ({
+    getCurrentUser_: 'Auth.gs', lookupUser_: 'Auth.gs',
+    getFacultyRecipientData_: 'EmailService.gs', getFacultyRecipients_: 'EmailService.gs',
+    getNextPLOCode_: 'PLOService.gs'
+  })[name]), new RegExp('function\\s+' + name + '\\s*\\('), name + ' private implementation is missing');
+});
+
 [
   'gas/Index.html',
   'gas/JavaScript.html',
@@ -274,7 +304,7 @@ assertContains(suggestions, /function\s+getPendingDeletions_[\s\S]*?findProgramm
   'Deletion queue must exclude legacy records');
 assertContains(peo, /Kod dan penerangan PEO diperlukan/, 'PEO validation is missing');
 assertContains(plo, /Kod dan penerangan PLO diperlukan/, 'PLO validation is missing');
-assertContains(plo, /function\s+getNextPLOCode\s*\(/, 'Stable PLO code helper is missing');
+assertContains(plo, /function\s+getNextPLOCode_\s*\(/, 'Stable PLO code helper is missing');
 assertContains(plo, /match\(\/\^PLO\\s\*\(\\d\+\)\$\//, 'PLO code helper does not inspect numeric suffixes');
 assertContains(plo, /p\.embeddedPEO\s*\|\|\s*''\s*,\s*p\.taxonomy/, 'PLO persistence field order changed');
 assertContains(graph, /'Taxonomy'/, 'Graph does not emit taxonomy nodes');
@@ -306,7 +336,7 @@ assert(!/function\s+getProgrammes\s*\(/.test(programmeService),
   'Internal programme loader remains directly callable as getProgrammes');
 assertContains(programmeService, /function\s+getProgrammes_\s*\(/,
   'Internal programme loader must be private');
-assertContains(code, /function\s+getProgrammesApi[\s\S]*?getCurrentUser\(\)[\s\S]*?filter\(isResearchProgramme_\)/,
+assertContains(code, /function\s+getProgrammesApi[\s\S]*?getCurrentUser_\(\)[\s\S]*?filter\(isResearchProgramme_\)/,
   'Public programme directory lacks authentication and research-only filtering');
 ['suggestAddProgrammeApi', 'suggestRemoveProgrammeApi'].forEach(function(name) {
   assertNoTopLevelFunction(code, name, name + ' remains publicly callable');
@@ -422,8 +452,13 @@ nodeAssert.deepStrictEqual(researchReferenceApi.PR_TFReference.map(function(row)
   ['TF4', ['MQF3a', 'MQF3b', 'MQF4a', 'MQF4b', 'MQF5']]
 ], 'TF relationships are not exact');
 assertContains(researchData, /LockService\.getScriptLock\(\)/, 'Research sheet creation is not locked');
-assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\(\)[\s\S]*?getCurrentUser\(\)/, 'Research references API lacks authentication');
-assertContains(auth, /function\s+getCurrentUser\s*\(/, 'Authentication helper is missing');
+assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\(\)[\s\S]*?getCurrentUser_\(\)/, 'Research references API lacks authentication');
+assertContains(auth, /function\s+getCurrentUser_\s*\(/, 'Private authentication helper is missing');
+assertContains(auth, /function\s+resolveSessionToken\s*\(token\)[\s\S]*?lookupUser_\(/,
+  'Session resolution must retain internal user lookup');
 assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\(/, 'Research references API is missing');
+assertContains(email, /function\s+sendAnnouncement\s*\(fac\)[\s\S]*?getFacultyRecipientData_\(fac\)[\s\S]*?getFacultyRecipients_\(fac\)/,
+  'Announcement sending must retain private recipient resolution');
+assertContains(plo, /function\s+getNextPLOCode_\s*\(/, 'Private PLO code helper is missing');
 
 console.log('MQF rebuild static checks passed.');

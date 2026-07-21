@@ -104,7 +104,7 @@ function savePLOs_(mqaCode, plos) {
   }
 }
 
-function getNextPLOCode(plos) {
+function getNextPLOCode_(plos) {
   var highest = 0;
   (plos || []).forEach(function(p) {
     var match = String(p && p.code || '').toUpperCase().match(/^PLO\s*(\d+)$/);

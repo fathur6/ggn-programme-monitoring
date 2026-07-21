@@ -127,6 +127,6 @@ function isUnsafeReferenceId_(value) {
 }
 
 function getResearchReferencesApi() {
-  if (!getCurrentUser()) throw new Error('Unauthorized');
+  if (!getCurrentUser_()) throw new Error('Unauthorized');
   return getResearchReferences_();
 }

@@ -1,5 +1,5 @@
 function updatePICApi_(raw) {
-  var user = getCurrentUser();
+  var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
   var ss = getSpreadsheet();
   var pic = ss.getSheetByName('PIC');
