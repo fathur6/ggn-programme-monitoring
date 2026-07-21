@@ -32,6 +32,18 @@ assert(/:tabindex="researchCategory === 'information' \? 0 : -1"/.test(index), '
 assert(/:tabindex="researchCategory === 'mapping' \? 0 : -1"/.test(index), 'Mapping tab does not participate in roving tabindex');
 assert(/function\s+projectMappingMatrixRow_\s*\(/.test(source), 'Pure matrix row projection is missing');
 assert(/mappingMatrixRows:\s*function/.test(source), 'Matrix rows are not projected from current research records');
+const matrixProjection = new Function(
+  source.slice(source.indexOf('function projectMappingMatrixRow_'), source.indexOf('\nfunction initVueApp')) +
+  '\nreturn projectMappingMatrixRow_;'
+)();
+assert.deepStrictEqual(matrixProjection({
+  code: 'PLO-unmapped', mqfDomains: ['MQF2', 'MQF3d']
+}, [
+  {code: 'TF1', mqfDomains: ['MQF1']},
+  {code: 'TF2', mqfDomains: ['MQF2', 'MQF3a', 'MQF3d']}
+]), {
+  code: 'PLO-unmapped', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sdg: [], sc: []
+}, 'An unmapped PLO must derive TF coverage from loaded reference data');
 assert(/PLO Mapping Matrix/.test(index), 'Read-only PLO mapping matrix is missing');
 assert(/aria-label="PLO mapping matrix"/.test(index), 'PLO mapping matrix needs an accessible name');
 assert(/scope="col">\{\{ domain \}\}<\/th>/.test(index), 'Matrix MQF columns need table headers');
@@ -40,6 +52,8 @@ assert(/Explicit PLO mapping to/.test(index) && /not checked/.test(index), 'Matr
 assert(/Explicit PLO mapping/.test(index) && /TF derived from MQF mapping/.test(index), 'Matrix legend does not distinguish explicit and derived mappings');
 assert(/SDG coverage/.test(index) && /SC coverage/.test(index), 'Matrix needs distinct SDG and SC coverage columns');
 assert(/\.mapping-matrix-wrap \{ max-width: 100%; overflow-x: auto; \}/.test(styles), 'Matrix scrolling is not contained');
+assert(/mapping-matrix-wrap"\s+role="region"\s+tabindex="0"/.test(index), 'Scrollable mapping matrix must be keyboard focusable');
+assert(/aria-describedby="mapping-matrix-instructions"/.test(index) && /id="mapping-matrix-instructions"/.test(index), 'Scrollable mapping matrix must provide keyboard scrolling instructions');
 
 const categoryKeydown = methodSource('handleResearchCategoryKeydown');
 assert(/ArrowRight/.test(categoryKeydown) && /ArrowLeft/.test(categoryKeydown), 'Research category tabs do not support arrow navigation');

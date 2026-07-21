@@ -130,7 +130,10 @@ var matrixHelpers = new Function(
 
 assert.deepStrictEqual(matrixHelpers.projectMappingMatrixRow_({
   code: 'PLO1', mqfDomains: ['MQF2', 'MQF3d'], derivedTFIds: ['TF2'], sdgIds: ['SDG4'], scIds: ['SC2']
-}), {
+}, [
+  {code: 'TF1', mqfDomains: ['MQF1', 'MQF4a']},
+  {code: 'TF2', mqfDomains: ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']}
+]), {
   code: 'PLO1', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sdg: ['SDG4'], sc: ['SC2']
 });
 

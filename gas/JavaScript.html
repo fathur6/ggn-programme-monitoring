@@ -149,14 +149,19 @@ function initApp() {
 
 var CURRENT_USER = null;
 
-function projectMappingMatrixRow_(plo) {
+function projectMappingMatrixRow_(plo, tfReferences) {
   var domains = Array.isArray(plo.mqfDomains) ? plo.mqfDomains : [];
   var mqf = {};
   domains.forEach(function(domain) { mqf[domain] = true; });
+  var tf = (Array.isArray(tfReferences) ? tfReferences : []).filter(function(reference) {
+    return Array.isArray(reference.mqfDomains) && reference.mqfDomains.some(function(domain) {
+      return domains.indexOf(domain) !== -1;
+    });
+  }).map(function(reference) { return reference.code; }).sort();
   return {
     code: plo.code,
     mqf: mqf,
-    tf: Array.isArray(plo.derivedTFIds) ? plo.derivedTFIds : [],
+    tf: tf,
     sdg: Array.isArray(plo.sdgIds) ? plo.sdgIds : [],
     sc: Array.isArray(plo.scIds) ? plo.scIds : []
   };
@@ -301,14 +306,13 @@ new Vue({
       mappingMatrixRows: function() {
         var self = this;
         return this.researchPLOs.map(function(plo) {
-          var mapping = self.researchMappings[plo.ploId || plo.code] || {};
-          return projectMappingMatrixRow_({
-            code: plo.code,
-            mqfDomains: plo.mqfDomains,
-            derivedTFIds: mapping.derivedTFIds,
-            sdgIds: mapping.sdgIds,
-            scIds: mapping.scIds
-          });
+           var mapping = self.researchMappings[plo.ploId || plo.code] || {};
+           return projectMappingMatrixRow_({
+             code: plo.code,
+             mqfDomains: plo.mqfDomains,
+             sdgIds: mapping.sdgIds,
+             scIds: mapping.scIds
+           }, self.researchReferences.tf);
         });
       }
   },
