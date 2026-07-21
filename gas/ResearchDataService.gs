@@ -1,4 +1,4 @@
-/** ResearchDataService.gs — Postgraduate research Sheet boundaries */
+/** ResearchDataService.gs — Additive postgraduate research data boundaries. */
 
 var RESEARCH_SHEET_HEADERS = {
   PR_ProgrammeProfile: ['ProgrammeId', 'MQACode', 'FacultyOrCentre', 'ProgrammeName', 'StudyLevel', 'StudyMode', 'StudyField', 'Session', 'DocumentVersion', 'DataOwner', 'MappingStatus', 'CreatedAt', 'UpdatedAt', 'UpdatedBy'],
@@ -12,27 +12,30 @@ var RESEARCH_SHEET_HEADERS = {
 };
 
 function ensureResearchSheets_() {
+  var ss = getSpreadsheet();
+  var result = {};
   var lock = LockService.getScriptLock();
-  if (!lock.tryLock(30000)) throw new Error('Unable to initialize research sheets');
   try {
-    var ss = getSpreadsheet();
-    var result = {};
+    lock.waitLock(30000);
+  } catch (e) {
+    throw new Error('Sistem sibuk. Sila cuba sebentar lagi.');
+  }
+  try {
     Object.keys(RESEARCH_SHEET_HEADERS).forEach(function(name) {
       var sheet = ss.getSheetByName(name) || ss.insertSheet(name);
       if (sheet.getLastRow() === 0) sheet.appendRow(RESEARCH_SHEET_HEADERS[name]);
       result[name] = sheet;
     });
-    if (typeof seedResearchReferenceSheets_ === 'function') seedResearchReferenceSheets_(result);
-    return result;
   } finally {
     lock.releaseLock();
   }
+  return result;
 }
 
 function getResearchProgrammeKey_(programme) {
+  var programmeId = String(programme && programme.programmeId || '').trim();
   var mqaCode = String(programme && programme.mqaCode || '').trim();
-  if (!mqaCode) throw new Error('Programme MQA code is required');
-  var directoryProgramme = findProgrammeByMqaCode_(mqaCode);
-  if (!directoryProgramme) throw new Error('Programme is not in the programme directory');
-  return String(directoryProgramme.mqaCode).trim();
+  var key = programmeId || mqaCode;
+  if (!key) throw new Error('Programme ID is required');
+  return key;
 }

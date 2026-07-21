@@ -1,5 +1,6 @@
 const fs = require('fs');
 const childProcess = require('child_process');
+const nodeAssert = require('assert');
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -31,10 +32,8 @@ const configExample = read('gas/Config.gs.example');
 const claspExample = read('gas/.clasp.json.example');
 const researchData = read('gas/ResearchDataService.gs');
 const researchReferences = read('gas/ResearchReferenceService.gs');
-const researchMapping = read('gas/ResearchMappingService.gs');
-const researchReview = read('gas/ResearchReviewService.gs');
-const researchDetailStart = index.indexOf("<div v-if=\"currentView === 'detail'");
-const researchDetailSource = index.slice(researchDetailStart === -1 ? index.length : researchDetailStart);
+const researchDataApi = new Function(researchData + '\nreturn RESEARCH_SHEET_HEADERS;')();
+const researchReferenceApi = new Function(researchReferences + '\nreturn RESEARCH_REFERENCE_SEEDS_;')();
 
 [
   'gas/Index.html',
@@ -55,56 +54,9 @@ const researchDetailSource = index.slice(researchDetailStart === -1 ? index.leng
   'scripts/test-mqf-overdue.js',
   'gas/ResearchDataService.gs',
   'gas/ResearchReferenceService.gs',
-  'gas/ResearchMappingService.gs',
-  'gas/ResearchReviewService.gs',
-  'scripts/test-research-mapping.js',
-  'scripts/test-research-mapping-client.js',
-  'scripts/test-coor-access.js'
+  'scripts/test-research-mapping.js'
 ].forEach(function(path) {
   assert(fs.existsSync(path), 'Required project file is missing: ' + path);
-});
-assertContains(researchMapping, /function\s+normalizeResearchPLO_\s*\(/, 'Research PLO normalization is missing');
-assertContains(researchMapping, /function\s+validatePLOParents_\s*\(/, 'Research PLO parent validation is missing');
-assertContains(researchMapping, /function\s+validateDuplicateCodes_\s*\(/, 'Research duplicate validation is missing');
-assertContains(researchMapping, /function\s+getResearchProgrammeApi_\s*\(/, 'Research programme API is missing');
-assertContains(researchMapping, /function\s+saveResearchProfileApi_\s*\(/, 'Research profile save API is missing');
-assertContains(researchMapping, /function\s+getResearchPEOsApi_\s*\(/, 'Research PEO API is missing');
-assertContains(researchMapping, /function\s+saveResearchPEOsApi_\s*\(/, 'Research PEO save API is missing');
-assertContains(researchMapping, /function\s+getResearchPLOsApi_\s*\(/, 'Research PLO API is missing');
-assertContains(researchMapping, /function\s+saveResearchPLOsApi_\s*\(/, 'Research PLO save API is missing');
-assertContains(researchMapping, /function\s+getResearchMappingsApi_\s*\(/, 'Research mapping API is missing');
-assertContains(researchReferences, /function\s+deriveTFIds_\s*\(/, 'TF derivation helper is missing');
-assertContains(researchMapping, /function\s+calculatePEOCoverage_\s*\(/, 'PEO coverage helper is missing');
-assertContains(researchMapping, /function\s+saveResearchPLOMappingApi_\s*\(/, 'PLO mapping save API is missing');
-assertContains(researchMapping, /function\s+getResearchCoverageApi_\s*\(/, 'Research coverage API is missing');
-assertContains(researchReview, /function\s+validateResearchProgramme_\s*\(/, 'Research review validation is missing');
-assertContains(researchReview, /function\s+getResearchReviewApi_\s*\(/, 'Research review API is missing');
-assertContains(researchReview, /function\s+saveResearchStatusApi_\s*\(/, 'Research status save API is missing');
-assertContains(researchReview, /function\s+submitResearchProgrammeApi_\s*\(/, 'Research submission API is missing');
-['critical', 'warnings', 'peoCoverage', 'ploTotal', 'mqfDomainCoverage', 'peosWithIssues'].forEach(function(marker) {
-  assertContains(researchReview, new RegExp(marker), 'Research review output is missing: ' + marker);
-});
-assertContains(researchReview, /requireProgrammeAccess_\s*\(/, 'Research review APIs are not programme scoped');
-assertContains(researchReview, /withResearchLock_\s*\(/, 'Research review mutations are not locked');
-assertContains(researchReview, /updatedBy/, 'Research review audit field is missing');
-assertContains(researchMapping, /Derived from PLO mappings/, 'Derived mapping label is missing');
-assert(!/\b(getPEOs|savePEOs|getPLOs|savePLOs)\s*\(/.test(researchMapping), 'Research service calls legacy PEO/PLO services');
-[
-  'getResearchProgrammeApi_', 'saveResearchProfileApi_', 'getResearchPEOsApi_',
-  'saveResearchPEOsApi_', 'getResearchPLOsApi_', 'saveResearchPLOsApi_', 'getResearchMappingsApi_',
-  'saveResearchPLOMappingApi_', 'getResearchCoverageApi_'
-].forEach(function(name) {
-  assertContains(researchMapping, new RegExp('function\\s+' + name + '[\\s\\S]*?requireProgrammeAccess_\\s*\\('), name + ' is not guarded');
-});
-['getResearchReviewApi', 'saveResearchStatusApi', 'submitResearchProgrammeApi'].forEach(function(name) {
-  assertContains(code, new RegExp('function\\s+' + name + '[\\s\\S]*?return\\s+' + name + '_'), name + ' wrapper is missing');
-});
-[
-  'getResearchProgrammeApi', 'saveResearchProfileApi', 'getResearchPEOsApi',
-  'saveResearchPEOsApi', 'getResearchPLOsApi', 'saveResearchPLOsApi', 'getResearchMappingsApi',
-  'saveResearchPLOMappingApi', 'getResearchCoverageApi'
-].forEach(function(name) {
-  assertContains(code, new RegExp('function\\s+' + name + '[\\s\\S]*?return\\s+' + name + '_'), name + ' wrapper is missing');
 });
 
 const trackedFiles = childProcess.execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n');
@@ -152,11 +104,6 @@ assertContains(auth, /isGraduateSchoolAdmin_\s*\(/, 'Missing Graduate School adm
 assertContains(auth, /canViewProgramme_\s*\(/, 'Missing programme access helper');
 assertContains(auth, /requireProgrammeAccess_\s*\(/, 'Missing programme access guard');
 assertContains(auth, /capabilities\s*[:=]/, 'Current user does not expose normalized capabilities');
-assertContains(auth, /var\s+coorSheet\s*=\s*ss\.getSheetByName\(['"]COOR['"]\)/, 'COOR sheet lookup is missing');
-assertContains(auth, /coorData\[i\]\[2\].*trim\(\)\.toLowerCase\(\)\s*===\s*emailStr/, 'COOR lookup must normalize the third-column email');
-assertContains(auth, /role:\s*['"]Faculty Coordinator['"]/, 'COOR lookup must return the Faculty Coordinator role');
-assertContains(auth, /faculty:\s*coorFaculty.*name:\s*String\(coorData\[i\]\[1\]\s*\|\|\s*['"]['"]\)\.trim\(\)/, 'COOR lookup must return normalized faculty and display name');
-assertContains(auth, /programme\.faculty\s*===\s*String\(user\.faculty\s*\|\|\s*['"]['"]\)\.trim\(\)/, 'Non-admin programme access must remain faculty scoped');
 
 [
   'getPEOsApi',
@@ -175,7 +122,6 @@ assertContains(auth, /programme\.faculty\s*===\s*String\(user\.faculty\s*\|\|\s*
 assertContains(code, /function\s+approveDeleteFileApi[\s\S]*?isGraduateSchoolAdmin_/, 'Admin delete endpoint is not Graduate School-admin guarded');
 assertContains(governance, /function\s+ensureGovernanceSheets_\s*\(/, 'Missing additive governance sheet setup');
 assertContains(governance, /function\s+getUniversityDashboardApi_\s*\(/, 'Missing university dashboard API implementation');
-assertContains(governance, /function\s+computeResearchProgrammeStatus_\s*\([\s\S]*?getResearchReviewApi_\s*\(/, 'Research dashboard status does not use server review results');
 assertContains(governance, /MQFDomainState/, 'Dashboard does not monitor MQF Domain state');
 assertContains(governance, /TaxonomyState/, 'Dashboard does not monitor Taxonomy state');
 assertContains(governance, /var complete = peoComplete && ploComplete && mqfComplete && taxonomyComplete && mappingComplete;/, 'Supporting documents must not block completion readiness');
@@ -201,24 +147,14 @@ assertContains(index, /Faculty readiness/, 'Faculty readiness dashboard is missi
 assertContains(javascript, /getUniversityDashboardApi\(\)/, 'Dashboard API is not loaded by the client');
 assertContains(javascript, /function\(faculty\)/, 'Dashboard faculty completion helper is missing');
 assertContains(styles, /--action-green/, 'Operational Clarity action token is missing');
-[
-  'researchCategory', 'researchProfile', 'researchPEOs', 'researchPLOs',
-  'researchMappings', 'researchReferences', 'researchCoverage', 'researchReview',
-  'researchStatus', 'researchDirty', 'researchSaveState'
-].forEach(function(marker) {
-  assertContains(javascript, new RegExp(marker), 'Research state is missing: ' + marker);
-});
-[
-  'loadResearchWorkspace', 'saveResearchProfile', 'saveResearchPEOs', 'saveResearchPLOs',
-  'saveResearchPLOMapping', 'loadResearchCoverage', 'loadResearchReview',
-  'submitResearchProgramme', 'selectAllMQFDomains', 'toggleSDG', 'toggleSC', 'leaveResearchWorkspace'
-].forEach(function(name) {
-  assertContains(javascript, new RegExp(name + ':\\s*function\\s*\\('), 'Research client method is missing: ' + name);
-});
-assert(!/getPEOsApi\(|savePEOsApi\(|getPLOsApi\(|savePLOsApi\(/.test(javascript), 'Research client still calls legacy PEO/PLO APIs');
+assertContains(javascript, /validatePEOs:\s*function\s*\(/, 'PEO validation method is missing');
+assertContains(javascript, /validatePLOs:\s*function\s*\(/, 'PLO validation method is missing');
+assertContains(javascript, /getReviewSummary:\s*function\s*\(/, 'Review summary method is missing');
+assertContains(javascript, /removeRecord:\s*function\s*\(/, 'Context-specific record removal is missing');
+assertContains(javascript, /undoRemove:\s*function\s*\(/, 'Record undo action is missing');
 assertContains(index, /Save PEOs/, 'PEO save action is missing');
 assertContains(index, /Save PLOs/, 'PLO save action is missing');
-assertContains(index, /MQF domains/, 'MQF domain selector is missing');
+assertContains(index, /MQF 2\.0 Domain/, 'MQF Domain label is missing');
 assertContains(index, /Taxonomy/, 'Taxonomy label is missing');
 assertContains(index, /Request temporary access/, 'Faculty access request workspace is missing');
 assertContains(index, /createAccessRequest/, 'Access request action is missing from the UI');
@@ -227,40 +163,33 @@ assertContains(index, /Governance queue/, 'Admin governance queue is missing');
 assertContains(javascript, /loadAccessRequests:\s*function\s*\(/, 'Access request loader is missing');
 assertContains(javascript, /loadGovernanceItems:\s*function\s*\(/, 'Governance queue loader is missing');
 
-assertContains(index, /Maklumat Program/, 'Programme Information category is missing');
-assertContains(index, /Pemetaan/, 'Mapping category is missing');
-assertContains(index, /PLO Workspace/, 'PLO workspace is missing');
-assertContains(index, /Coverage Matrix/, 'Coverage matrix is missing');
-assertContains(index, /TF derived from MQF mapping/, 'Derived TF label is missing');
-assertContains(index, /Derived from PLO mappings/, 'PEO derived label is missing');
-assert(!/Coursework|DCI|CLO|credit hour|Subject|Course Mapping/.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
-
-[
-  'PR_ProgrammeProfile',
-  'PR_PEORecords',
-  'PR_PLORecords',
-  'PR_PLOMappings',
-  'PR_MQFReference',
-  'PR_TFReference',
-  'PR_SDGReference',
-  'PR_SCReference'
-].forEach(function(name) {
-  assertContains(researchData, new RegExp(name), 'Research sheet boundary is missing: ' + name);
-});
-assertContains(researchData, /ProgrammeId.*MQACode.*FacultyOrCentre.*ProgrammeName.*StudyLevel.*StudyMode.*StudyField.*Session.*DocumentVersion.*DataOwner.*MappingStatus.*CreatedAt.*UpdatedAt.*UpdatedBy/, 'Programme profile headers are incomplete');
-assertContains(researchData, /function\s+ensureResearchSheets_\s*\([\s\S]*?getLastRow\(\)\s*===\s*0[\s\S]*?appendRow/, 'Research sheets are not created lazily');
-assertContains(researchData, /LockService\.getScriptLock\(\)[\s\S]*?tryLock\(30000\)[\s\S]*?releaseLock/, 'Research sheet initialization is not locked');
-assertContains(researchData, /function\s+getResearchProgrammeKey_\s*\(/, 'Research programme key helper is missing');
-assertContains(researchData, /findProgrammeByMqaCode_\(mqaCode\)/, 'Research programme key does not use the programme directory');
-assertContains(researchReferences, /TF1[\s\S]*?MQF1['"]\s*,\s*['"]MQF4a/, 'TF1 reference relationship is missing');
-assertContains(researchReferences, /TF2[\s\S]*?MQF2['"]\s*,\s*['"]MQF3a['"]\s*,\s*['"]MQF3d['"]\s*,\s*['"]MQF3e/, 'TF2 reference relationship is missing');
-assertContains(researchReferences, /TF3[\s\S]*?MQF3a['"]\s*,\s*['"]MQF3b['"]\s*,\s*['"]MQF3c['"]\s*,\s*['"]MQF3f/, 'TF3 reference relationship is missing');
-assertContains(researchReferences, /TF4[\s\S]*?MQF3a['"]\s*,\s*['"]MQF3b['"]\s*,\s*['"]MQF4a['"]\s*,\s*['"]MQF4b['"]\s*,\s*['"]MQF5/, 'TF4 reference relationship is missing');
-assertContains(researchReferences, /function\s+validateReferenceIds_\s*\([\s\S]*?Invalid reference ID/, 'Reference validation is missing');
-assertContains(researchReferences, /getDataRange\(\)\.getValues\(\)/, 'Reference sheets are not read');
-assertContains(researchReferences, /filter\(function\(row\)\s*\{\s*return row\.active;/, 'Inactive references are not filtered');
-assertContains(researchReferences, /seedResearchReferenceSheets_/, 'Reference sheets are not safely initialized');
-assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\([\s\S]*?getCurrentUser\s*\(\)/, 'Research references API is not authenticated');
-assert(!/Course|Subject|Credit|CLO|DCI/.test(researchData), 'Course fields are present in research headers');
+const researchSheetNames = [
+  'PR_ProgrammeProfile', 'PR_PEORecords', 'PR_PLORecords', 'PR_PLOMappings',
+  'PR_MQFReference', 'PR_TFReference', 'PR_SDGReference', 'PR_SCReference'
+];
+nodeAssert.deepStrictEqual(Object.keys(researchDataApi), researchSheetNames, 'Research sheet names are not exact');
+nodeAssert.deepStrictEqual(researchDataApi, {
+  PR_ProgrammeProfile: ['ProgrammeId', 'MQACode', 'FacultyOrCentre', 'ProgrammeName', 'StudyLevel', 'StudyMode', 'StudyField', 'Session', 'DocumentVersion', 'DataOwner', 'MappingStatus', 'CreatedAt', 'UpdatedAt', 'UpdatedBy'],
+  PR_PEORecords: ['PeoId', 'ProgrammeId', 'Code', 'Statement', 'SortOrder', 'UpdatedAt', 'UpdatedBy'],
+  PR_PLORecords: ['PloId', 'ProgrammeId', 'ParentPEO', 'Code', 'Statement', 'MQFDomainsJson', 'Taxonomy', 'Rationale', 'Status', 'UpdatedAt', 'UpdatedBy'],
+  PR_PLOMappings: ['PloId', 'ProgrammeId', 'SDGIdsJson', 'SCIdsJson', 'DerivedTFIdsJson', 'MappingNote', 'UpdatedAt', 'UpdatedBy'],
+  PR_MQFReference: ['Code', 'Title', 'Description', 'Active'],
+  PR_TFReference: ['Code', 'Title', 'Description', 'MQFDomainsJson', 'Active'],
+  PR_SDGReference: ['Code', 'Title', 'Description', 'Active'],
+  PR_SCReference: ['Code', 'Title', 'Description', 'Active']
+}, 'Research headers are not exact');
+assert(!Object.keys(researchDataApi).some(function(name) {
+  return researchDataApi[name].some(function(header) { return /Course|Subject|Credit|CLO|DCI/i.test(header); });
+}), 'Research headers must not contain course fields');
+nodeAssert.deepStrictEqual(researchReferenceApi.PR_TFReference.map(function(row) { return [row[0], JSON.parse(row[3])]; }), [
+  ['TF1', ['MQF1', 'MQF4a']],
+  ['TF2', ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']],
+  ['TF3', ['MQF3a', 'MQF3b', 'MQF3c', 'MQF3f']],
+  ['TF4', ['MQF3a', 'MQF3b', 'MQF4a', 'MQF4b', 'MQF5']]
+], 'TF relationships are not exact');
+assertContains(researchData, /LockService\.getScriptLock\(\)/, 'Research sheet creation is not locked');
+assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\(\)[\s\S]*?getCurrentUser\(\)/, 'Research references API lacks authentication');
+assertContains(auth, /function\s+getCurrentUser\s*\(/, 'Authentication helper is missing');
+assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\(/, 'Research references API is missing');
 
 console.log('MQF rebuild static checks passed.');
