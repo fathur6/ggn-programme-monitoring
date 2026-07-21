@@ -143,7 +143,9 @@ function getActiveAccessGrant_(email, mqaCode) {
     var row = data[i];
     if (String(row[1]) !== String(email) || String(row[8]) !== 'Approved') continue;
     if (row[12]) continue;
-    if (!row[11] || new Date(row[11]).getTime() <= Date.now()) continue;
+    if (!row[11]) continue;
+    var expiryTimestamp = new Date(row[11]).getTime();
+    if (!isFinite(expiryTimestamp) || expiryTimestamp <= Date.now()) continue;
     var grantMqaCode = String(row[4] || '').trim();
     var grantFaculty = String(row[3] || '').trim();
     if (!grantMqaCode || grantMqaCode !== requestedMqaCode) continue;
