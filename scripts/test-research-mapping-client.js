@@ -67,13 +67,17 @@ const mappingMatrixRows = new Function(
 assert.deepStrictEqual(mappingMatrixRows.call({
   researchPLOs: [{ploId: 'plo-unmapped', code: 'PLO-unmapped', mqfDomains: ['MQF2', 'MQF3d']}],
   researchMappings: {},
-  researchReferences: {tf: [
+  researchReferences: {TF: [
     {code: 'TF1', mqfDomains: ['MQF1']},
     {code: 'TF2', mqfDomains: ['MQF2', 'MQF3a', 'MQF3d']}
   ]}
 }), [{
   code: 'PLO-unmapped', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sdg: [], sc: []
 }], 'The matrix runtime must derive TF coverage for a PLO without a mapping row');
+['MQF', 'SDG', 'SC'].forEach(function(referenceType) {
+  assert(new RegExp('researchReferences\\.' + referenceType).test(index), 'Research editor does not consume the ' + referenceType + ' API reference key');
+});
+assert(/researchReferences\.TF/.test(source), 'Matrix projection does not consume the TF API reference key');
 assert(/PLO Mapping Matrix/.test(index), 'Read-only PLO mapping matrix is missing');
 assert(/aria-label="PLO mapping matrix"/.test(index), 'PLO mapping matrix needs an accessible name');
 assert(/scope="col">\{\{ domain \}\}<\/th>/.test(index), 'Matrix MQF columns need table headers');

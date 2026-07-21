@@ -199,7 +199,7 @@ new Vue({
      ,researchPEOs: []
      ,researchPLOs: []
      ,researchMappings: {}
-     ,researchReferences: {mqf: [], tf: [], sdg: [], sc: []}
+     ,researchReferences: {MQF: [], TF: [], SDG: [], SC: []}
      ,researchCoverage: null
      ,researchReview: null
       ,researchStatus: 'Draft'
@@ -312,7 +312,7 @@ new Vue({
              mqfDomains: plo.mqfDomains,
              sdgIds: mapping.sdgIds,
              scIds: mapping.scIds
-           }, self.researchReferences.tf);
+           }, self.researchReferences.TF);
         });
       }
   },
@@ -573,7 +573,7 @@ new Vue({
       google.script.run.withSuccessHandler(function(result) { self.researchStatus = result.status; self.researchMutationComplete('Programme submitted for review.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).submitResearchProgrammeApi(this.currentProgramme.mqaCode);
     },
     selectAllMQFDomains: function(plo) {
-      plo.mqfDomains = this.researchReferences.mqf.map(function(domain) { return domain.code; }); this.markResearchDirty();
+      plo.mqfDomains = this.researchReferences.MQF.map(function(domain) { return domain.code; }); this.markResearchDirty();
     },
     handleResearchCategoryKeydown: function(event) {
       var categories = ['information', 'mapping'];
