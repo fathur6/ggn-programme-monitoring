@@ -51,6 +51,7 @@ function loadResearchHelpers() {
 const helpers = loadResearchHelpers();
 const researchSheetNames = Object.keys(helpers.RESEARCH_SHEET_HEADERS);
 const { getResearchProgrammeKey_, validateReferenceIds_ } = helpers;
+const researchMappingSource = fs.readFileSync('gas/ResearchMappingService.gs', 'utf8');
 
 assert.deepStrictEqual(JSON.parse(JSON.stringify(helpers.normalizeResearchPLO_({
   code: ' PLO1 ',
@@ -62,12 +63,33 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(helpers.normalizeResearchPLO_({
   code: 'PLO1', statement: 'Outcome', parentPEO: 'PEO1',
   mqfDomains: ['MQF2'], taxonomy: 'C4', rationale: ''
 });
+assert.strictEqual(helpers.normalizeResearchPLO_({taxonomy: ' c4 '}).taxonomy, 'C4');
 assert.throws(() => helpers.validatePLOParents_([
   {code: 'PLO1', parentPEO: 'PEO9'}
+], [{code: 'PEO1'}]), /parent PEO/i);
+assert.throws(() => helpers.validatePLOParents_([
+  {code: 'PLO1', parentPEO: ''}
 ], [{code: 'PEO1'}]), /parent PEO/i);
 assert.throws(() => helpers.validateDuplicateCodes_([
   {code: 'PLO1'}, {code: 'PLO1'}
 ], 'PLO'), /duplicate/i);
+const auditDate = new Date('2026-07-21T12:34:56.000Z');
+assert.strictEqual(helpers.serializeResearchDate_(auditDate), '2026-07-21T12:34:56.000Z');
+assert.strictEqual(typeof helpers.profileFromRow_([
+  'programme', 'MQA/TEST', '', '', '', '', '', '', '', '', 'Draft', auditDate, auditDate, 'user@example.com'
+]).createdAt, 'string');
+assert.strictEqual(typeof helpers.peoFromRow_([
+  'peo', 'programme', 'PEO1', 'Statement', 0, auditDate, 'user@example.com'
+]).updatedAt, 'string');
+assert.strictEqual(typeof helpers.ploFromRow_([
+  'plo', 'programme', 'PEO1', 'PLO1', 'Statement', '[]', 'C4', '', 'Draft', auditDate, 'user@example.com'
+]).updatedAt, 'string');
+assert.strictEqual(helpers.mappingFromRow_([
+  'plo', 'programme', '[]', '[]', '[]', '', auditDate, 'user@example.com'
+]).updatedAt, '2026-07-21T12:34:56.000Z');
+assert(!/profile\.mappingStatus/.test(researchMappingSource), 'Profile save must not accept client mappingStatus');
+assert(/profile\.dataOwner[\s\S]*?'Draft'/.test(researchMappingSource), 'Profile save must retain server-controlled Draft status');
+assert(/JSON\.stringify\(plo\.mqfDomains\)[\s\S]*?'Draft'/.test(researchMappingSource), 'PLO save must retain server-controlled Draft status');
 
 assert.deepStrictEqual(researchSheetNames, [
   'PR_ProgrammeProfile',

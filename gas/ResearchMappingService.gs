@@ -2,6 +2,16 @@
 
 var RESEARCH_TAXONOMY_IDS = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'];
 
+function serializeResearchDate_(value) {
+  if (!value) return '';
+  if (typeof value.toISOString === 'function') return value.toISOString();
+  return String(value);
+}
+
+function canonicalResearchTaxonomy_(value) {
+  return String(value == null ? '' : value).trim().toUpperCase();
+}
+
 function uniqueTrimmed_(values) {
   var seen = {};
   var result = [];
@@ -28,7 +38,7 @@ function normalizeResearchPLO_(input) {
     statement: String(input && input.statement || '').trim(),
     parentPEO: String(input && input.parentPEO || '').trim(),
     mqfDomains: uniqueTrimmed_(input && input.mqfDomains || []),
-    taxonomy: String(input && input.taxonomy || '').trim(),
+    taxonomy: canonicalResearchTaxonomy_(input && input.taxonomy),
     rationale: String(input && input.rationale || '').trim()
   };
 }
@@ -50,7 +60,7 @@ function validatePLOParents_(plos, peos) {
   });
   (plos || []).forEach(function(plo) {
     var parent = String(plo && plo.parentPEO || '').trim();
-    if (parent && !parents[parent]) throw new Error('Invalid parent PEO: ' + parent);
+    if (!parent || !parents[parent]) throw new Error('Invalid parent PEO: ' + parent);
   });
 }
 
@@ -105,19 +115,19 @@ function profileFromRow_(row) {
     programmeId: row[0], mqaCode: row[1], facultyOrCentre: row[2], programmeName: row[3],
     studyLevel: row[4], studyMode: row[5], studyField: row[6], session: row[7],
     documentVersion: row[8], dataOwner: row[9], mappingStatus: row[10],
-    createdAt: row[11], updatedAt: row[12], updatedBy: row[13]
+    createdAt: serializeResearchDate_(row[11]), updatedAt: serializeResearchDate_(row[12]), updatedBy: row[13]
   };
 }
 
 function peoFromRow_(row) {
-  return { peoId: row[0], programmeId: row[1], code: row[2], statement: row[3], sortOrder: row[4], updatedAt: row[5], updatedBy: row[6] };
+  return { peoId: row[0], programmeId: row[1], code: row[2], statement: row[3], sortOrder: row[4], updatedAt: serializeResearchDate_(row[5]), updatedBy: row[6] };
 }
 
 function ploFromRow_(row) {
   return {
     ploId: row[0], programmeId: row[1], parentPEO: row[2], code: row[3], statement: row[4],
-    mqfDomains: parseResearchJson_(row[5]), taxonomy: row[6], rationale: row[7],
-    status: row[8], updatedAt: row[9], updatedBy: row[10]
+    mqfDomains: parseResearchJson_(row[5]), taxonomy: canonicalResearchTaxonomy_(row[6]), rationale: row[7],
+    status: row[8], updatedAt: serializeResearchDate_(row[9]), updatedBy: row[10]
   };
 }
 
@@ -125,7 +135,7 @@ function mappingFromRow_(row) {
   return {
     ploId: row[0], programmeId: row[1], sdgIds: parseResearchJson_(row[2]),
     scIds: parseResearchJson_(row[3]), derivedTFIds: parseResearchJson_(row[4]),
-    mappingNote: row[5], updatedAt: row[6], updatedBy: row[7]
+    mappingNote: row[5], updatedAt: serializeResearchDate_(row[6]), updatedBy: row[7]
   };
 }
 
@@ -155,7 +165,7 @@ function saveResearchProfileApi_(mqaCode, profile) {
     var row = [key, key, programme.faculty || programme.facultyFull || '', programme.name || '', programme.level || '',
       String(profile.studyMode || '').trim(), String(profile.studyField || '').trim(), String(profile.session || '').trim(),
       String(profile.documentVersion || '').trim(), String(profile.dataOwner || '').trim(),
-      String(profile.mappingStatus || (existing && existing[10]) || 'Draft').trim(), existing && existing[11] || now,
+      'Draft', existing && existing[11] || now,
       now, user.email || ''];
     replaceResearchRows_(sheet, key, 14, [row]);
     return profileFromRow_(row);
