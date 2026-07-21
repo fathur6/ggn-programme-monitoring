@@ -32,17 +32,44 @@ function activeResearchReferences_(rows) {
   return (rows || []).map(function(row) {
     var copy = {};
     Object.keys(row).forEach(function(key) { copy[key] = row[key]; });
-    copy.active = true;
+    copy.active = row.active === true || String(row.active).trim().toLowerCase() === 'true' || String(row.active).trim() === '1';
     return copy;
+  }).filter(function(row) { return row.active; });
+}
+
+function seedResearchReferenceSheets_(sheets) {
+  var sheetNames = { mqf: 'PR_MQFReference', tf: 'PR_TFReference', sdg: 'PR_SDGReference', sc: 'PR_SCReference' };
+  Object.keys(sheetNames).forEach(function(type) {
+    var sheet = sheets[sheetNames[type]];
+    if (sheet.getLastRow() > 1) return;
+    RESEARCH_REFERENCE_DATA[type].forEach(function(row) {
+      var values = [row.code, row.title, row.description || ''];
+      if (type === 'tf') values.push(JSON.stringify(row.mqfDomains || []));
+      values.push(true);
+      sheet.appendRow(values);
+    });
+  });
+}
+
+function readResearchReferenceRows_(sheet, type) {
+  var values = sheet.getDataRange().getValues();
+  return values.slice(1).filter(function(row) { return row[0] !== ''; }).map(function(row) {
+    var reference = { code: String(row[0]).trim(), title: row[1], description: row[2], active: row[3] };
+    if (type === 'tf') {
+      try { reference.mqfDomains = JSON.parse(row[3] || '[]'); } catch (e) { reference.mqfDomains = []; }
+      reference.active = row[4];
+    }
+    return reference;
   });
 }
 
 function getResearchReferences_() {
+  var sheets = ensureResearchSheets_();
   return {
-    mqf: activeResearchReferences_(RESEARCH_REFERENCE_DATA.mqf),
-    tf: activeResearchReferences_(RESEARCH_REFERENCE_DATA.tf),
-    sdg: activeResearchReferences_(RESEARCH_REFERENCE_DATA.sdg),
-    sc: activeResearchReferences_(RESEARCH_REFERENCE_DATA.sc)
+    mqf: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_MQFReference, 'mqf')),
+    tf: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_TFReference, 'tf')),
+    sdg: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_SDGReference, 'sdg')),
+    sc: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_SCReference, 'sc'))
   };
 }
 

@@ -174,12 +174,17 @@ assertContains(javascript, /loadGovernanceItems:\s*function\s*\(/, 'Governance q
 });
 assertContains(researchData, /ProgrammeId.*MQACode.*FacultyOrCentre.*ProgrammeName.*StudyLevel.*StudyMode.*StudyField.*Session.*DocumentVersion.*DataOwner.*MappingStatus.*CreatedAt.*UpdatedAt.*UpdatedBy/, 'Programme profile headers are incomplete');
 assertContains(researchData, /function\s+ensureResearchSheets_\s*\([\s\S]*?getLastRow\(\)\s*===\s*0[\s\S]*?appendRow/, 'Research sheets are not created lazily');
+assertContains(researchData, /LockService\.getScriptLock\(\)[\s\S]*?tryLock\(30000\)[\s\S]*?releaseLock/, 'Research sheet initialization is not locked');
 assertContains(researchData, /function\s+getResearchProgrammeKey_\s*\(/, 'Research programme key helper is missing');
+assertContains(researchData, /findProgrammeByMqaCode_\(mqaCode\)/, 'Research programme key does not use the programme directory');
 assertContains(researchReferences, /TF1[\s\S]*?MQF1['"]\s*,\s*['"]MQF4a/, 'TF1 reference relationship is missing');
 assertContains(researchReferences, /TF2[\s\S]*?MQF2['"]\s*,\s*['"]MQF3a['"]\s*,\s*['"]MQF3d['"]\s*,\s*['"]MQF3e/, 'TF2 reference relationship is missing');
 assertContains(researchReferences, /TF3[\s\S]*?MQF3a['"]\s*,\s*['"]MQF3b['"]\s*,\s*['"]MQF3c['"]\s*,\s*['"]MQF3f/, 'TF3 reference relationship is missing');
 assertContains(researchReferences, /TF4[\s\S]*?MQF3a['"]\s*,\s*['"]MQF3b['"]\s*,\s*['"]MQF4a['"]\s*,\s*['"]MQF4b['"]\s*,\s*['"]MQF5/, 'TF4 reference relationship is missing');
 assertContains(researchReferences, /function\s+validateReferenceIds_\s*\([\s\S]*?Invalid reference ID/, 'Reference validation is missing');
+assertContains(researchReferences, /getDataRange\(\)\.getValues\(\)/, 'Reference sheets are not read');
+assertContains(researchReferences, /filter\(function\(row\)\s*\{\s*return row\.active;/, 'Inactive references are not filtered');
+assertContains(researchReferences, /seedResearchReferenceSheets_/, 'Reference sheets are not safely initialized');
 assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\([\s\S]*?getCurrentUser\s*\(\)/, 'Research references API is not authenticated');
 assert(!/Course|Subject|Credit|CLO|DCI/.test(researchData), 'Course fields are present in research headers');
 

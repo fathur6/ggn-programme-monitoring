@@ -12,18 +12,27 @@ var RESEARCH_SHEET_HEADERS = {
 };
 
 function ensureResearchSheets_() {
-  var ss = getSpreadsheet();
-  var result = {};
-  Object.keys(RESEARCH_SHEET_HEADERS).forEach(function(name) {
-    var sheet = ss.getSheetByName(name) || ss.insertSheet(name);
-    if (sheet.getLastRow() === 0) sheet.appendRow(RESEARCH_SHEET_HEADERS[name]);
-    result[name] = sheet;
-  });
-  return result;
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) throw new Error('Unable to initialize research sheets');
+  try {
+    var ss = getSpreadsheet();
+    var result = {};
+    Object.keys(RESEARCH_SHEET_HEADERS).forEach(function(name) {
+      var sheet = ss.getSheetByName(name) || ss.insertSheet(name);
+      if (sheet.getLastRow() === 0) sheet.appendRow(RESEARCH_SHEET_HEADERS[name]);
+      result[name] = sheet;
+    });
+    if (typeof seedResearchReferenceSheets_ === 'function') seedResearchReferenceSheets_(result);
+    return result;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function getResearchProgrammeKey_(programme) {
-  var key = String(programme && (programme.programmeId || programme.mqaCode) || '').trim();
-  if (!key) throw new Error('Programme ID is required');
-  return key;
+  var mqaCode = String(programme && programme.mqaCode || '').trim();
+  if (!mqaCode) throw new Error('Programme MQA code is required');
+  var directoryProgramme = findProgrammeByMqaCode_(mqaCode);
+  if (!directoryProgramme) throw new Error('Programme is not in the programme directory');
+  return String(directoryProgramme.mqaCode).trim();
 }
