@@ -178,8 +178,6 @@ new Vue({
     search: '',
     loading: false,
     error: null,
-    showAddDialog: false,
-    addProg: { name: '', mqaCode: '', nec: '', progCode: '', mode: 'Coursework' },
     pendingOpen: false,
     pendingSuggestions: [],
     pendingDeletions: [],
@@ -372,7 +370,13 @@ new Vue({
       var self = this;
       google.script.run
         .withSuccessHandler(function(result) {
-          self.programmes = result;
+           self.programmes = (result || []).filter(function(programme) {
+             if (programme.research === true) return true;
+             var mode = String(programme.mode || '').trim().toLowerCase();
+             if (mode) return mode === 'research' || mode === 'postgraduate by research';
+             var level = String(programme.level || '').trim().toLowerCase();
+             return level === 'masters' || level === 'master' || level === 'doctorate' || level === 'doctoral';
+           });
           self.loading = false;
         })
         .withFailureHandler(function(err) {
@@ -609,39 +613,6 @@ new Vue({
       google.script.run
         .withSuccessHandler(function(r) { self.pendingDeletions = r; })
         .getPendingDeletionsApi();
-    },
-    suggestAddProgramme: function(data, callback) {
-      var self = this;
-      google.script.run
-        .withSuccessHandler(callback)
-        .withFailureHandler(function(e) { self.showToast('Ralat: ' + e.message); })
-        .suggestAddProgrammeApi(data);
-    },
-    suggestRemoveProgramme: function(mqaCode) {
-      var self = this;
-      google.script.run
-        .withSuccessHandler(function() {
-          self.showToast('Remove suggestion sent for Admin approval.');
-        })
-        .withFailureHandler(function(e) { self.showToast('Error: ' + e.message); })
-        .suggestRemoveProgrammeApi(mqaCode);
-    },
-    submitAddSuggestion: function() {
-      var self = this;
-      var data = {
-        name: this.addProg.name,
-        mqaCode: this.addProg.mqaCode,
-        nec: this.addProg.nec,
-        progCode: this.addProg.progCode,
-        mode: this.addProg.mode,
-        accr: ''
-      };
-      if (!data.name || !data.mqaCode) { self.showToast('Please enter name and MQA Code.'); return; }
-      this.suggestAddProgramme(data, function() {
-        self.showToast('New programme suggestion sent for Admin approval.');
-        self.showAddDialog = false;
-        self.addProg = { name: '', mqaCode: '', nec: '', progCode: '', mode: 'Coursework' };
-      });
     },
     approveSuggestion: function(idx) {
       var self = this;

@@ -89,7 +89,6 @@
         <div class="page-intro compact-intro"><div><p class="eyebrow">PROGRAMME DIRECTORY</p><h2 class="page-title">Your programmes</h2><p class="page-lede">Select a programme to continue its MQF 2.0 completion workflow.</p></div></div>
         <div class="flex items-center gap-3 mb-4 directory-toolbar">
           <input v-model="search" type="text" placeholder="Search programmes..." class="search-input">
-          <button v-if="user.role !== 'Admin'" @click="showAddDialog = true" class="btn btn-primary whitespace-nowrap">+ Suggest New Programme</button>
         </div>
 
         <div v-if="loading" class="text-center py-8 text-muted">Loading...</div>
@@ -116,45 +115,12 @@
                     <div class="font-medium">{{ p.name }}</div>
                     <div class="text-sm text-muted mt-1">{{ p.mqaCode }} · {{ p.progCode }} · {{ p.level }}</div>
                   </div>
-                  <button v-if="user.role !== 'Admin'" @click.stop="suggestRemoveProgramme(p.mqaCode)" class="btn btn-danger text-xs whitespace-nowrap ml-2">Suggest Remove</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div v-if="showAddDialog" class="modal-overlay" @click.self="showAddDialog = false">
-          <div class="modal-card">
-            <h3 class="modal-title">Suggest New Programme</h3>
-            <div class="form-group">
-              <label>Programme Name</label><input v-model="addProg.name">
-            </div>
-            <div class="form-group">
-              <label>MQA Code</label><input v-model="addProg.mqaCode">
-            </div>
-            <div class="form-group">
-              <label>NEC 2020</label><input v-model="addProg.nec">
-            </div>
-            <div class="form-group">
-              <label>Program Code</label><input v-model="addProg.progCode">
-            </div>
-            <div class="form-group">
-              <label>Mode</label>
-              <select v-model="addProg.mode">
-                <option value="Coursework">Coursework</option>
-                <option value="Research">Research</option>
-                <option value="Mixed">Mixed</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Faculty</label><input :value="user.faculty" disabled>
-            </div>
-            <div class="modal-actions">
-              <button @click="showAddDialog = false" class="btn btn-secondary">Cancel</button>
-              <button @click="submitAddSuggestion" class="btn btn-primary">Submit</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div v-if="user.role === 'Admin'" class="mb-6">

@@ -6,7 +6,18 @@ Google Apps Script web application for managing MQF 2.0 programme information at
 
 The deployable source is under `gas/`. It includes the recovered unsanitized local configuration and clasp metadata, which are intentionally ignored by Git. The matching Apps Script project ID is stored in `gas/.clasp.json`.
 
-The application provides programme, PEO, PLO, MQF Domain and Taxonomy mapping, relationship graph, supporting-document upload, review readiness, suggestions, governance queues, temporary access requests, authentication, and email announcement services. The design specification and implementation plan are under `docs/superpowers/specs/` and `docs/superpowers/plans/`.
+The application provides postgraduate research programme, PEO, PLO, MQF Domain and Taxonomy mapping, review readiness, governance queues, temporary access requests, authentication, and secure administration services. Graph and supporting-document services remain outside the research workspace. The design specification and implementation plan are under `docs/superpowers/specs/` and `docs/superpowers/plans/`.
+
+## Research Migration Boundary
+
+New model: ProgrammeProfile → PEO/PLO/MQF/Taxonomy → PLO mappings → TF/SDG/SC
+
+- TF: derived from MQF reference relationships
+- PEO: derived from child PLO mappings
+- Course-based production data: not transformed or deleted automatically
+- Deployment: no clasp push/deploy in local implementation verification
+
+The public application path is restricted to postgraduate research programmes. Existing course-based spreadsheet rows remain untouched, and no automatic conversion, hidden compatibility module, graph panel, or document panel is added to the research workspace.
 
 ## Operating Model
 
@@ -34,6 +45,8 @@ clasp push
 clasp version "description of changes"
 clasp deploy -V <version> -i <deployment-id> -d "description"
 ```
+
+Local implementation verification does not run `clasp push` or `clasp deploy`.
 
 Do not commit `gas/Config.gs` or `gas/.clasp.json`. They contain deployment-specific configuration and credentials.
 

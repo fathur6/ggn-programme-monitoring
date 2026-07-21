@@ -89,7 +89,7 @@ function debugGetProgrammesApi() {
 function getProgrammesApi() {
   var user = getCurrentUser();
   if (!user) throw new Error('Unauthorized');
-  return getProgrammes(user.role === 'Admin' ? null : user.faculty);
+  return getProgrammes(user.role === 'Admin' ? null : user.faculty).filter(isResearchProgramme_);
 }
 
 function getUniversityDashboardApi() {

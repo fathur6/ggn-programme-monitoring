@@ -147,6 +147,7 @@ assertContains(claspExample, /YOUR_SCRIPT_ID/, 'clasp example must use a script 
 
 const doGetSource = code.slice(code.indexOf('function doGet'), code.indexOf('function include'));
 assertContains(code, /function\s+hasDisabledLegacyRoute_\s*\(/, 'Legacy route guard is missing');
+assertContains(code, /function\s+getProgrammesApi[\s\S]*?\.filter\(isResearchProgramme_\)/, 'Public programme directory is not research scoped');
 assertContains(code, /Endpoint disabled/, 'Disabled endpoints do not return a generic response');
 assert(!/sendAllAnnouncements|sendAnnouncement|sendTestAnnouncement|clearContents|appendRow/.test(doGetSource), 'doGet still exposes a side-effect operation');
 assertContains(code, /function\s+sendAllAnnouncementsApi[\s\S]*?isGraduateSchoolAdmin_/, 'Email API lacks backend admin authorization');
@@ -252,7 +253,7 @@ assertContains(styles, /\.mapping-matrix-wrap\s*\{\s*max-width:\s*100%;\s*overfl
 assertContains(researchDetailSource, /mapping-matrix-wrap"\s+role="region"\s+tabindex="0"/, 'PLO matrix scrolling container must be keyboard focusable');
 assertContains(researchDetailSource, /mapping-matrix-wrap"\s+role="region"\s+tabindex="0"\s+aria-label="PLO mapping matrix scrolling region"/, 'PLO matrix scrolling container must have an accessible name');
 assertContains(researchDetailSource, /aria-describedby="mapping-matrix-instructions"/, 'PLO matrix must describe keyboard scrolling');
-assert(!/Coursework|DCI|CLO|credit hour|Subject|Course Mapping|embeddedPEO/.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
+assert(!/\b(?:Coursework|CLO|creditHour|credit hour|Subject|Course|DCI|embeddedPEO|mqfDomain)\b/.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
 assert(!hasLegacySingularMQFControl(researchDetailSource), 'Research workspace still binds a singular legacy mqfDomain control');
 assert(hasLegacySingularMQFControl('<select v-model="plo.mqfDomain"></select>'), 'Singular legacy MQF select binding is not detected');
 assert(hasLegacySingularMQFControl('<select v-model="plo[\'mqfDomain\']"></select>'), 'Singular legacy MQF bracket binding is not detected');
@@ -265,6 +266,9 @@ assertContains(researchDetailSource, /role="tablist"/, 'Research categories need
 assertContains(researchDetailSource, /role="tab"/, 'Research category controls need tab semantics');
 assertContains(researchDetailSource, /:aria-selected="researchCategory === 'information'"/, 'Information category must expose its selected state');
 assertContains(researchDetailSource, /:aria-selected="researchCategory === 'mapping'"/, 'Mapping category must expose its selected state');
+assert(!/showAddDialog|suggestRemoveProgramme|submitAddSuggestion|suggestAddProgramme/.test(index), 'Course-based programme suggestion UI remains public');
+assert(!/getPEOsApi|getPLOsApi|savePEOsApi|savePLOsApi|getGraphDataApi|getUploadedFilesApi|uploadFileApi|suggestDeleteFileApi/.test(javascript), 'Legacy course, graph, or document routes remain in client usage');
+assertContains(javascript, /self\.programmes\s*=\s*\(result\s*\|\|\s*\[\]\)\.filter\(/, 'Public programme directory is not restricted to research programmes');
 [
   ['profile-programme-id', 'Programme ID', 'programmeId'],
   ['profile-created', 'Created', 'createdAt'],
