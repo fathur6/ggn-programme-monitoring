@@ -15,7 +15,7 @@ function assertContains(source, pattern, message) {
 }
 
 function hasLegacySingularMQFControl(source) {
-  return /<(?:input|select)\b[^>]*(?:\bv-model(?:\.[\w-]+)*|:value|\bv-bind:value)\s*=\s*["']\s*(?:(?:[A-Za-z_$][\w$]*\s*\.\s*)*)mqfDomain\s*["'][^>]*>/.test(source);
+  return /<(?:input|select|textarea)\b[^>]*(?:\bv-model(?:\.[\w-]+)*|:value|\bv-bind:value)\s*=\s*["']\s*(?:(?:(?:[A-Za-z_$][\w$]*\s*(?:(?:\.\s*[A-Za-z_$][\w$]*)|(?:\[\s*['"][^'"]+['"]\s*\]))*\s*\.\s*)?)mqfDomain|(?:[A-Za-z_$][\w$]*\s*(?:(?:\.\s*[A-Za-z_$][\w$]*)|(?:\[\s*['"][^'"]+['"]\s*\]))*\s*)\[\s*['"]mqfDomain['"]\s*\])\s*["'][^>]*>/.test(source);
 }
 
 const auth = read('gas/Auth.gs');
@@ -236,8 +236,10 @@ assertContains(researchDetailSource, /Derived from PLO mappings/, 'PEO derived l
 assert(!/Coursework|DCI|CLO|credit hour|Subject|Course Mapping|embeddedPEO/.test(researchDetailSource), 'Course-based UI remains in the research detail workspace');
 assert(!hasLegacySingularMQFControl(researchDetailSource), 'Research workspace still binds a singular legacy mqfDomain control');
 assert(hasLegacySingularMQFControl('<select v-model="plo.mqfDomain"></select>'), 'Singular legacy MQF select binding is not detected');
+assert(hasLegacySingularMQFControl('<select v-model="plo[\'mqfDomain\']"></select>'), 'Singular legacy MQF bracket binding is not detected');
 assert(hasLegacySingularMQFControl('<input :value="mqfDomain">'), 'Singular legacy MQF input binding is not detected');
 assert(!hasLegacySingularMQFControl('<input v-model="plo.mqfDomains">'), 'Plural MQF domain binding is incorrectly rejected');
+assert(!hasLegacySingularMQFControl('<textarea v-model="plo[\'mqfDomains\']"></textarea>'), 'Plural MQF bracket binding is incorrectly rejected');
 assert(!hasLegacySingularMQFControl('<span data-domain="mqfDomain">metadata</span>'), 'Non-control MQF metadata is incorrectly rejected');
 assertContains(researchDetailSource, /<button[^>]*class="back-link"[^>]*@click="leaveResearchWorkspace"/, 'Research workspace back control must be a button');
 assertContains(researchDetailSource, /role="tablist"/, 'Research categories need tablist semantics');
