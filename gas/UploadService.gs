@@ -100,7 +100,7 @@ function uploadFile(mqaCode, fileType, fileBlob) {
 }
 
 function suggestDeleteFile(fileId, mqaCode) {
-  var access = requireProgrammeAccess_(mqaCode, 'request-document-deletion');
+  var access = requireResearchProgrammeAccess_(mqaCode, 'request-document-deletion');
   if (!fileId || !mqaCode) throw new Error('Maklumat fail tidak lengkap.');
   var lock = LockService.getScriptLock();
   try {

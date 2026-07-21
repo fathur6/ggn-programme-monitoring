@@ -225,7 +225,8 @@ assertContains(upload, /isGraduateSchoolAdmin_\(user\)/, 'File deletion is not G
 assertContains(suggestions, /isGraduateSchoolAdmin_\(user\)/, 'Suggestion admin operations are not Graduate School-admin guarded');
 [
   ['getPEOs', peo], ['savePEOs', peo], ['getPLOs', plo], ['savePLOs', plo],
-  ['getGraphData', graph], ['getUploadedFiles', upload], ['uploadFile', upload]
+  ['getGraphData', graph], ['getUploadedFiles', upload], ['uploadFile', upload],
+  ['suggestDeleteFile', upload]
 ].forEach(function(entry) {
   assertContains(functionSource(entry[1], entry[0]), /requireResearchProgrammeAccess_\s*\(/,
     entry[0] + ' is directly callable without research programme access protection');
