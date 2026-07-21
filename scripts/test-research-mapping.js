@@ -245,7 +245,7 @@ assert.throws(function() {
 }, /parent PEO/i);
 assert.strictEqual(sheets.PR_PLORecords.getLastRow(), 1);
 
-const savedPLOs = helpers.saveResearchPLOsApi_('MQA/TEST', [{
+let savedPLOs = helpers.saveResearchPLOsApi_('MQA/TEST', [{
   code: ' PLO1 ', statement: ' Outcome ', parentPEO: 'PEO1',
   mqfDomains: [' MQF2 ', 'MQF2'], taxonomy: ' c4 ', rationale: ' rationale '
 }]);
@@ -255,8 +255,15 @@ assert.strictEqual(savedPLOs[0].status, 'Draft');
 assert.strictEqual(typeof savedPLOs[0].updatedAt, 'string');
 assert.strictEqual(sheets.PR_PLORecords.values[1][6], 'C4');
 assert.strictEqual(sheets.PR_PLORecords.values[1][8], 'Draft');
+const resavedPLOs = helpers.saveResearchPLOsApi_('MQA/TEST', [{
+  ploId: savedPLOs[0].ploId, code: 'PLO1', statement: 'Updated outcome', parentPEO: 'PEO1',
+  mqfDomains: ['MQF2'], taxonomy: 'C4', rationale: 'Updated rationale'
+}]);
+assert.strictEqual(resavedPLOs[0].ploId, savedPLOs[0].ploId);
+savedPLOs = resavedPLOs;
 const readPLOs = helpers.getResearchPLOsApi_('MQA/TEST');
 assert.strictEqual(readPLOs[0].taxonomy, 'C4');
+assert.strictEqual(readPLOs[0].statement, 'Updated outcome');
 assert.deepStrictEqual(JSON.parse(JSON.stringify(readPLOs[0].mqfDomains)), ['MQF2']);
 assert.strictEqual(typeof readPLOs[0].updatedAt, 'string');
 const savedMapping = helpers.saveResearchPLOMappingApi_('MQA/TEST', savedPLOs[0].ploId, {

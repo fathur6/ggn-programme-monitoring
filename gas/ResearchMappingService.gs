@@ -258,8 +258,16 @@ function saveResearchPLOsApi_(mqaCode, plos) {
   var user = researchUser_(access);
   return withResearchLock_(function() {
     var now = new Date();
+    var existingByCode = researchRows_(sheets.PR_PLORecords).filter(function(row) {
+      return String(row[1]) === key;
+    }).reduce(function(result, row) {
+      result[String(row[3]).trim()] = row;
+      return result;
+    }, {});
     var rows = normalized.map(function(plo) {
-      return [researchId_(), key, plo.parentPEO, plo.code, plo.statement, JSON.stringify(plo.mqfDomains), plo.taxonomy, plo.rationale, 'Draft', now, user.email || ''];
+      var existing = existingByCode[plo.code];
+      return [existing ? existing[0] : researchId_(), key, plo.parentPEO, plo.code, plo.statement,
+        JSON.stringify(plo.mqfDomains), plo.taxonomy, plo.rationale, 'Draft', now, user.email || ''];
     });
     replaceResearchRows_(sheets.PR_PLORecords, key, 11, rows);
     return rows.map(ploFromRow_);

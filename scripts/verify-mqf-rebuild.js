@@ -58,6 +58,7 @@ const researchDetailSource = index.slice(researchDetailStart === -1 ? index.leng
   'gas/ResearchMappingService.gs',
   'gas/ResearchReviewService.gs',
   'scripts/test-research-mapping.js',
+  'scripts/test-research-mapping-client.js',
   'scripts/test-coor-access.js'
 ].forEach(function(path) {
   assert(fs.existsSync(path), 'Required project file is missing: ' + path);

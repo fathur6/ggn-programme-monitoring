@@ -184,10 +184,12 @@ new Vue({
      ,researchReferences: {mqf: [], tf: [], sdg: [], sc: []}
      ,researchCoverage: null
      ,researchReview: null
-     ,researchStatus: 'Draft'
-     ,researchDirty: false
-     ,researchSaveState: 'clean'
-     ,dirty: false
+      ,researchStatus: 'Draft'
+      ,researchDirty: false
+      ,researchSaveState: 'clean'
+      ,researchLoading: false
+      ,researchError: null
+      ,dirty: false
     ,accessRequest: { targetFaculty: '', mqaCode: '', reason: '', scope: 'programme' }
     ,myAccessRequests: []
     ,accessRequests: []
@@ -406,42 +408,121 @@ new Vue({
     loadResearchWorkspace: function() {
       var self = this;
       if (!this.currentProgramme) return;
-      this.researchSaveState = 'saving';
-      google.script.run.withSuccessHandler(function(profile) { self.researchProfile = profile; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchProgrammeApi(this.currentProgramme.mqaCode);
-      google.script.run.withSuccessHandler(function(peos) { self.researchPEOs = peos || []; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchPEOsApi(this.currentProgramme.mqaCode);
-      google.script.run.withSuccessHandler(function(plos) { self.researchPLOs = plos || []; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchPLOsApi(this.currentProgramme.mqaCode);
-      google.script.run.withSuccessHandler(function(references) { self.researchReferences = references || self.researchReferences; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchReferencesApi();
-      google.script.run.withSuccessHandler(function(mappings) { self.researchMappings = {}; (mappings || []).forEach(function(mapping) { self.$set(self.researchMappings, mapping.ploId, mapping); }); }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchMappingsApi(this.currentProgramme.mqaCode);
+      this.researchLoading = true;
+      this.researchError = null;
+      this.researchSaveState = 'loading';
+      var pending = 7;
+      var failed = false;
+      function complete() {
+        pending -= 1;
+        if (pending === 0) {
+          self.researchLoading = false;
+          if (!failed) self.researchSaveState = 'clean';
+        }
+      }
+      function fail(error) {
+        failed = true;
+        self.researchError = error && error.message ? error.message : 'Unable to load the research workspace.';
+        self.researchSaveState = 'error';
+        self.showToast(self.researchError);
+        complete();
+      }
+      function request(invoke, success) {
+        var runner = google.script.run.withSuccessHandler(function(result) {
+          success(result);
+          complete();
+        }).withFailureHandler(fail);
+        invoke(runner);
+      }
+      var mqaCode = this.currentProgramme.mqaCode;
+      request(function(run) { run.getResearchProgrammeApi(mqaCode); }, function(profile) { self.researchProfile = profile; });
+      request(function(run) { run.getResearchPEOsApi(mqaCode); }, function(peos) { self.researchPEOs = peos || []; });
+      request(function(run) { run.getResearchPLOsApi(mqaCode); }, function(plos) { self.researchPLOs = plos || []; });
+      request(function(run) { run.getResearchReferencesApi(); }, function(references) { self.researchReferences = references || self.researchReferences; });
+      request(function(run) { run.getResearchMappingsApi(mqaCode); }, function(mappings) {
+        self.researchMappings = {};
+        (mappings || []).forEach(function(mapping) { self.$set(self.researchMappings, mapping.ploId, mapping); });
+      });
+      request(function(run) { run.getResearchCoverageApi(mqaCode); }, function(coverage) { self.researchCoverage = coverage; });
+      request(function(run) { run.getResearchReviewApi(mqaCode); }, function(review) {
+        self.researchReview = review;
+        self.researchStatus = review.status || self.researchStatus;
+      });
+    },
+    researchFailure: function(error) {
+      this.researchError = error && error.message ? error.message : 'The research workspace request failed.';
+      this.researchSaveState = 'error';
+      this.showToast(this.researchError);
+    },
+    refreshResearchDerived: function() {
+      this.loadResearchMappings();
       this.loadResearchCoverage();
       this.loadResearchReview();
-      this.researchSaveState = 'clean';
+    },
+    loadResearchMappings: function() {
+      var self = this;
+      if (!this.currentProgramme) return;
+      google.script.run.withSuccessHandler(function(mappings) {
+        self.researchMappings = {};
+        (mappings || []).forEach(function(mapping) { self.$set(self.researchMappings, mapping.ploId, mapping); });
+      }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchMappingsApi(this.currentProgramme.mqaCode);
     },
     saveResearchProfile: function() {
-      var self = this; this.researchSaveState = 'saving';
-      google.script.run.withSuccessHandler(function(profile) { self.researchProfile = profile; self.researchMutationComplete('Programme profile saved.'); }).withFailureHandler(function(e) { self.researchSaveState = 'dirty'; self.showToast(e.message); }).saveResearchProfileApi(this.currentProgramme.mqaCode, this.researchProfile);
+      var self = this; this.researchSaveState = 'saving'; this.researchError = null;
+      google.script.run.withSuccessHandler(function(profile) { self.researchProfile = profile; self.researchMutationComplete('Programme profile saved.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchProfileApi(this.currentProgramme.mqaCode, this.researchProfile);
     },
     saveResearchPEOs: function() {
-      var self = this; this.researchSaveState = 'saving';
-      google.script.run.withSuccessHandler(function(peos) { self.researchPEOs = peos || []; self.researchMutationComplete('PEO records saved.'); }).withFailureHandler(function(e) { self.researchSaveState = 'dirty'; self.showToast(e.message); }).saveResearchPEOsApi(this.currentProgramme.mqaCode, this.researchPEOs);
+      var self = this; this.researchSaveState = 'saving'; this.researchError = null;
+      google.script.run.withSuccessHandler(function(peos) { self.researchPEOs = peos || []; self.researchMutationComplete('PEO records saved.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPEOsApi(this.currentProgramme.mqaCode, this.researchPEOs);
     },
     saveResearchPLOs: function() {
-      var self = this; this.researchSaveState = 'saving';
-      google.script.run.withSuccessHandler(function(plos) { self.researchPLOs = plos || []; self.researchMutationComplete('PLO records saved.'); }).withFailureHandler(function(e) { self.researchSaveState = 'dirty'; self.showToast(e.message); }).saveResearchPLOsApi(this.currentProgramme.mqaCode, self.researchPLOs);
+      var self = this; this.researchSaveState = 'saving'; this.researchError = null;
+      var ploPayload = this.researchPLOs.map(function(plo) {
+        return { ploId: plo.ploId, code: plo.code, parentPEO: plo.parentPEO, statement: plo.statement,
+          mqfDomains: plo.mqfDomains, taxonomy: plo.taxonomy, rationale: plo.rationale };
+      });
+      google.script.run.withSuccessHandler(function(plos) {
+        self.researchPLOs = plos || [];
+        self.researchMutationComplete('PLO records saved.');
+      }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOsApi(this.currentProgramme.mqaCode, ploPayload);
     },
     saveResearchPLOMapping: function(plo) {
-      var self = this; var mapping = this.researchMapping(plo); this.researchSaveState = 'saving';
-      google.script.run.withSuccessHandler(function(saved) { self.$set(self.researchMappings, plo.ploId || plo.code, saved); self.researchMutationComplete('PLO mapping saved.'); }).withFailureHandler(function(e) { self.researchSaveState = 'dirty'; self.showToast(e.message); }).saveResearchPLOMappingApi(this.currentProgramme.mqaCode, plo.ploId, mapping);
+      var self = this;
+      var mapping = this.researchMapping(plo);
+      var ploPayload = this.researchPLOs.map(function(item) {
+        return { ploId: item.ploId, code: item.code, parentPEO: item.parentPEO, statement: item.statement,
+          mqfDomains: item.mqfDomains, taxonomy: item.taxonomy, rationale: item.rationale };
+      });
+      this.researchSaveState = 'saving';
+      this.researchError = null;
+      google.script.run.withSuccessHandler(function(savedPLOs) {
+        self.researchPLOs = savedPLOs || [];
+        var savedPLO = self.researchPLOs.filter(function(item) { return item.code === plo.code; })[0];
+        if (!savedPLO || !savedPLO.ploId) {
+          self.researchFailure({message: 'The PLO was not persisted, so its mapping was not saved.'});
+          return;
+        }
+        var mappingPayload = {
+          sdgIds: mapping.sdgIds || [],
+          scIds: mapping.scIds || [],
+          mappingNote: mapping.mappingNote || ''
+        };
+        google.script.run.withSuccessHandler(function(saved) {
+          self.$set(self.researchMappings, savedPLO.ploId, saved);
+          self.researchMutationComplete('PLO fields and mapping saved.');
+        }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOMappingApi(self.currentProgramme.mqaCode, savedPLO.ploId, mappingPayload);
+      }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOsApi(this.currentProgramme.mqaCode, ploPayload);
     },
     researchMutationComplete: function(message) {
-      this.researchDirty = false; this.dirty = false; this.researchSaveState = 'saved'; this.showToast(message); this.loadResearchCoverage(); this.loadResearchReview();
+      this.researchDirty = false; this.dirty = false; this.researchSaveState = 'saved'; this.researchError = null; this.showToast(message); this.refreshResearchDerived();
     },
     loadResearchCoverage: function() {
       var self = this; if (!this.currentProgramme) return;
-      google.script.run.withSuccessHandler(function(coverage) { self.researchCoverage = coverage; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchCoverageApi(this.currentProgramme.mqaCode);
+      google.script.run.withSuccessHandler(function(coverage) { self.researchCoverage = coverage; }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchCoverageApi(this.currentProgramme.mqaCode);
     },
     loadResearchReview: function() {
       var self = this; if (!this.currentProgramme) return;
-      google.script.run.withSuccessHandler(function(review) { self.researchReview = review; self.researchStatus = review.status || self.researchStatus; }).withFailureHandler(function(e) { self.showToast(e.message); }).getResearchReviewApi(this.currentProgramme.mqaCode);
+      google.script.run.withSuccessHandler(function(review) { self.researchReview = review; self.researchStatus = review.status || self.researchStatus; }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchReviewApi(this.currentProgramme.mqaCode);
     },
     submitResearchProgramme: function() {
       var self = this;

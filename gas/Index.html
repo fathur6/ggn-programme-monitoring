@@ -220,13 +220,16 @@
          <div class="back-link" @click="leaveResearchWorkspace">&larr; Back to list</div>
          <section class="programme-context">
            <div><p class="eyebrow">POSTGRADUATE RESEARCH PROGRAMME</p><h2 class="section-title">{{ currentProgramme.name }}</h2><p class="text-sm text-muted">{{ currentProgramme.mqaCode }} · {{ currentProgramme.progCode }}</p></div>
-           <div class="context-status"><span class="status-chip">{{ researchStatus }}</span><span class="save-state" :class="researchSaveState">{{ researchDirty ? 'Unsaved changes' : researchSaveState === 'saved' ? 'All changes saved' : 'Ready to edit' }}</span></div>
+           <div class="context-status"><span class="status-chip">{{ researchStatus }}</span><span class="save-state" :class="researchSaveState">{{ researchLoading ? 'Loading workspace...' : researchError ? 'Action required' : researchDirty ? 'Unsaved changes' : researchSaveState === 'saved' ? 'All changes saved' : 'Ready to edit' }}</span></div>
          </section>
          <nav class="research-tabs" aria-label="Programme workspace">
            <button :class="{active: researchCategory === 'information'}" @click="researchCategory = 'information'">Maklumat Program</button>
            <button :class="{active: researchCategory === 'mapping'}" @click="researchCategory = 'mapping'">Pemetaan</button>
          </nav>
 
+         <div v-if="researchLoading" class="loading-panel" role="status">Loading research workspace...</div>
+         <div v-else-if="researchError" class="alert alert-error" role="alert"><strong>Research workspace could not be loaded.</strong><div>{{ researchError }}</div><button class="btn btn-secondary mt-3" @click="loadResearchWorkspace">Retry workspace load</button></div>
+         <div v-else>
          <section v-if="researchCategory === 'information'" class="research-panel">
            <div class="panel-heading"><div><p class="eyebrow">PROGRAMME PROFILE</p><h3 class="section-title">Programme Information</h3></div><button class="btn btn-primary" @click="saveResearchProfile" :disabled="researchSaveState === 'saving'">Save profile</button></div>
            <div v-if="researchProfile" class="profile-grid">
@@ -259,7 +262,8 @@
            </article>
            <section class="coverage-section"><div class="panel-heading"><div><p class="eyebrow">DERIVED COVERAGE</p><h3 class="section-title">Coverage Matrix</h3></div><button class="btn btn-secondary" @click="loadResearchCoverage">Refresh coverage</button></div><div class="coverage-metrics" v-if="researchReview && researchReview.metrics"><span><strong>{{ researchReview.metrics.ploTotal }}</strong> PLOs</span><span><strong>{{ researchReview.metrics.mqfDomainCoverage }}</strong> MQF domains</span><span><strong>{{ researchReview.metrics.tfCoverage }}</strong> TFs</span><span><strong>{{ researchReview.metrics.sdgCoverage }}</strong> SDGs</span><span><strong>{{ researchReview.metrics.scCoverage }}</strong> SCs</span></div><div class="matrix-wrap"><table class="coverage-matrix"><thead><tr><th scope="col">PEO</th><th scope="col">Child PLOs</th><th scope="col">TF / PEO roll-up</th><th scope="col">SDG</th><th scope="col">SC</th></tr></thead><tbody><tr v-for="item in (researchCoverage ? researchCoverage.peoCoverage : [])" :key="item.peoId"><th scope="row">{{ item.code }}</th><td>{{ item.coverage ? item.coverage.childCount : 0 }}</td><td><span v-if="item.coverage" class="derived-badge">Derived from PLO mappings: {{ item.coverage.tfIds.join(', ') || 'None' }}</span><span v-else class="status-warn">{{ item.issue }}</span></td><td>{{ item.coverage ? item.coverage.sdgIds.join(', ') || 'None' : '—' }}</td><td>{{ item.coverage ? item.coverage.scIds.join(', ') || 'None' : '—' }}</td></tr></tbody></table></div></section>
            <section class="review-panel research-review"><div class="panel-heading"><div><p class="eyebrow">FINAL CHECK</p><h3 class="section-title">Review &amp; Submit</h3></div><span class="review-status" :class="reviewStatusClass">{{ researchStatus }}</span></div><div v-if="researchReview" class="review-issues"><div v-for="warning in researchReview.warnings" :key="warning.code + warning.ploCode" class="issue-warning">{{ warning.message }}</div><div v-if="!researchReview.critical.length && !researchReview.warnings.length" class="status-good">No validation issues.</div></div><div class="review-actions"><button class="btn btn-secondary" @click="loadResearchReview">Refresh review</button><button class="btn btn-primary" :disabled="!researchReview || researchReview.critical.length > 0 || researchSaveState === 'saving'" @click="submitResearchProgramme">Submit for review</button></div></section>
-         </section>
+           </section>
+         </div>
        </div>
     </main>
 
