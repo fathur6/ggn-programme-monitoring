@@ -29,6 +29,8 @@ const styles = read('gas/Styles.html');
 const readme = read('README.md');
 const configExample = read('gas/Config.gs.example');
 const claspExample = read('gas/.clasp.json.example');
+const researchData = read('gas/ResearchDataService.gs');
+const researchReferences = read('gas/ResearchReferenceService.gs');
 
 [
   'gas/Index.html',
@@ -46,7 +48,10 @@ const claspExample = read('gas/.clasp.json.example');
   'gas/EmailService.gs',
   'gas/appsscript.json',
   'README.md',
-  'scripts/test-mqf-overdue.js'
+  'scripts/test-mqf-overdue.js',
+  'gas/ResearchDataService.gs',
+  'gas/ResearchReferenceService.gs',
+  'scripts/test-research-mapping.js'
 ].forEach(function(path) {
   assert(fs.existsSync(path), 'Required project file is missing: ' + path);
 });
@@ -154,5 +159,28 @@ assertContains(index, /Access requests/, 'Admin access request queue is missing'
 assertContains(index, /Governance queue/, 'Admin governance queue is missing');
 assertContains(javascript, /loadAccessRequests:\s*function\s*\(/, 'Access request loader is missing');
 assertContains(javascript, /loadGovernanceItems:\s*function\s*\(/, 'Governance queue loader is missing');
+
+[
+  'PR_ProgrammeProfile',
+  'PR_PEORecords',
+  'PR_PLORecords',
+  'PR_PLOMappings',
+  'PR_MQFReference',
+  'PR_TFReference',
+  'PR_SDGReference',
+  'PR_SCReference'
+].forEach(function(name) {
+  assertContains(researchData, new RegExp(name), 'Research sheet boundary is missing: ' + name);
+});
+assertContains(researchData, /ProgrammeId.*MQACode.*FacultyOrCentre.*ProgrammeName.*StudyLevel.*StudyMode.*StudyField.*Session.*DocumentVersion.*DataOwner.*MappingStatus.*CreatedAt.*UpdatedAt.*UpdatedBy/, 'Programme profile headers are incomplete');
+assertContains(researchData, /function\s+ensureResearchSheets_\s*\([\s\S]*?getLastRow\(\)\s*===\s*0[\s\S]*?appendRow/, 'Research sheets are not created lazily');
+assertContains(researchData, /function\s+getResearchProgrammeKey_\s*\(/, 'Research programme key helper is missing');
+assertContains(researchReferences, /TF1[\s\S]*?MQF1['"]\s*,\s*['"]MQF4a/, 'TF1 reference relationship is missing');
+assertContains(researchReferences, /TF2[\s\S]*?MQF2['"]\s*,\s*['"]MQF3a['"]\s*,\s*['"]MQF3d['"]\s*,\s*['"]MQF3e/, 'TF2 reference relationship is missing');
+assertContains(researchReferences, /TF3[\s\S]*?MQF3a['"]\s*,\s*['"]MQF3b['"]\s*,\s*['"]MQF3c['"]\s*,\s*['"]MQF3f/, 'TF3 reference relationship is missing');
+assertContains(researchReferences, /TF4[\s\S]*?MQF3a['"]\s*,\s*['"]MQF3b['"]\s*,\s*['"]MQF4a['"]\s*,\s*['"]MQF4b['"]\s*,\s*['"]MQF5/, 'TF4 reference relationship is missing');
+assertContains(researchReferences, /function\s+validateReferenceIds_\s*\([\s\S]*?Invalid reference ID/, 'Reference validation is missing');
+assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\([\s\S]*?getCurrentUser\s*\(\)/, 'Research references API is not authenticated');
+assert(!/Course|Subject|Credit|CLO|DCI/.test(researchData), 'Course fields are present in research headers');
 
 console.log('MQF rebuild static checks passed.');
