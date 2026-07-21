@@ -87,6 +87,8 @@ const incomplete = helpers.validateResearchProgramme_({
   mappings: []
 });
 assert(incomplete.critical.some(function(issue) { return issue.code === 'PLO_STATEMENT_REQUIRED'; }));
+assert(incomplete.critical.some(function(issue) { return issue.code === 'PLO_TAXONOMY_REQUIRED'; }));
+assert.strictEqual(incomplete.metrics.ploWithValidTaxonomy, 0);
 assert.strictEqual(incomplete.status, 'Needs attention');
 
 const ready = helpers.validateResearchProgramme_({
@@ -95,6 +97,22 @@ const ready = helpers.validateResearchProgramme_({
   mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}]
 });
 assert.strictEqual(ready.status, 'Ready for review');
+const invalidDerivedTF = helpers.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: 'Outcome', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
+  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF-ILLEGAL']}]
+});
+assert.strictEqual(invalidDerivedTF.status, 'Needs attention');
+assert(invalidDerivedTF.critical.some(function(issue) { return issue.code === 'PLO_TF_DERIVATION_FAILED'; }));
+assert.strictEqual(invalidDerivedTF.metrics.ploWithValidTF, 0);
+const invalidTaxonomy = helpers.validateResearchProgramme_({
+  peos: [{code: 'PEO1', statement: 'Objective'}],
+  plos: [{code: 'PLO1', statement: 'Outcome', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'TAXONOMY-ILLEGAL'}],
+  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}]
+});
+assert.strictEqual(invalidTaxonomy.status, 'Needs attention');
+assert(invalidTaxonomy.critical.some(function(issue) { return issue.code === 'PLO_TAXONOMY_INVALID'; }));
+assert.strictEqual(invalidTaxonomy.metrics.ploWithValidTaxonomy, 0);
 const mixedInvalidMQF = helpers.validateResearchProgramme_({
   peos: [{code: 'PEO1', statement: 'Objective'}],
   plos: [{code: 'PLO1', statement: 'Outcome', parentPEO: 'PEO1', mqfDomains: ['MQF2', 'MQF-ILLEGAL'], taxonomy: 'C4'}],

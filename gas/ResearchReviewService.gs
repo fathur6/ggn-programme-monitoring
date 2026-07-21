@@ -94,10 +94,14 @@ function validateResearchProgramme_(input) {
   var peoCodes = {};
   var ploCodes = {};
   var mqfCodes = reviewReferenceCodes_(references, 'mqf');
+  var taxonomyCodes = typeof RESEARCH_TAXONOMY_IDS !== 'undefined' && Array.isArray(RESEARCH_TAXONOMY_IDS)
+    ? RESEARCH_TAXONOMY_IDS.map(function(code) { return canonicalResearchTaxonomy_(code); })
+    : [];
   var tfMap = reviewTFMap_(references);
   var allMQF = [], allTF = [], allSDG = [], allSC = [];
   var statementsComplete = 0;
   var withMQF = 0;
+  var withValidTaxonomy = 0;
   var withValidTF = 0;
   var withSDG = 0;
   var withSC = 0;
@@ -113,6 +117,7 @@ function validateResearchProgramme_(input) {
     var statement = String(plo && plo.statement || '').trim();
     var parent = String(plo && plo.parentPEO || '').trim();
     var domains = uniqueTrimmed_(plo && plo.mqfDomains || []);
+    var taxonomy = canonicalResearchTaxonomy_(plo && plo.taxonomy);
     var mapping = reviewMappingForPLO_(plo, index, mappings);
     var sdgIds = uniqueTrimmed_(mapping && mapping.sdgIds || []);
     var scIds = uniqueTrimmed_(mapping && mapping.scIds || []);
@@ -138,6 +143,9 @@ function validateResearchProgramme_(input) {
         }
       });
     }
+    if (!taxonomy) critical.push(reviewIssue_('PLO_TAXONOMY_REQUIRED', 'Taxonomy is required', code));
+    else if (taxonomyCodes.indexOf(taxonomy) === -1) critical.push(reviewIssue_('PLO_TAXONOMY_INVALID', 'Invalid Taxonomy: ' + taxonomy, code));
+    else withValidTaxonomy++;
     if (statement && statement.length < 20) warnings.push(reviewWarning_('PLO_STATEMENT_BROAD', 'PLO statement may be too broad', code));
     if (sdgIds.length) withSDG++;
     else warnings.push(reviewWarning_('PLO_SDG_MISSING', 'PLO should map to at least one SDG', code));
@@ -175,6 +183,7 @@ function validateResearchProgramme_(input) {
       ploTotal: plos.length,
       ploStatementsComplete: statementsComplete,
       ploWithMQF: withMQF,
+      ploWithValidTaxonomy: withValidTaxonomy,
       ploWithValidTF: withValidTF,
       ploWithSDG: withSDG,
       ploWithSC: withSC,

@@ -236,13 +236,14 @@ function computeResearchProgrammeStatus_(programme) {
   var peoReady = (metrics.peosWithIssues || 0) === 0 && metrics.ploTotal > 0;
   var ploReady = metrics.ploStatementsComplete === metrics.ploTotal && metrics.ploTotal > 0;
   var mqfReady = metrics.ploWithMQF === metrics.ploTotal && metrics.ploTotal > 0;
+  var taxonomyReady = metrics.ploWithValidTaxonomy === metrics.ploTotal && metrics.ploTotal > 0;
   var mappingReady = isResearchMappingComplete_(metrics);
   return {
     completionState: review.status,
     peoState: peoReady ? 'Complete' : 'Needs attention',
     ploState: ploReady ? 'Complete' : 'Needs attention',
     mqfDomainState: mqfReady ? 'Complete' : 'Needs attention',
-    taxonomyState: ploReady ? 'Complete' : 'Needs attention',
+    taxonomyState: taxonomyReady ? 'Complete' : 'Needs attention',
     mappingState: mappingReady ? 'Complete' : 'Needs attention',
     documentState: 'Not required',
     reviewState: review.critical && review.critical.length ? 'Blocked' : 'Ready',
@@ -252,7 +253,7 @@ function computeResearchProgrammeStatus_(programme) {
       peos: review.peoCoverage ? review.peoCoverage.length : 0,
       plos: metrics.ploTotal || 0,
       mqfDomainComplete: metrics.ploWithMQF || 0,
-      taxonomyComplete: ploReady ? metrics.ploTotal : metrics.ploStatementsComplete || 0,
+      taxonomyComplete: metrics.ploWithValidTaxonomy || 0,
       mappingComplete: mappingReady ? metrics.ploTotal : (metrics.ploWithValidTF || 0)
     }
   };
