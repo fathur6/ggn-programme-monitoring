@@ -26,16 +26,19 @@ function createAccessRequestApi_(request) {
   var reason = String(request.reason || '').trim();
   if (!mqaCode) throw new Error('A research programme is required');
   if (!reason) throw new Error('A reason is required');
-  if (targetFaculty && targetFaculty === String(user.faculty || '').trim()) {
-    throw new Error('You already have access to this faculty');
-  }
   var programme = findProgrammeByMqaCode_(mqaCode);
   if (!programme) throw new Error('Programme not found');
   if (!isResearchProgramme_(programme)) throw new Error('Only postgraduate research programmes are eligible');
+  if (targetFaculty && targetFaculty !== String(programme.faculty || '').trim()) {
+    throw new Error('Target faculty does not match the research programme');
+  }
+  targetFaculty = String(programme.faculty || '').trim();
+  if (targetFaculty === String(user.faculty || '').trim()) {
+    throw new Error('You already have access to this faculty');
+  }
   if (programme.faculty === String(user.faculty || '').trim()) {
     throw new Error('You already have access to this programme');
   }
-  if (!targetFaculty) targetFaculty = programme.faculty;
 
   var sheet = ensureAccessRequestsSheet_();
   var id = 'ACCESS-' + Utilities.getUuid();
@@ -89,6 +92,7 @@ function decideAccessRequestApi_(requestId, decision, note) {
     var data = sheet.getDataRange().getValues();
     var rowNumber = findAccessRequestRow_(data, requestId);
     if (rowNumber === -1) throw new Error('Access request not found');
+    requireResearchAccessRequestProgramme_(data[rowNumber][4]);
     if (String(data[rowNumber][8]) !== 'Pending') throw new Error('Access request is no longer pending');
 
     var now = new Date();
@@ -111,11 +115,20 @@ function revokeAccessGrantApi_(requestId, note) {
   var data = sheet.getDataRange().getValues();
   var rowNumber = findAccessRequestRow_(data, requestId);
   if (rowNumber === -1) throw new Error('Access request not found');
+  requireResearchAccessRequestProgramme_(data[rowNumber][4]);
   if (String(data[rowNumber][8]) !== 'Approved') throw new Error('Only approved access can be revoked');
   sheet.getRange(rowNumber + 1, 9).setValue('Revoked');
   sheet.getRange(rowNumber + 1, 13).setValue(new Date());
   sheet.getRange(rowNumber + 1, 14).setValue(note || 'Revoked by administrator');
   return { requestId: requestId, status: 'Revoked' };
+}
+
+function requireResearchAccessRequestProgramme_(mqaCode) {
+  var programme = findProgrammeByMqaCode_(mqaCode);
+  if (!programme || !isResearchProgramme_(programme)) {
+    throw new Error('Access request references an invalid research programme');
+  }
+  return programme;
 }
 
 function getActiveAccessGrant_(email, mqaCode) {

@@ -147,7 +147,10 @@ function getPendingDeletions_() {
   var data = deletion.sheet.getDataRange().getValues();
   var result = [];
   for (var i = 1; i < data.length; i++) {
-    if (!data[i][deletion.columns.FileID]) continue;
+    if (!data[i][deletion.columns.FileID] ||
+        String(data[i][deletion.columns.Status]) !== 'Pending') continue;
+    var programme = findProgrammeByMqaCode_(data[i][deletion.columns.Programme]);
+    if (!programme || !isResearchProgramme_(programme)) continue;
     result.push({
       requestId: data[i][deletion.columns.RequestId],
       fileId: data[i][deletion.columns.FileID],

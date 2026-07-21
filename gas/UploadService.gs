@@ -170,7 +170,11 @@ function approveDeleteFile_(requestId) {
     if (String(row[deletion.columns.Status]) !== 'Pending') throw new Error('Permohonan telah diproses.');
 
     var fileId = row[deletion.columns.FileID];
-    var mqaCode = row[deletion.columns.Programme];
+    var mqaCode = String(row[deletion.columns.Programme] || '').trim();
+    var programme = findProgrammeByMqaCode_(mqaCode);
+    if (!programme || !isResearchProgramme_(programme)) {
+      throw new Error('Permohonan pemadaman bukan untuk program penyelidikan yang sah.');
+    }
     var file = DriveApp.getFileById(fileId);
     var folder = findProgramFolder_(mqaCode);
     if (!fileBelongsToFolder_(file, folder)) throw new Error('Fail tidak sepadan dengan program.');

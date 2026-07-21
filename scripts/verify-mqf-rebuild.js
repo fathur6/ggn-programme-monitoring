@@ -81,7 +81,8 @@ function assertNoPublicFunctionVariants(source, name) {
   'gas/ProgrammeService.gs',
   'scripts/test-research-mapping.js',
   'scripts/test-research-mapping-client.js',
-  'scripts/test-coor-access.js'
+  'scripts/test-coor-access.js',
+  'scripts/test-task7-boundaries.js'
 ].forEach(function(path) {
   assert(fs.existsSync(path), 'Required project file is missing: ' + path);
 });
@@ -180,6 +181,8 @@ assertContains(code, /function\s+getPendingDeletionsApi\s*\(\)[\s\S]*?isGraduate
 assertNoTopLevelFunction(upload, 'approveDeleteFile', 'Delete approval must not remain a public Apps Script global');
 assertContains(upload, /function\s+approveDeleteFile_\s*\(requestId\)/, 'Private delete service must use requestId');
 assertContains(upload, /columns\.Status\]\)\s*!==\s*['"]Pending['"]/, 'Delete service must require Pending status');
+assertContains(upload, /function\s+approveDeleteFile_[\s\S]*?findProgrammeByMqaCode_\s*\(mqaCode\)[\s\S]*?isResearchProgramme_\s*\(programme\)/,
+  'Delete approval must revalidate the target as a research programme before Drive access');
 assertContains(upload, /getParents\s*\(/, 'Delete service must verify file folder membership');
 assertContains(upload, /RequestId/, 'Delete records must include a request ID');
 assertContains(index, /approveDelete\(d\.requestId\)/, 'Admin UI must approve a deletion request by requestId');
@@ -234,10 +237,24 @@ assertContains(access, /function\s+revokeAccessGrantApi_\s*\(/, 'Missing access 
 assertContains(access, /getActiveAccessGrant_\s*\(/, 'Missing active access grant lookup');
 assertContains(access, /function\s+createAccessRequestApi_[\s\S]*?isResearchProgramme_\s*\(programme\)/,
   'Access request creation must reject non-research programmes');
+assertContains(access, /function\s+createAccessRequestApi_[\s\S]*?programme\.faculty[\s\S]*?targetFaculty[\s\S]*?throw new Error/,
+  'Access request creation must reject a mismatched target faculty');
+assertContains(access, /function\s+decideAccessRequestApi_[\s\S]*?requireResearchAccessRequestProgramme_\s*\(/,
+  'Access decisions must revalidate the referenced research programme');
+assertContains(access, /function\s+revokeAccessGrantApi_[\s\S]*?requireResearchAccessRequestProgramme_\s*\(/,
+  'Access revocation must revalidate the referenced research programme');
+assertContains(access, /function\s+requireResearchAccessRequestProgramme_[\s\S]*?findProgrammeByMqaCode_[\s\S]*?isResearchProgramme_\s*\(programme\)/,
+  'Access request programme revalidation must fail closed for stale or legacy records');
 assertContains(access, /function\s+getAccessRequestsApi_[\s\S]*?findProgrammeByMqaCode_[\s\S]*?isResearchProgramme_\s*\(programme\)/,
   'Access request queue must exclude non-research programmes');
 assertContains(access, /function\s+getActiveAccessGrant_[\s\S]*?isResearchProgramme_\s*\(programme\)/,
   'Active access grants must be research-only');
+assertContains(
+  suggestions,
+  /function\s+getPendingDeletions_[\s\S]*?Status\]\)\s*!==\s*['"]Pending['"]/,
+  'Deletion queue must exclude processed records');
+assertContains(suggestions, /function\s+getPendingDeletions_[\s\S]*?findProgrammeByMqaCode_[\s\S]*?isResearchProgramme_\s*\(programme\)/,
+  'Deletion queue must exclude legacy records');
 assertContains(peo, /Kod dan penerangan PEO diperlukan/, 'PEO validation is missing');
 assertContains(plo, /Kod dan penerangan PLO diperlukan/, 'PLO validation is missing');
 assertContains(plo, /function\s+getNextPLOCode\s*\(/, 'Stable PLO code helper is missing');
@@ -355,6 +372,8 @@ assertContains(javascript, /self\.programmes\s*=\s*\(result\s*\|\|\s*\[\]\)\.fil
 });
 assertContains(styles, /\.research-tabs button:focus-visible/, 'Research category focus treatment is missing');
 assertContains(index, /Request temporary access/, 'Faculty access request workspace is missing');
+assertContains(javascript, /createAccessRequest\s*:\s*function\s*\(\)[\s\S]*?!this\.accessRequest\.mqaCode/,
+  'Client access requests must require a research MQA code');
 assertContains(index, /createAccessRequest/, 'Access request action is missing from the UI');
 assertContains(index, /Access requests/, 'Admin access request queue is missing');
 assertContains(index, /Governance queue/, 'Admin governance queue is missing');

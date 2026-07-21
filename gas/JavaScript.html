@@ -404,7 +404,7 @@ new Vue({
     },
     createAccessRequest: function() {
       var self = this;
-      if (!this.accessRequest.reason || (!this.accessRequest.targetFaculty && !this.accessRequest.mqaCode)) { this.showToast('Add a target and a reason for the request.'); return; }
+      if (!this.accessRequest.mqaCode || !this.accessRequest.reason) { this.showToast('Add a valid research MQA code and a reason for the request.'); return; }
       google.script.run.withSuccessHandler(function() { self.accessRequest = { targetFaculty: '', mqaCode: '', reason: '', scope: 'programme' }; self.showToast('Access request sent to Graduate School.'); self.loadAccessRequests(); }).withFailureHandler(function(err) { self.showToast(err.message); }).createAccessRequestApi(this.accessRequest);
     },
     decideAccess: function(request, decision) {
