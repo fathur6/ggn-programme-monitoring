@@ -152,6 +152,14 @@ function savePLOsApi(mqaCode, plos) {
   return savePLOs(mqaCode, plos);
 }
 
+function getResearchProgrammeApi(mqaCode) { return getResearchProgrammeApi_(mqaCode); }
+function saveResearchProfileApi(mqaCode, profile) { return saveResearchProfileApi_(mqaCode, profile || {}); }
+function getResearchPEOsApi(mqaCode) { return getResearchPEOsApi_(mqaCode); }
+function saveResearchPEOsApi(mqaCode, peos) { return saveResearchPEOsApi_(mqaCode, peos || []); }
+function getResearchPLOsApi(mqaCode) { return getResearchPLOsApi_(mqaCode); }
+function saveResearchPLOsApi(mqaCode, plos) { return saveResearchPLOsApi_(mqaCode, plos || []); }
+function getResearchMappingsApi(mqaCode) { return getResearchMappingsApi_(mqaCode); }
+
 function getGraphDataApi(mqaCode) {
   requireProgrammeAccess_(mqaCode, 'view-graph');
   return getGraphData(mqaCode);

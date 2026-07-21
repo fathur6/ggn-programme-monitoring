@@ -31,6 +31,7 @@ const configExample = read('gas/Config.gs.example');
 const claspExample = read('gas/.clasp.json.example');
 const researchData = read('gas/ResearchDataService.gs');
 const researchReferences = read('gas/ResearchReferenceService.gs');
+const researchMapping = read('gas/ResearchMappingService.gs');
 
 [
   'gas/Index.html',
@@ -51,10 +52,34 @@ const researchReferences = read('gas/ResearchReferenceService.gs');
   'scripts/test-mqf-overdue.js',
   'gas/ResearchDataService.gs',
   'gas/ResearchReferenceService.gs',
+  'gas/ResearchMappingService.gs',
   'scripts/test-research-mapping.js',
   'scripts/test-coor-access.js'
 ].forEach(function(path) {
   assert(fs.existsSync(path), 'Required project file is missing: ' + path);
+});
+assertContains(researchMapping, /function\s+normalizeResearchPLO_\s*\(/, 'Research PLO normalization is missing');
+assertContains(researchMapping, /function\s+validatePLOParents_\s*\(/, 'Research PLO parent validation is missing');
+assertContains(researchMapping, /function\s+validateDuplicateCodes_\s*\(/, 'Research duplicate validation is missing');
+assertContains(researchMapping, /function\s+getResearchProgrammeApi_\s*\(/, 'Research programme API is missing');
+assertContains(researchMapping, /function\s+saveResearchProfileApi_\s*\(/, 'Research profile save API is missing');
+assertContains(researchMapping, /function\s+getResearchPEOsApi_\s*\(/, 'Research PEO API is missing');
+assertContains(researchMapping, /function\s+saveResearchPEOsApi_\s*\(/, 'Research PEO save API is missing');
+assertContains(researchMapping, /function\s+getResearchPLOsApi_\s*\(/, 'Research PLO API is missing');
+assertContains(researchMapping, /function\s+saveResearchPLOsApi_\s*\(/, 'Research PLO save API is missing');
+assertContains(researchMapping, /function\s+getResearchMappingsApi_\s*\(/, 'Research mapping API is missing');
+assert(!/\b(getPEOs|savePEOs|getPLOs|savePLOs)\s*\(/.test(researchMapping), 'Research service calls legacy PEO/PLO services');
+[
+  'getResearchProgrammeApi_', 'saveResearchProfileApi_', 'getResearchPEOsApi_',
+  'saveResearchPEOsApi_', 'getResearchPLOsApi_', 'saveResearchPLOsApi_', 'getResearchMappingsApi_'
+].forEach(function(name) {
+  assertContains(researchMapping, new RegExp('function\\s+' + name + '[\\s\\S]*?requireProgrammeAccess_\\s*\\('), name + ' is not guarded');
+});
+[
+  'getResearchProgrammeApi', 'saveResearchProfileApi', 'getResearchPEOsApi',
+  'saveResearchPEOsApi', 'getResearchPLOsApi', 'saveResearchPLOsApi', 'getResearchMappingsApi'
+].forEach(function(name) {
+  assertContains(code, new RegExp('function\\s+' + name + '[\\s\\S]*?return\\s+' + name + '_'), name + ' wrapper is missing');
 });
 
 const trackedFiles = childProcess.execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n');

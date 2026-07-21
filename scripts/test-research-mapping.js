@@ -41,7 +41,8 @@ function loadResearchHelpers() {
   };
   const source = [
     fs.readFileSync('gas/ResearchDataService.gs', 'utf8'),
-    fs.readFileSync('gas/ResearchReferenceService.gs', 'utf8')
+    fs.readFileSync('gas/ResearchReferenceService.gs', 'utf8'),
+    fs.readFileSync('gas/ResearchMappingService.gs', 'utf8')
   ].join('\n');
   vm.runInNewContext(source, context);
   return context;
@@ -50,6 +51,23 @@ function loadResearchHelpers() {
 const helpers = loadResearchHelpers();
 const researchSheetNames = Object.keys(helpers.RESEARCH_SHEET_HEADERS);
 const { getResearchProgrammeKey_, validateReferenceIds_ } = helpers;
+
+assert.deepStrictEqual(JSON.parse(JSON.stringify(helpers.normalizeResearchPLO_({
+  code: ' PLO1 ',
+  statement: ' Outcome ',
+  parentPEO: 'PEO1',
+  mqfDomains: ['MQF2', 'MQF2'],
+  taxonomy: 'C4'
+}))), {
+  code: 'PLO1', statement: 'Outcome', parentPEO: 'PEO1',
+  mqfDomains: ['MQF2'], taxonomy: 'C4', rationale: ''
+});
+assert.throws(() => helpers.validatePLOParents_([
+  {code: 'PLO1', parentPEO: 'PEO9'}
+], [{code: 'PEO1'}]), /parent PEO/i);
+assert.throws(() => helpers.validateDuplicateCodes_([
+  {code: 'PLO1'}, {code: 'PLO1'}
+], 'PLO'), /duplicate/i);
 
 assert.deepStrictEqual(researchSheetNames, [
   'PR_ProgrammeProfile',
