@@ -1,5 +1,6 @@
 const fs = require('fs');
 const childProcess = require('child_process');
+const nodeAssert = require('assert');
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -31,6 +32,8 @@ const configExample = read('gas/Config.gs.example');
 const claspExample = read('gas/.clasp.json.example');
 const researchData = read('gas/ResearchDataService.gs');
 const researchReferences = read('gas/ResearchReferenceService.gs');
+const researchDataApi = new Function(researchData + '\nreturn RESEARCH_SHEET_HEADERS;')();
+const researchReferenceApi = new Function(researchReferences + '\nreturn RESEARCH_REFERENCE_SEEDS_;')();
 
 [
   'gas/Index.html',
@@ -164,14 +167,29 @@ const researchSheetNames = [
   'PR_ProgrammeProfile', 'PR_PEORecords', 'PR_PLORecords', 'PR_PLOMappings',
   'PR_MQFReference', 'PR_TFReference', 'PR_SDGReference', 'PR_SCReference'
 ];
-researchSheetNames.forEach(function(name) {
-  assertContains(researchData, new RegExp(name + ':\\s*\\['), 'Research sheet boundary is missing: ' + name);
-});
-assertContains(researchReferences, /TF1[\s\S]*?MQF1[\s\S]*?MQF4a/, 'TF1 MQF relationship is missing');
-assertContains(researchReferences, /TF2[\s\S]*?MQF2[\s\S]*?MQF3a[\s\S]*?MQF3d[\s\S]*?MQF3e/, 'TF2 MQF relationships are missing');
-assertContains(researchReferences, /TF3[\s\S]*?MQF3a[\s\S]*?MQF3b[\s\S]*?MQF3c[\s\S]*?MQF3f/, 'TF3 MQF relationships are missing');
-assertContains(researchReferences, /TF4[\s\S]*?MQF3a[\s\S]*?MQF3b[\s\S]*?MQF4a[\s\S]*?MQF4b[\s\S]*?MQF5/, 'TF4 MQF relationships are missing');
-assert(!/Course|Subject|Credit|CLO|DCI/i.test(researchData), 'Research headers must not contain course fields');
+nodeAssert.deepStrictEqual(Object.keys(researchDataApi), researchSheetNames, 'Research sheet names are not exact');
+nodeAssert.deepStrictEqual(researchDataApi, {
+  PR_ProgrammeProfile: ['ProgrammeId', 'MQACode', 'FacultyOrCentre', 'ProgrammeName', 'StudyLevel', 'StudyMode', 'StudyField', 'Session', 'DocumentVersion', 'DataOwner', 'MappingStatus', 'CreatedAt', 'UpdatedAt', 'UpdatedBy'],
+  PR_PEORecords: ['PeoId', 'ProgrammeId', 'Code', 'Statement', 'SortOrder', 'UpdatedAt', 'UpdatedBy'],
+  PR_PLORecords: ['PloId', 'ProgrammeId', 'ParentPEO', 'Code', 'Statement', 'MQFDomainsJson', 'Taxonomy', 'Rationale', 'Status', 'UpdatedAt', 'UpdatedBy'],
+  PR_PLOMappings: ['PloId', 'ProgrammeId', 'SDGIdsJson', 'SCIdsJson', 'DerivedTFIdsJson', 'MappingNote', 'UpdatedAt', 'UpdatedBy'],
+  PR_MQFReference: ['Code', 'Title', 'Description', 'Active'],
+  PR_TFReference: ['Code', 'Title', 'Description', 'MQFDomainsJson', 'Active'],
+  PR_SDGReference: ['Code', 'Title', 'Description', 'Active'],
+  PR_SCReference: ['Code', 'Title', 'Description', 'Active']
+}, 'Research headers are not exact');
+assert(!Object.keys(researchDataApi).some(function(name) {
+  return researchDataApi[name].some(function(header) { return /Course|Subject|Credit|CLO|DCI/i.test(header); });
+}), 'Research headers must not contain course fields');
+nodeAssert.deepStrictEqual(researchReferenceApi.PR_TFReference.map(function(row) { return [row[0], JSON.parse(row[3])]; }), [
+  ['TF1', ['MQF1', 'MQF4a']],
+  ['TF2', ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']],
+  ['TF3', ['MQF3a', 'MQF3b', 'MQF3c', 'MQF3f']],
+  ['TF4', ['MQF3a', 'MQF3b', 'MQF4a', 'MQF4b', 'MQF5']]
+], 'TF relationships are not exact');
+assertContains(researchData, /LockService\.getScriptLock\(\)/, 'Research sheet creation is not locked');
+assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\(\)[\s\S]*?getCurrentUser\(\)/, 'Research references API lacks authentication');
+assertContains(auth, /function\s+getCurrentUser\s*\(/, 'Authentication helper is missing');
 assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\(/, 'Research references API is missing');
 
 console.log('MQF rebuild static checks passed.');

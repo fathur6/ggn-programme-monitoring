@@ -14,16 +14,28 @@ var RESEARCH_SHEET_HEADERS = {
 function ensureResearchSheets_() {
   var ss = getSpreadsheet();
   var result = {};
-  Object.keys(RESEARCH_SHEET_HEADERS).forEach(function(name) {
-    var sheet = ss.getSheetByName(name) || ss.insertSheet(name);
-    if (sheet.getLastRow() === 0) sheet.appendRow(RESEARCH_SHEET_HEADERS[name]);
-    result[name] = sheet;
-  });
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (e) {
+    throw new Error('Sistem sibuk. Sila cuba sebentar lagi.');
+  }
+  try {
+    Object.keys(RESEARCH_SHEET_HEADERS).forEach(function(name) {
+      var sheet = ss.getSheetByName(name) || ss.insertSheet(name);
+      if (sheet.getLastRow() === 0) sheet.appendRow(RESEARCH_SHEET_HEADERS[name]);
+      result[name] = sheet;
+    });
+  } finally {
+    lock.releaseLock();
+  }
   return result;
 }
 
 function getResearchProgrammeKey_(programme) {
-  var key = String(programme && (programme.programmeId || programme.mqaCode) || '').trim();
+  var programmeId = String(programme && programme.programmeId || '').trim();
+  var mqaCode = String(programme && programme.mqaCode || '').trim();
+  var key = programmeId || mqaCode;
   if (!key) throw new Error('Programme ID is required');
   return key;
 }

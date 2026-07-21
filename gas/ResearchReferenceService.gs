@@ -34,13 +34,26 @@ function isActiveReference_(value) {
 }
 
 function seedResearchReferences_(sheets) {
-  Object.keys(RESEARCH_REFERENCE_SEEDS_).forEach(function(name) {
-    var sheet = sheets[name];
-    if (sheet.getLastRow() === 1) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+  } catch (e) {
+    throw new Error('Sistem sibuk. Sila cuba sebentar lagi.');
+  }
+  try {
+    Object.keys(RESEARCH_REFERENCE_SEEDS_).forEach(function(name) {
+      var sheet = sheets[name];
       var rows = RESEARCH_REFERENCE_SEEDS_[name];
-      sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
-    }
-  });
+      var expected = [RESEARCH_SHEET_HEADERS[name]].concat(rows);
+      var actual = sheet.getDataRange().getValues();
+      if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+        sheet.clearContents();
+        sheet.getRange(1, 1, expected.length, expected[0].length).setValues(expected);
+      }
+    });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function getResearchReferences_() {
@@ -49,11 +62,18 @@ function getResearchReferences_() {
   var result = {};
   Object.keys(RESEARCH_REFERENCE_SEEDS_).forEach(function(name) {
     var rows = sheets[name].getDataRange().getValues();
+    var activeColumn = RESEARCH_SHEET_HEADERS[name].indexOf('Active');
     result[name.replace('PR_', '').replace('Reference', '')] = rows.slice(1).filter(function(row) {
-      return isActiveReference_(row[row.length - 1]);
+      return isActiveReference_(row[activeColumn]);
     }).map(function(row) {
       if (name === 'PR_TFReference') {
-        return { code: String(row[0]).trim(), title: row[1], description: row[2], mqfDomains: JSON.parse(row[3] || '[]') };
+        var mqfDomains;
+        try {
+          mqfDomains = JSON.parse(row[3] || '[]');
+        } catch (e) {
+          throw new Error('Malformed MQF domains JSON for reference ' + row[0]);
+        }
+        return { code: String(row[0]).trim(), title: row[1], description: row[2], mqfDomains: mqfDomains };
       }
       return { code: String(row[0]).trim(), title: row[1], description: row[2] };
     });
@@ -62,19 +82,27 @@ function getResearchReferences_() {
 }
 
 function validateReferenceIds_(ids, allowedIds) {
-  var allowed = (allowedIds || []).map(function(id) { return String(id).trim(); });
-  var seen = {};
+  var allowed = Object.create(null);
+  (allowedIds || []).forEach(function(id) {
+    var value = String(id).trim();
+    if (!isUnsafeReferenceId_(value)) allowed[value] = true;
+  });
+  var seen = Object.create(null);
   var invalid = [];
   var canonical = [];
   (ids || []).forEach(function(id) {
     var value = String(id).trim();
-    if (!value || seen[value]) return;
+    if (!value || Object.prototype.hasOwnProperty.call(seen, value)) return;
     seen[value] = true;
-    if (allowed.indexOf(value) === -1) invalid.push(value);
+    if (isUnsafeReferenceId_(value) || !Object.prototype.hasOwnProperty.call(allowed, value)) invalid.push(value);
     else canonical.push(value);
   });
   if (invalid.length) throw new Error('Invalid reference IDs: ' + invalid.join(', '));
   return canonical;
+}
+
+function isUnsafeReferenceId_(value) {
+  return value === '__proto__' || Object.prototype.hasOwnProperty.call(Object.prototype, value);
 }
 
 function getResearchReferencesApi() {
