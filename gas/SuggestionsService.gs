@@ -143,11 +143,13 @@ function rejectSuggestion_(rowIndex, note) {
 function getPendingDeletions_() {
   var user = getCurrentUser();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
-  var deletion = getDeletionSheet_();
+  var deletion = getDeletionSheetReadOnly_();
+  if (!deletion) throw new Error('Skema permohonan pemadaman tidak sah.');
   var data = deletion.sheet.getDataRange().getValues();
   var result = [];
   for (var i = 1; i < data.length; i++) {
-    if (!data[i][deletion.columns.FileID] ||
+    if (!data[i][deletion.columns.RequestId] ||
+        !data[i][deletion.columns.FileID] ||
         String(data[i][deletion.columns.Status]) !== 'Pending') continue;
     var programme = findProgrammeByMqaCode_(data[i][deletion.columns.Programme]);
     if (!programme || !isResearchProgramme_(programme)) continue;

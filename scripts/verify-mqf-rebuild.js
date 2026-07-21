@@ -183,11 +183,22 @@ assertContains(upload, /function\s+approveDeleteFile_\s*\(requestId\)/, 'Private
 assertContains(upload, /columns\.Status\]\)\s*!==\s*['"]Pending['"]/, 'Delete service must require Pending status');
 assertContains(upload, /function\s+approveDeleteFile_[\s\S]*?findProgrammeByMqaCode_\s*\(mqaCode\)[\s\S]*?isResearchProgramme_\s*\(programme\)/,
   'Delete approval must revalidate the target as a research programme before Drive access');
+assertContains(upload, /function\s+approveDeleteFile_[\s\S]*?getDeletionSheetReadOnly_\s*\(\)/,
+  'Delete approval must use read-only deletion-sheet access');
+assert(!/function\s+approveDeleteFile_[\s\S]*?getDeletionSheet_\s*\(\)/.test(upload),
+  'Delete approval must not use mutating deletion-sheet setup');
+assertContains(suggestions, /function\s+getPendingDeletions_[\s\S]*?getDeletionSheetReadOnly_\s*\(\)/,
+  'Deletion queue must use read-only deletion-sheet access');
+assert(!/Utilities\.getUuid/.test(functionSource(upload, 'getDeletionSheetReadOnly_')),
+  'Read-only deletion-sheet access must not generate request IDs');
 assertContains(upload, /getParents\s*\(/, 'Delete service must verify file folder membership');
 assertContains(upload, /RequestId/, 'Delete records must include a request ID');
 assertContains(index, /approveDelete\(d\.requestId\)/, 'Admin UI must approve a deletion request by requestId');
 assertContains(javascript, /approveDeleteFileApi\(requestId\)/, 'Client approval must send requestId');
 assertContains(read('gas/dump_pic.gs'), /Endpoint disabled/, 'PIC dump utility must be disabled');
+assert(!/function\s+dumpPIC\s*\(/.test(read('gas/dump_pic.gs')), 'PIC dump utility must not be a public Apps Script global');
+assertContains(read('gas/update_pic.gs'), /function\s+updatePICApi_\s*\(/, 'PIC update utility must use a private helper');
+assert(!/function\s+updatePICApi\s*\(/.test(read('gas/update_pic.gs')), 'PIC update utility must not be a public Apps Script global');
 assertContains(governance, /var\s+ACADEMIC_DEADLINE\s*=\s*['"]2026-07-23T23:59:59\+08:00['"]/, 'Academic deadline constant is missing or incorrect');
 assertContains(governance, /function\s+isProgrammeOverdue_\s*\(/, 'Overdue helper is missing');
 assert(!/overdue\s*:\s*false/.test(governance), 'Overdue status is still hard-coded false');

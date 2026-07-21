@@ -30,24 +30,21 @@ function getDeletionSheet_() {
   if (!sheet) {
     sheet = ss.insertSheet('PendingDeletions');
     sheet.appendRow(DELETION_HEADERS);
+    return getDeletionSheetReadOnly_();
   }
 
+  var deletion = getDeletionSheetReadOnly_();
+  if (!deletion) throw new Error('Skema permohonan pemadaman tidak sah.');
+  return deletion;
+}
+
+function getDeletionSheetReadOnly_() {
+  var sheet = getSpreadsheet().getSheetByName('PendingDeletions');
+  if (!sheet) return null;
   var headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
-  DELETION_HEADERS.forEach(function(header) {
-    if (headers.indexOf(header) === -1) {
-      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header);
-      headers.push(header);
-    }
-  });
+  if (DELETION_HEADERS.some(function(header) { return headers.indexOf(header) === -1; })) return null;
   var columns = {};
   headers.forEach(function(header, index) { columns[header] = index; });
-  var data = sheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][columns.FileID] && !data[i][columns.RequestId]) {
-      var legacyRequestId = 'DEL-' + Utilities.getUuid();
-      sheet.getRange(i + 1, columns.RequestId + 1).setValue(legacyRequestId);
-    }
-  }
   return { sheet: sheet, columns: columns };
 }
 
@@ -156,7 +153,8 @@ function approveDeleteFile_(requestId) {
   }
 
   try {
-    var deletion = getDeletionSheet_();
+    var deletion = getDeletionSheetReadOnly_();
+    if (!deletion) throw new Error('Skema permohonan pemadaman tidak sah.');
     var data = deletion.sheet.getDataRange().getValues();
     var rowIndex = -1;
     for (var i = 1; i < data.length; i++) {

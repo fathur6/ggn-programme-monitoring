@@ -8,7 +8,7 @@ function makeSheet(rows) {
     appendRow: function(row) { this.rows.push(row.slice()); },
     getDataRange: function() { return { getValues: () => this.rows.map(row => row.slice()) }; },
     getRange: function(row, column, numRows, numColumns) {
-      return { setValues: values => {
+      return { getValues: () => this.rows.slice(row - 1, row - 1 + numRows).map(values => values.slice(column - 1, column - 1 + numColumns)), setValues: values => {
         for (let i = 0; i < numRows; i++) {
           for (let j = 0; j < numColumns; j++) this.rows[row - 1 + i][column - 1 + j] = values[i][j];
         }
@@ -58,3 +58,50 @@ assert.throws(() => context.revokeAccessGrantApi_('STALE', ''), /invalid researc
 assert.strictEqual(sheet.rows[2][8], 'Pending', 'Stale revocation must not change state');
 
 console.log('Task 7 boundary regression tests passed.');
+
+const deletionHeaders = [
+  'RequestId', 'FileID', 'FileName', 'Programme', 'RequestedBy',
+  'RequestedDate', 'Status', 'ApproverEmail', 'ApprovedDate', 'DecisionNote'
+];
+let deletionDriveLookups = 0;
+const deletionRows = [
+  deletionHeaders,
+  ['', 'legacy-file', 'legacy.pdf', 'MQA/RESEARCH', 'requester@example.com', new Date(), 'Pending', '', '', ''],
+  ['DEL-RESEARCH', 'research-file', 'research.pdf', 'MQA/RESEARCH', 'requester@example.com', new Date(), 'Pending', '', '', ''],
+  ['DEL-COURSE', 'course-file', 'course.pdf', 'MQA/LEGACY', 'requester@example.com', new Date(), 'Pending', '', '', ''],
+  ['DEL-APPROVED', 'approved-file', 'approved.pdf', 'MQA/RESEARCH', 'requester@example.com', new Date(), 'Approved', '', new Date(), '']
+];
+const deletionSheet = makeSheet(deletionRows);
+deletionSheet.getLastColumn = () => deletionHeaders.length;
+deletionSheet.getLastRow = () => deletionSheet.rows.length;
+const deletionContext = {
+  getCurrentUser: () => ({ email: 'admin@example.com', role: 'Admin' }),
+  isGraduateSchoolAdmin_: user => !!user && user.role === 'Admin',
+  isResearchProgramme_: programme => !!programme && String(programme.mode).toLowerCase() === 'research',
+  findProgrammeByMqaCode_: code => programmes[String(code || '').trim()] || null,
+  getSpreadsheet: () => ({ getSheetByName: () => deletionSheet, insertSheet: () => { throw new Error('unexpected sheet creation'); } }),
+  LockService: { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) },
+  DriveApp: { getFileById: () => { deletionDriveLookups++; throw new Error('Drive lookup should not occur'); } }
+};
+vm.runInNewContext(fs.readFileSync('gas/UploadService.gs', 'utf8'), deletionContext);
+vm.runInNewContext(fs.readFileSync('gas/SuggestionsService.gs', 'utf8'), deletionContext);
+
+const snapshotDeletionRows = () => deletionSheet.rows.map(row => row.map(value => value instanceof Date ? value.getTime() : value));
+const beforeDeletionRead = snapshotDeletionRows();
+const readOnlyDeletion = deletionContext.getDeletionSheetReadOnly_();
+assert.deepStrictEqual(snapshotDeletionRows(), beforeDeletionRead, 'Deletion read must not mutate legacy rows');
+assert.strictEqual(readOnlyDeletion.columns.RequestId, 0, 'Read-only deletion access must resolve existing headers');
+const pendingDeletions = deletionContext.getPendingDeletions_();
+assert.deepStrictEqual(Array.from(pendingDeletions, item => item.requestId), ['DEL-RESEARCH'], 'Deletion queue must include only identified research requests');
+assert.deepStrictEqual(snapshotDeletionRows(), beforeDeletionRead, 'Queue listing must be side-effect free');
+
+assert.throws(() => deletionContext.approveDeleteFile_('DEL-COURSE'), /penyelidikan|research programme/i);
+assert.strictEqual(deletionDriveLookups, 0, 'Invalid deletion approval must reject before Drive access');
+assert.strictEqual(deletionSheet.rows[3][6], 'Pending', 'Invalid deletion approval must not update the row');
+
+const updatePicSource = fs.readFileSync('gas/update_pic.gs', 'utf8');
+const dumpPicSource = fs.readFileSync('gas/dump_pic.gs', 'utf8');
+assert(!/function\s+updatePICApi\s*\(/.test(updatePicSource), 'PIC update must not be directly exposed');
+assert(/function\s+updatePICApi_\s*\(/.test(updatePicSource), 'PIC update private helper is missing');
+assert(!/function\s+dumpPIC\s*\(/.test(dumpPicSource), 'PIC dump must not be directly exposed');
+assert(/function\s+dumpPIC_\s*\(/.test(dumpPicSource), 'PIC dump private helper is missing');
