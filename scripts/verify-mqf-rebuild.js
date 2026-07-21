@@ -101,6 +101,11 @@ assertContains(auth, /isGraduateSchoolAdmin_\s*\(/, 'Missing Graduate School adm
 assertContains(auth, /canViewProgramme_\s*\(/, 'Missing programme access helper');
 assertContains(auth, /requireProgrammeAccess_\s*\(/, 'Missing programme access guard');
 assertContains(auth, /capabilities\s*[:=]/, 'Current user does not expose normalized capabilities');
+assertContains(auth, /var\s+coorSheet\s*=\s*ss\.getSheetByName\(['"]COOR['"]\)/, 'COOR sheet lookup is missing');
+assertContains(auth, /coorData\[i\]\[2\].*trim\(\)\.toLowerCase\(\)\s*===\s*emailStr/, 'COOR lookup must normalize the third-column email');
+assertContains(auth, /role:\s*['"]Faculty Coordinator['"]/, 'COOR lookup must return the Faculty Coordinator role');
+assertContains(auth, /faculty:\s*coorData\[i\]\[0\].*name:\s*coorData\[i\]\[1\]/, 'COOR lookup must return faculty and display name');
+assertContains(auth, /programme\.faculty\s*===\s*String\(user\.faculty\s*\|\|\s*['"]['"]\)\.trim\(\)/, 'Non-admin programme access must remain faculty scoped');
 
 [
   'getPEOsApi',

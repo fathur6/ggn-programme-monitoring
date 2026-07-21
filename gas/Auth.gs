@@ -159,5 +159,15 @@ function lookupUser(email) {
     }
   }
 
+  var coorSheet = ss.getSheetByName('COOR');
+  if (coorSheet) {
+    var coorData = coorSheet.getDataRange().getValues();
+    for (var i = 1; i < coorData.length; i++) {
+      if (String(coorData[i][2]).trim().toLowerCase() === emailStr) {
+        return { email: email, role: 'Faculty Coordinator', faculty: coorData[i][0], name: coorData[i][1] };
+      }
+    }
+  }
+
   return null;
 }
