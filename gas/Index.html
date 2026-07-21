@@ -218,8 +218,8 @@
 
        <div v-if="currentView === 'detail' && currentProgramme" class="research-workspace">
          <div class="back-link" @click="leaveResearchWorkspace">&larr; Back to list</div>
-         <section class="programme-context">
-           <div><p class="eyebrow">POSTGRADUATE RESEARCH PROGRAMME</p><h2 class="section-title">{{ currentProgramme.name }}</h2><p class="text-sm text-muted">{{ currentProgramme.mqaCode }} · {{ currentProgramme.progCode }}</p></div>
+           <section class="programme-context">
+            <div><p class="eyebrow">POSTGRADUATE RESEARCH PROGRAMME</p><h2 class="section-title">{{ currentProgramme.name }}</h2><p class="text-sm text-muted">{{ currentProgramme.mqaCode }} · {{ currentProgramme.progCode }} · Postgraduate by Research</p></div>
            <div class="context-status"><span class="status-chip">{{ researchStatus }}</span><span class="save-state" :class="researchSaveState">{{ researchLoading ? 'Loading workspace...' : researchError ? 'Action required' : researchDirty ? 'Unsaved changes' : researchSaveState === 'saved' ? 'All changes saved' : 'Ready to edit' }}</span></div>
          </section>
          <nav class="research-tabs" aria-label="Programme workspace">
@@ -227,9 +227,9 @@
            <button :class="{active: researchCategory === 'mapping'}" @click="researchCategory = 'mapping'">Pemetaan</button>
          </nav>
 
-         <div v-if="researchLoading" class="loading-panel" role="status">Loading research workspace...</div>
-         <div v-else-if="researchError" class="alert alert-error" role="alert"><strong>Research workspace could not be loaded.</strong><div>{{ researchError }}</div><button class="btn btn-secondary mt-3" @click="loadResearchWorkspace">Retry workspace load</button></div>
-         <div v-else>
+          <div v-if="researchLoading" class="loading-panel" role="status">Loading research workspace...</div>
+          <div v-else>
+          <div v-if="researchError" class="alert alert-error" role="alert"><strong>Research action needs attention.</strong><div>{{ researchError }}</div><div class="text-sm mt-2">Review the editable records and try the action again.</div><button class="btn btn-secondary mt-3" @click="loadResearchWorkspace">Retry workspace load</button></div>
          <section v-if="researchCategory === 'information'" class="research-panel">
            <div class="panel-heading"><div><p class="eyebrow">PROGRAMME PROFILE</p><h3 class="section-title">Programme Information</h3></div><button class="btn btn-primary" @click="saveResearchProfile" :disabled="researchSaveState === 'saving'">Save profile</button></div>
            <div v-if="researchProfile" class="profile-grid">
@@ -237,7 +237,7 @@
              <div class="form-group"><label for="profile-name">Programme name</label><input id="profile-name" v-model="researchProfile.programmeName" disabled></div>
              <div class="form-group"><label for="profile-faculty">Faculty or centre</label><input id="profile-faculty" v-model="researchProfile.facultyOrCentre" disabled></div>
              <div class="form-group"><label for="profile-level">Study level</label><input id="profile-level" v-model="researchProfile.studyLevel" disabled></div>
-             <div class="form-group"><label for="profile-mode">Study mode</label><input id="profile-mode" v-model="researchProfile.studyMode" @input="markResearchDirty"></div>
+              <div class="form-group"><label for="profile-mode">Study mode</label><input id="profile-mode" value="Postgraduate by Research" disabled></div>
              <div class="form-group"><label for="profile-field">Study field</label><input id="profile-field" v-model="researchProfile.studyField" @input="markResearchDirty"></div>
              <div class="form-group"><label for="profile-session">Session</label><input id="profile-session" v-model="researchProfile.session" @input="markResearchDirty"></div>
              <div class="form-group"><label for="profile-version">Document version</label><input id="profile-version" v-model="researchProfile.documentVersion" @input="markResearchDirty"></div>
@@ -251,7 +251,7 @@
          </section>
 
          <section v-if="researchCategory === 'mapping'" class="research-panel">
-           <div class="panel-heading"><div><p class="eyebrow">PLO MAPPING</p><h3 class="section-title">PLO Workspace</h3></div><span class="status-chip">{{ researchStatus }}</span></div>
+           <div class="panel-heading"><div><p class="eyebrow">PLO MAPPING</p><h3 class="section-title">PLO Workspace</h3></div><div><span class="status-chip">{{ researchStatus }}</span><button type="button" class="btn btn-success ml-2" aria-label="Add PLO to PLO Workspace" @click="addResearchPLO">+ Add PLO</button></div></div>
            <div v-if="researchReview && researchReview.critical && researchReview.critical.length" class="alert alert-error" role="alert"><strong>Validation alerts</strong><div v-for="issue in researchReview.critical" :key="issue.code + issue.ploCode">{{ issue.message }}</div></div>
            <article v-for="plo in researchPLOs" :key="plo.ploId || plo.code" class="plo-workspace-row">
              <div class="plo-row-heading"><strong class="font-mono">{{ plo.code }}</strong><span class="text-sm text-muted">Parent PEO: {{ plo.parentPEO || 'Not selected' }}</span><span v-if="researchMapping(plo).derivedTFIds.length" class="derived-badge">TF derived from MQF mapping: {{ researchMapping(plo).derivedTFIds.join(', ') }}</span></div>

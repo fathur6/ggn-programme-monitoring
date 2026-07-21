@@ -18,6 +18,14 @@ assert(/researchLoading\s*=\s*false/.test(methodSource('loadResearchWorkspace'))
 assert(/researchError\s*=/.test(methodSource('loadResearchWorkspace')), 'Workspace failures are not retained in state');
 assert(/researchError/.test(index), 'Workspace error state is not actionable in the UI');
 assert(/researchSaveState\s*=\s*['"]loading['"]/.test(methodSource('loadResearchWorkspace')), 'Workspace is marked ready before loading starts');
+assert(/PLO Workspace[\s\S]*?\+ Add PLO/.test(index), 'PLO Workspace does not expose its add action');
+assert(/type="button"/.test(index), 'Research workspace actions are missing explicit button types');
+assert(/addResearchPLO:\s*function/.test(source), 'Research PLO add flow is missing');
+assert(/isResearchProgramme/.test(source), 'Client research programme guard is missing');
+assert(/researchError\s*=/.test(methodSource('researchFailure')), 'Research failures are not retained');
+assert(/researchDirty\s*=\s*true/.test(methodSource('researchFailure')), 'Research failures do not preserve dirty state');
+assert(/researchSaveState\s*=\s*['"]error['"]/.test(methodSource('researchFailure')), 'Research failures do not set error save state');
+assert(/submitResearchProgramme[\s\S]*?researchFailure/.test(source), 'Submission failure does not use persistent research failure state');
 
 const mappingSave = methodSource('saveResearchPLOMapping');
 assert(/saveResearchPLOsApi/.test(mappingSave), 'Mapping save does not persist PLO fields first');

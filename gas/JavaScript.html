@@ -274,6 +274,14 @@ new Vue({
      taxonomyOptions: function() {
        return Object.keys(this.taxonomyLevels).reduce(function(all, key) { return all.concat(this.taxonomyLevels[key]); }.bind(this), []);
      },
+     isResearchProgramme: function(programme) {
+       if (!programme) return false;
+       if (programme.research === true) return true;
+       var mode = String(programme.mode || '').trim().toLowerCase();
+       if (mode) return mode === 'research' || mode === 'postgraduate by research';
+       var level = String(programme.level || '').trim().toLowerCase();
+       return level === 'masters' || level === 'master' || level === 'doctorate' || level === 'doctoral';
+     },
      reviewStatusClass: function() {
        return this.researchStatus === 'Ready for review' || this.researchStatus === 'Approved' ? 'status-good' : 'status-warn';
      }
@@ -384,9 +392,13 @@ new Vue({
       if (this.user.role !== 'Admin') return;
       google.script.run.withSuccessHandler(function(items) { self.governanceItems = items; }).withFailureHandler(function(err) { self.showToast('Governance: ' + err.message); }).getGovernanceItemsApi({});
     },
-    openProgramme: function(prog) {
-      if (this.researchDirty && !confirm('You have unsaved changes. Leave this programme without saving?')) return;
-      this.currentProgramme = prog;
+     openProgramme: function(prog) {
+       if (this.researchDirty && !confirm('You have unsaved changes. Leave this programme without saving?')) return;
+       if (!this.isResearchProgramme(prog)) {
+         this.showToast('This programme is not Postgraduate by Research and cannot open the research workspace.');
+         return;
+       }
+       this.currentProgramme = prog;
       this.currentView = 'detail';
       this.researchCategory = 'information';
       this.researchDirty = false;
@@ -449,10 +461,12 @@ new Vue({
         self.researchStatus = review.status || self.researchStatus;
       });
     },
-    researchFailure: function(error) {
-      this.researchError = error && error.message ? error.message : 'The research workspace request failed.';
-      this.researchSaveState = 'error';
-      this.showToast(this.researchError);
+     researchFailure: function(error) {
+       this.researchError = error && error.message ? error.message : 'The research workspace request failed.';
+       this.researchSaveState = 'error';
+       this.researchDirty = true;
+       this.dirty = true;
+       this.showToast(this.researchError);
     },
     refreshResearchDerived: function() {
       this.loadResearchMappings();
@@ -524,9 +538,9 @@ new Vue({
       var self = this; if (!this.currentProgramme) return;
       google.script.run.withSuccessHandler(function(review) { self.researchReview = review; self.researchStatus = review.status || self.researchStatus; }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchReviewApi(this.currentProgramme.mqaCode);
     },
-    submitResearchProgramme: function() {
-      var self = this;
-      google.script.run.withSuccessHandler(function(result) { self.researchStatus = result.status; self.researchMutationComplete('Programme submitted for review.'); }).withFailureHandler(function(e) { self.showToast(e.message); }).submitResearchProgrammeApi(this.currentProgramme.mqaCode);
+     submitResearchProgramme: function() {
+       var self = this;
+      google.script.run.withSuccessHandler(function(result) { self.researchStatus = result.status; self.researchMutationComplete('Programme submitted for review.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).submitResearchProgrammeApi(this.currentProgramme.mqaCode);
     },
     selectAllMQFDomains: function(plo) {
       plo.mqfDomains = this.researchReferences.mqf.map(function(domain) { return domain.code; }); this.markResearchDirty();

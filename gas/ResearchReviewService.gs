@@ -223,6 +223,7 @@ function researchReviewData_(mqaCode) {
 
 function getResearchReviewApi_(mqaCode) {
   requireProgrammeAccess_(mqaCode, 'view-review');
+  requireResearchProgramme_(mqaCode);
   var data = researchReviewData_(mqaCode);
   var result = validateResearchProgramme_(data);
   var profile = data.profile;
@@ -236,6 +237,7 @@ function getResearchReviewApi_(mqaCode) {
 
 function saveResearchStatusApi_(mqaCode, status) {
   var access = requireProgrammeAccess_(mqaCode, 'save-review');
+  requireResearchProgramme_(mqaCode);
   status = String(status && (status.status || status.mappingStatus) || status || '').trim();
   if (RESEARCH_REVIEW_STATUSES.indexOf(status) === -1) throw new Error('Invalid research review status');
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
@@ -265,6 +267,7 @@ function saveResearchStatusApi_(mqaCode, status) {
 
 function submitResearchProgrammeApi_(mqaCode) {
   var access = requireProgrammeAccess_(mqaCode, 'submit-review');
+  requireResearchProgramme_(mqaCode);
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
   var sheets = ensureResearchSheets_();
   return withResearchLock_(function() {

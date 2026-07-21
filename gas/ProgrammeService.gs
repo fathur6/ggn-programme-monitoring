@@ -23,12 +23,22 @@ function getProgrammes(userFilterFaculty) {
       progCode: data[i][columns.progCode],
       faculty: String(data[i][columns.faculty] || '').trim(),
       facultyFull: String(data[i][6] || '').trim(),
-      level: detectLevel(data[i][columns.name])
+      level: detectLevel(data[i][columns.name]),
+      mode: String(data[i][10] || '').trim()
     };
     if (userFilterFaculty && prog.faculty !== String(userFilterFaculty).trim()) continue;
     programmes.push(prog);
   }
   return programmes;
+}
+
+function isResearchProgramme_(programme) {
+  if (!programme) return false;
+  if (programme.research === true) return true;
+  var mode = String(programme.mode || '').trim().toLowerCase();
+  if (mode) return mode === 'research' || mode === 'postgraduate by research';
+  var level = String(programme.level || '').trim().toLowerCase();
+  return level === 'masters' || level === 'master' || level === 'doctorate' || level === 'doctoral';
 }
 
 function findProgrammeByMqaCode_(mqaCode) {

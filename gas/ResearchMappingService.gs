@@ -76,7 +76,12 @@ function researchUser_(access) {
 function researchProgramme_(mqaCode) {
   var programme = findProgrammeByMqaCode_(String(mqaCode || '').trim());
   if (!programme) throw new Error('Programme is not in the programme directory');
+  if (!isResearchProgramme_(programme)) throw new Error('Programme is not postgraduate by research');
   return programme;
+}
+
+function requireResearchProgramme_(mqaCode) {
+  return researchProgramme_(mqaCode);
 }
 
 function researchRows_(sheet) {
@@ -188,13 +193,14 @@ function freshResearchMappings_(sheet, rows, ploById, references, rowIndexes) {
 
 function getResearchProgrammeApi_(mqaCode) {
   var access = requireProgrammeAccess_(mqaCode, 'view-programme');
+  requireResearchProgramme_(mqaCode);
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
   var row = researchRows_(ensureResearchSheets_().PR_ProgrammeProfile).filter(function(item) { return String(item[0]) === key; })[0];
   if (row) return profileFromRow_(row);
   var programme = researchProgramme_(key);
   return {
     programmeId: key, mqaCode: key, facultyOrCentre: programme.faculty || programme.facultyFull || '',
-    programmeName: programme.name || '', studyLevel: programme.level || '', studyMode: '', studyField: '',
+    programmeName: programme.name || '', studyLevel: programme.level || '', studyMode: 'Postgraduate by Research', studyField: '',
     session: '', documentVersion: '', dataOwner: '', mappingStatus: 'Draft', createdAt: '', updatedAt: '',
     updatedBy: researchUser_(access).email || ''
   };
@@ -202,6 +208,7 @@ function getResearchProgrammeApi_(mqaCode) {
 
 function saveResearchProfileApi_(mqaCode, profile) {
   var access = requireProgrammeAccess_(mqaCode, 'edit-programme');
+  requireResearchProgramme_(mqaCode);
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
   var programme = researchProgramme_(key);
   var user = researchUser_(access);
@@ -210,7 +217,7 @@ function saveResearchProfileApi_(mqaCode, profile) {
     var now = new Date();
     var existing = researchRows_(sheet).filter(function(row) { return String(row[0]) === key; })[0];
     var row = [key, key, programme.faculty || programme.facultyFull || '', programme.name || '', programme.level || '',
-      String(profile.studyMode || '').trim(), String(profile.studyField || '').trim(), String(profile.session || '').trim(),
+      'Postgraduate by Research', String(profile.studyField || '').trim(), String(profile.session || '').trim(),
       String(profile.documentVersion || '').trim(), String(profile.dataOwner || '').trim(),
       'Draft', existing && existing[11] || now,
       now, user.email || ''];
@@ -221,12 +228,14 @@ function saveResearchProfileApi_(mqaCode, profile) {
 
 function getResearchPEOsApi_(mqaCode) {
   requireProgrammeAccess_(mqaCode, 'view-peos');
+  requireResearchProgramme_(mqaCode);
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
   return researchRows_(ensureResearchSheets_().PR_PEORecords).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
 }
 
 function saveResearchPEOsApi_(mqaCode, peos) {
   var access = requireProgrammeAccess_(mqaCode, 'edit-peos');
+  requireResearchProgramme_(mqaCode);
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
   var normalized = (Array.isArray(peos) ? peos : []).map(normalizeResearchPEO_);
   normalized.forEach(function(peo) { if (!peo.code || !peo.statement) throw new Error('PEO code and statement are required'); });
@@ -242,6 +251,7 @@ function saveResearchPEOsApi_(mqaCode, peos) {
 
 function saveResearchPLOsApi_(mqaCode, plos) {
   var access = requireProgrammeAccess_(mqaCode, 'edit-plos');
+  requireResearchProgramme_(mqaCode);
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
   var normalized = (Array.isArray(plos) ? plos : []).map(normalizeResearchPLO_);
   normalized.forEach(function(plo) {
@@ -276,12 +286,14 @@ function saveResearchPLOsApi_(mqaCode, plos) {
 
 function getResearchPLOsApi_(mqaCode) {
   requireProgrammeAccess_(mqaCode, 'view-plos');
+  requireResearchProgramme_(mqaCode);
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
   return researchRows_(ensureResearchSheets_().PR_PLORecords).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
 }
 
 function getResearchMappingsApi_(mqaCode) {
   requireProgrammeAccess_(mqaCode, 'view-mappings');
+  requireResearchProgramme_(mqaCode);
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
   var sheets = ensureResearchSheets_();
   return withResearchLock_(function() {
@@ -295,6 +307,7 @@ function getResearchMappingsApi_(mqaCode) {
 
 function saveResearchPLOMappingApi_(mqaCode, ploId, mapping) {
   var access = requireProgrammeAccess_(mqaCode, 'edit-mappings');
+  requireResearchProgramme_(mqaCode);
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
   var sheets = ensureResearchSheets_();
   var user = researchUser_(access);
@@ -320,6 +333,7 @@ function saveResearchPLOMappingApi_(mqaCode, ploId, mapping) {
 
 function getResearchCoverageApi_(mqaCode) {
   requireProgrammeAccess_(mqaCode, 'view-mappings');
+  requireResearchProgramme_(mqaCode);
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
   var sheets = ensureResearchSheets_();
   return withResearchLock_(function() {

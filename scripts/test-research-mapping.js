@@ -1,9 +1,30 @@
 const assert = require('assert');
 const fs = require('fs');
 
+function extractFunction(name, source) {
+  var re = new RegExp('function\\s+' + name + '\\s*\\([^)]*\\)\\s*\\{');
+  var start = source.search(re);
+  if (start === -1) throw new Error('Function ' + name + ' not found in source');
+  var depth = 0, i = start;
+  while (i < source.length) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}') { depth--; if (depth === 0) break; }
+    i++;
+  }
+  return source.slice(start, i + 1);
+}
+
 const dataSource = fs.readFileSync('gas/ResearchDataService.gs', 'utf8');
 const referenceSource = fs.readFileSync('gas/ResearchReferenceService.gs', 'utf8');
+const mappingSource = fs.readFileSync('gas/ResearchMappingService.gs', 'utf8');
 const api = new Function('getSpreadsheet', 'getCurrentUser', 'LockService', dataSource + '\n' + referenceSource + '\nreturn { RESEARCH_SHEET_HEADERS: RESEARCH_SHEET_HEADERS, getResearchProgrammeKey_: getResearchProgrammeKey_, validateReferenceIds_: validateReferenceIds_, getResearchReferences_: getResearchReferences_, getResearchReferencesApi: getResearchReferencesApi };')(undefined, undefined, undefined);
+
+var task2HelpersSource = [
+  'uniqueTrimmed_', 'canonicalResearchTaxonomy_',
+  'normalizeResearchPEO_', 'normalizeResearchPLO_',
+  'validateDuplicateCodes_', 'validatePLOParents_'
+].map(function(name) { return extractFunction(name, mappingSource); }).join('\n');
+var task2Helpers = new Function(task2HelpersSource + '\nreturn { uniqueTrimmed_: uniqueTrimmed_, canonicalResearchTaxonomy_: canonicalResearchTaxonomy_, normalizeResearchPEO_: normalizeResearchPEO_, normalizeResearchPLO_: normalizeResearchPLO_, validateDuplicateCodes_: validateDuplicateCodes_, validatePLOParents_: validatePLOParents_ };')();
 
 const researchSheetNames = Object.keys(api.RESEARCH_SHEET_HEADERS);
 assert.deepStrictEqual(researchSheetNames, [
@@ -95,5 +116,23 @@ const unauthenticatedApi = new Function('getSpreadsheet', 'getCurrentUser', 'Loc
   {getScriptLock: () => ({waitLock: () => {}, releaseLock: () => {}})}
 );
 assert.throws(() => unauthenticatedApi(), /unauthorized/i);
+
+assert.deepStrictEqual(task2Helpers.uniqueTrimmed_([' MQF2 ', 'MQF1', ' MQF2 ', '']), ['MQF2', 'MQF1']);
+assert.strictEqual(task2Helpers.canonicalResearchTaxonomy_(' c4 '), 'C4');
+assert.strictEqual(task2Helpers.canonicalResearchTaxonomy_(null), '');
+assert.deepStrictEqual(task2Helpers.normalizeResearchPEO_({code: ' PEO1 ', statement: ' Test '}), {code: 'PEO1', statement: 'Test'});
+assert.deepStrictEqual(task2Helpers.normalizeResearchPLO_({
+  code: ' PLO1 ',
+  statement: ' Outcome ',
+  parentPEO: 'PEO1',
+  mqfDomains: ['MQF2', 'MQF2'],
+  taxonomy: 'c4'
+}), {
+  code: 'PLO1', statement: 'Outcome', parentPEO: 'PEO1',
+  mqfDomains: ['MQF2'], taxonomy: 'C4', rationale: ''
+});
+assert.throws(function() { task2Helpers.validatePLOParents_([{code: 'PLO1', parentPEO: 'PEO9'}], [{code: 'PEO1'}]); }, /parent PEO/i);
+assert.throws(function() { task2Helpers.validateDuplicateCodes_([{code: 'PLO1'}, {code: 'PLO1'}], 'PLO'); }, /duplicate/i);
+assert.throws(function() { task2Helpers.validateDuplicateCodes_([{code: 'PLO1'}, {code: ' PLO1'}], 'PLO'); }, /duplicate/i);
 
 console.log('Research mapping tests passed.');

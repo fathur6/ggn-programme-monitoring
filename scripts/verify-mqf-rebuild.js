@@ -34,6 +34,9 @@ const researchData = read('gas/ResearchDataService.gs');
 const researchReferences = read('gas/ResearchReferenceService.gs');
 const researchDataApi = new Function(researchData + '\nreturn RESEARCH_SHEET_HEADERS;')();
 const researchReferenceApi = new Function(researchReferences + '\nreturn RESEARCH_REFERENCE_SEEDS_;')();
+const researchMapping = read('gas/ResearchMappingService.gs');
+const researchReview = read('gas/ResearchReviewService.gs');
+const programmeService = read('gas/ProgrammeService.gs');
 
 [
   'gas/Index.html',
@@ -54,9 +57,64 @@ const researchReferenceApi = new Function(researchReferences + '\nreturn RESEARC
   'scripts/test-mqf-overdue.js',
   'gas/ResearchDataService.gs',
   'gas/ResearchReferenceService.gs',
-  'scripts/test-research-mapping.js'
+  'gas/ResearchMappingService.gs',
+  'gas/ResearchReviewService.gs',
+  'gas/ProgrammeService.gs',
+  'scripts/test-research-mapping.js',
+  'scripts/test-research-mapping-client.js',
+  'scripts/test-coor-access.js'
 ].forEach(function(path) {
   assert(fs.existsSync(path), 'Required project file is missing: ' + path);
+});
+assertContains(researchMapping, /function\s+uniqueTrimmed_\s*\(/, 'Shared trimming helper is missing');
+assertContains(researchMapping, /function\s+canonicalResearchTaxonomy_\s*\(/, 'Taxonomy canonicalization helper is missing');
+assertContains(researchMapping, /function\s+normalizeResearchPEO_\s*\(/, 'Research PEO normalization is missing');
+assertContains(researchMapping, /function\s+normalizeResearchPLO_\s*\(/, 'Research PLO normalization is missing');
+assertContains(researchMapping, /function\s+validatePLOParents_\s*\(/, 'Research PLO parent validation is missing');
+assertContains(researchMapping, /function\s+validateDuplicateCodes_\s*\(/, 'Research duplicate validation is missing');
+assertContains(researchMapping, /function\s+getResearchProgrammeApi_\s*\(/, 'Research programme API is missing');
+assertContains(researchMapping, /function\s+saveResearchProfileApi_\s*\(/, 'Research profile save API is missing');
+assertContains(researchMapping, /function\s+getResearchPEOsApi_\s*\(/, 'Research PEO API is missing');
+assertContains(researchMapping, /function\s+saveResearchPEOsApi_\s*\(/, 'Research PEO save API is missing');
+assertContains(researchMapping, /function\s+getResearchPLOsApi_\s*\(/, 'Research PLO API is missing');
+assertContains(researchMapping, /function\s+saveResearchPLOsApi_\s*\(/, 'Research PLO save API is missing');
+assertContains(researchMapping, /function\s+getResearchMappingsApi_\s*\(/, 'Research mapping API is missing');
+
+assertContains(researchMapping, /function\s+calculatePEOCoverage_\s*\(/, 'PEO coverage helper is missing');
+assertContains(researchMapping, /function\s+saveResearchPLOMappingApi_\s*\(/, 'PLO mapping save API is missing');
+assertContains(researchMapping, /function\s+getResearchCoverageApi_\s*\(/, 'Research coverage API is missing');
+assertContains(researchReview, /function\s+validateResearchProgramme_\s*\(/, 'Research review validation is missing');
+assertContains(researchReview, /function\s+getResearchReviewApi_\s*\(/, 'Research review API is missing');
+assertContains(researchReview, /function\s+saveResearchStatusApi_\s*\(/, 'Research status save API is missing');
+assertContains(researchReview, /function\s+submitResearchProgrammeApi_\s*\(/, 'Research submission API is missing');
+['critical', 'warnings', 'peoCoverage', 'ploTotal', 'mqfDomainCoverage', 'peosWithIssues'].forEach(function(marker) {
+  assertContains(researchReview, new RegExp(marker), 'Research review output is missing: ' + marker);
+});
+assertContains(researchReview, /requireProgrammeAccess_\s*\(/, 'Research review APIs are not programme scoped');
+assertContains(researchReview, /withResearchLock_\s*\(/, 'Research review mutations are not locked');
+assertContains(researchReview, /updatedBy/, 'Research review audit field is missing');
+assertContains(researchMapping, /Derived from PLO mappings/, 'Derived mapping label is missing');
+assertContains(programmeService, /mode:\s*String\(data\[i\]\[10\]/, 'Programme mode metadata is not exposed');
+assertContains(researchMapping, /function\s+requireResearchProgramme_\s*\(/, 'Research programme mode guard is missing');
+assertContains(researchMapping, /requireResearchProgramme_\(mqaCode\)/, 'Research APIs do not enforce the research programme guard');
+assertContains(researchMapping, /Postgraduate by Research/, 'Research profile mode is not canonical');
+assert(!/\b(getPEOs|savePEOs|getPLOs|savePLOs)\s*\(/.test(researchMapping), 'Research service calls legacy PEO/PLO services');
+[
+  'getResearchProgrammeApi_', 'saveResearchProfileApi_', 'getResearchPEOsApi_',
+  'saveResearchPEOsApi_', 'getResearchPLOsApi_', 'saveResearchPLOsApi_', 'getResearchMappingsApi_',
+  'saveResearchPLOMappingApi_', 'getResearchCoverageApi_'
+].forEach(function(name) {
+  assertContains(researchMapping, new RegExp('function\\s+' + name + '[\\s\\S]*?requireProgrammeAccess_\\s*\\('), name + ' is not guarded');
+});
+['getResearchReviewApi', 'saveResearchStatusApi', 'submitResearchProgrammeApi'].forEach(function(name) {
+  assertContains(code, new RegExp('function\\s+' + name + '[\\s\\S]*?return\\s+' + name + '_'), name + ' wrapper is missing');
+});
+[
+  'getResearchProgrammeApi', 'saveResearchProfileApi', 'getResearchPEOsApi',
+  'saveResearchPEOsApi', 'getResearchPLOsApi', 'saveResearchPLOsApi', 'getResearchMappingsApi',
+  'saveResearchPLOMappingApi', 'getResearchCoverageApi'
+].forEach(function(name) {
+  assertContains(code, new RegExp('function\\s+' + name + '[\\s\\S]*?return\\s+' + name + '_'), name + ' wrapper is missing');
 });
 
 const trackedFiles = childProcess.execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n');
@@ -147,14 +205,9 @@ assertContains(index, /Faculty readiness/, 'Faculty readiness dashboard is missi
 assertContains(javascript, /getUniversityDashboardApi\(\)/, 'Dashboard API is not loaded by the client');
 assertContains(javascript, /function\(faculty\)/, 'Dashboard faculty completion helper is missing');
 assertContains(styles, /--action-green/, 'Operational Clarity action token is missing');
-assertContains(javascript, /validatePEOs:\s*function\s*\(/, 'PEO validation method is missing');
-assertContains(javascript, /validatePLOs:\s*function\s*\(/, 'PLO validation method is missing');
-assertContains(javascript, /getReviewSummary:\s*function\s*\(/, 'Review summary method is missing');
-assertContains(javascript, /removeRecord:\s*function\s*\(/, 'Context-specific record removal is missing');
-assertContains(javascript, /undoRemove:\s*function\s*\(/, 'Record undo action is missing');
-assertContains(index, /Save PEOs/, 'PEO save action is missing');
-assertContains(index, /Save PLOs/, 'PLO save action is missing');
-assertContains(index, /MQF 2\.0 Domain/, 'MQF Domain label is missing');
+assertContains(index, /PLO Workspace[\s\S]*?\+ Add PLO/, 'PLO Workspace add action is missing');
+assertContains(index, /Postgraduate by Research/, 'Research mode label is missing');
+assertContains(index, /MQF domains/, 'MQF domain selector is missing');
 assertContains(index, /Taxonomy/, 'Taxonomy label is missing');
 assertContains(index, /Request temporary access/, 'Faculty access request workspace is missing');
 assertContains(index, /createAccessRequest/, 'Access request action is missing from the UI');

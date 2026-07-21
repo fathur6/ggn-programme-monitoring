@@ -223,11 +223,6 @@ function computeProgrammeStatus_(programme) {
   };
 }
 
-function isResearchProgramme_(programme) {
-  var level = String(programme && programme.level || '').toLowerCase();
-  return !!programme && (programme.research === true || level === 'masters' || level === 'doctorate');
-}
-
 function computeResearchProgrammeStatus_(programme) {
   var review = getResearchReviewApi_(programme.mqaCode);
   var metrics = review.metrics || {};

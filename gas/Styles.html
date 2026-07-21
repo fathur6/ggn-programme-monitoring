@@ -1,4 +1,5 @@
 <style>
+  body { overflow-x: hidden; }
   :root {
     --primary: #17171c;
     --ink: #212121;
@@ -132,6 +133,7 @@
   }
 
   .app-header { gap: 24px; position: sticky; top: 0; z-index: 20; }
+  .app-header { min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden; }
   .brand-lockup, .app-nav, .identity-chip { display: flex; align-items: center; }
   .brand-lockup { gap: 12px; min-width: 220px; }
   .brand-logo { height: 32px; width: auto; }
@@ -287,7 +289,7 @@
     cursor: pointer; user-select: none;
   }
 
-  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 24px; box-sizing: border-box; }
   .flex { display: flex; }
   .flex-1 { flex: 1; }
   .items-center { align-items: center; }
@@ -554,7 +556,8 @@
   .derived-badge { display: inline-block; padding: 4px 8px; border-radius: 99px; background: #edf8f1; color: var(--action-green); font-size: 11px; font-weight: 600; }
   .plo-row-actions { padding-top: 10px; border-top: 1px solid var(--border-light); }
   .coverage-metrics { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-  .coverage-metrics span { padding: 8px 10px; background: var(--canvas-muted); border-radius: var(--radius-sm); color: var(--slate); font-size: 11px; }
+  .coverage-metrics span { min-width: 0; max-width: 100%; padding: 8px 10px; background: var(--canvas-muted); border-radius: var(--radius-sm); color: var(--slate); font-size: 11px; overflow-wrap: anywhere; }
+  .accordion-header > span { min-width: 0; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .coverage-metrics strong { color: var(--ink); font-size: 18px; margin-right: 3px; }
   .matrix-wrap { overflow-x: auto; }
   .coverage-matrix { min-width: 620px; }
