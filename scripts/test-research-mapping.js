@@ -70,6 +70,7 @@ function loadResearchHelpers() {
     fs.readFileSync('gas/ResearchReferenceService.gs', 'utf8'),
     fs.readFileSync('gas/ResearchMappingService.gs', 'utf8'),
     fs.readFileSync('gas/ResearchReviewService.gs', 'utf8'),
+    fs.readFileSync('gas/GovernanceService.gs', 'utf8'),
   ].join('\n');
   vm.runInNewContext(source, context);
   return context;
@@ -94,6 +95,11 @@ const ready = helpers.validateResearchProgramme_({
   mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}]
 });
 assert.strictEqual(ready.status, 'Ready for review');
+assert.strictEqual(helpers.isLegalResearchStatusTransition_('Draft', 'Needs attention'), true);
+assert.strictEqual(helpers.isLegalResearchStatusTransition_('Draft', 'Ready for review'), true);
+assert.strictEqual(helpers.isLegalResearchStatusTransition_('Draft', 'Submitted'), true);
+assert.strictEqual(helpers.isLegalResearchStatusTransition_('Submitted', 'Approved'), true);
+assert.strictEqual(helpers.isLegalResearchStatusTransition_('Draft', 'Approved'), false);
 
 assert.deepStrictEqual(JSON.parse(JSON.stringify(helpers.deriveTFIds_(['MQF2', 'MQF3d'], {
   TF1: ['MQF1', 'MQF4a'],
@@ -259,12 +265,46 @@ assert.strictEqual(review.metrics.ploTotal, 1);
 assert.strictEqual(review.metrics.ploWithMQF, 1);
 assert.strictEqual(typeof review.updatedAt, 'string');
 assert.strictEqual(helpers.saveResearchStatusApi_('MQA/TEST', {status: 'Draft'}).status, 'Draft');
+assert.throws(function() { helpers.saveResearchStatusApi_('MQA/TEST', 'Submitted'); }, /guarded submission/i);
+const submitWaitLocks = helpers.__lockState.waitLockCalls;
+const submitUnlockedReads = helpers.__lockState.unlockedDataReads;
 assert.strictEqual(helpers.submitResearchProgrammeApi_('MQA/TEST').status, 'Submitted');
 assert.strictEqual(sheets.PR_ProgrammeProfile.values[1][10], 'Submitted');
+assert.strictEqual(helpers.__lockState.waitLockCalls, submitWaitLocks + 1);
+assert.strictEqual(helpers.__lockState.unlockedDataReads, submitUnlockedReads);
 
 sheets.PR_PLORecords.values[1][4] = '';
 assert.throws(function() { helpers.submitResearchProgrammeApi_('MQA/TEST'); }, /critical review issues/i);
+assert.strictEqual(helpers.getResearchReviewApi_('MQA/TEST').status, 'Needs attention');
 sheets.PR_PLORecords.values[1][4] = 'Outcome';
+
+assert.strictEqual(helpers.getResearchReviewApi_('MQA/TEST').status, 'Submitted');
+assert.strictEqual(helpers.getResearchReviewApi_('MQA/TEST').metrics.ploWithValidTF, 1);
+assert.strictEqual(helpers.__lockState.unlockedDataReads, 0);
+
+assert.throws(function() { helpers.saveResearchStatusApi_('MQA/TEST', 'Approved'); }, /admin only/i);
+helpers.requireProgrammeAccess_ = function() {
+  return { user: { email: 'admin@unisza.edu.my', role: 'Admin', capabilities: { graduateSchoolAdmin: true } } };
+};
+helpers.isGraduateSchoolAdmin_ = function(user) { return !!user && user.role === 'Admin'; };
+assert.strictEqual(helpers.saveResearchStatusApi_('MQA/TEST', 'Approved').status, 'Approved');
+
+assert.strictEqual(helpers.isResearchMappingComplete_({ploTotal: 2, ploWithMQF: 2, ploWithValidTF: 1}), false);
+assert.strictEqual(helpers.isResearchMappingComplete_({ploTotal: 2, ploWithMQF: 2, ploWithValidTF: 2}), true);
+
+helpers.getCurrentUser = function() { return { email: 'faculty@unisza.edu.my', faculty: 'Faculty A' }; };
+helpers.isGraduateSchoolAdmin_ = function() { return false; };
+helpers.getProgrammes = function(faculty) {
+  assert.strictEqual(faculty, 'Faculty A');
+  return [{faculty: 'Faculty A', facultyFull: 'Faculty A', mqaCode: 'MQA/A'}];
+};
+helpers.computeProgrammeStatus_ = function(programme) {
+  assert.strictEqual(programme.faculty, 'Faculty A');
+  return {completionState: 'Draft', mqfDomainState: 'Needs attention', taxonomyState: 'Needs attention', mappingState: 'Needs attention', documentState: 'Not required', reviewState: 'Blocked', submissionState: 'Draft', overdue: false};
+};
+helpers.Utilities = {formatDate: function() { return '2026-07'; }};
+helpers.Session = {getScriptTimeZone: function() { return 'UTC'; }};
+assert.strictEqual(helpers.getUniversityDashboardApi_().programmeCount, 1);
 
 helpers.requireProgrammeAccess_ = function() { throw new Error('programme access denied'); };
 assert.throws(() => helpers.getResearchMappingsApi_('MQA/TEST'), /access denied/i);

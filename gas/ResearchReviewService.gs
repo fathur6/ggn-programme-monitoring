@@ -2,6 +2,27 @@
 
 var RESEARCH_REVIEW_STATUSES = ['Draft', 'Needs attention', 'Ready for review', 'Submitted', 'Approved', 'Returned for revision'];
 
+function isLegalResearchStatusTransition_(fromStatus, toStatus) {
+  fromStatus = String(fromStatus || 'Draft').trim();
+  toStatus = String(toStatus || '').trim();
+  var transitions = {
+    'Draft': ['Draft', 'Needs attention', 'Ready for review', 'Submitted'],
+    'Needs attention': ['Draft', 'Needs attention', 'Ready for review', 'Submitted'],
+    'Ready for review': ['Draft', 'Needs attention', 'Ready for review', 'Submitted'],
+    'Submitted': ['Submitted', 'Approved', 'Returned for revision'],
+    'Approved': ['Approved', 'Returned for revision'],
+    'Returned for revision': ['Returned for revision', 'Draft', 'Needs attention', 'Ready for review']
+  };
+  return !!transitions[fromStatus] && transitions[fromStatus].indexOf(toStatus) !== -1;
+}
+
+function researchReviewAdmin_(access) {
+  var user = access && access.user;
+  return typeof isGraduateSchoolAdmin_ === 'function'
+    ? isGraduateSchoolAdmin_(user)
+    : !!user && user.role === 'Admin';
+}
+
 function reviewIssue_(code, message, ploCode, peoCode) {
   var issue = {code: code, message: message, severity: 'critical'};
   if (ploCode) issue.ploCode = ploCode;
@@ -77,6 +98,7 @@ function validateResearchProgramme_(input) {
   var allMQF = [], allTF = [], allSDG = [], allSC = [];
   var statementsComplete = 0;
   var withMQF = 0;
+  var withValidTF = 0;
   var withSDG = 0;
   var withSC = 0;
   var peoChildren = {};
@@ -123,6 +145,8 @@ function validateResearchProgramme_(input) {
       critical.push(reviewIssue_('PLO_TF_DERIVATION_FAILED', 'Derived TF mapping does not match MQF domains', code));
     } else if (!expectedTF.length && domains.length) {
       critical.push(reviewIssue_('PLO_TF_DERIVATION_FAILED', 'No TF can be derived from the MQF domains', code));
+    } else if (domains.length && expectedTF.length) {
+      withValidTF++;
     }
     allTF = allTF.concat(actualTF);
     allSDG = allSDG.concat(sdgIds);
@@ -149,6 +173,7 @@ function validateResearchProgramme_(input) {
       ploTotal: plos.length,
       ploStatementsComplete: statementsComplete,
       ploWithMQF: withMQF,
+      ploWithValidTF: withValidTF,
       ploWithSDG: withSDG,
       ploWithSC: withSC,
       mqfDomainCoverage: uniqueTrimmed_(allMQF).sort().length,
@@ -165,22 +190,24 @@ function validateResearchProgramme_(input) {
   };
 }
 
+function researchReviewDataFromSheets_(key, sheets) {
+  var profile = researchRows_(sheets.PR_ProgrammeProfile).filter(function(row) { return String(row[0]) === key; })[0];
+  var peos = researchRows_(sheets.PR_PEORecords).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
+  var plos = researchRows_(sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
+  var mappings = researchRows_(sheets.PR_PLOMappings).filter(function(row) { return String(row[1]) === key; }).map(mappingFromRow_);
+  var references = {
+    mqf: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_MQFReference, 'mqf')),
+    tf: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_TFReference, 'tf')),
+    sdg: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_SDGReference, 'sdg')),
+    sc: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_SCReference, 'sc'))
+  };
+  return {profile: profile ? profileFromRow_(profile) : null, peos: peos, plos: plos, mappings: mappings, references: references};
+}
+
 function researchReviewData_(mqaCode) {
   var key = getResearchProgrammeKey_({mqaCode: mqaCode});
   var sheets = ensureResearchSheets_();
-  return withResearchLock_(function() {
-    var profile = researchRows_(sheets.PR_ProgrammeProfile).filter(function(row) { return String(row[0]) === key; })[0];
-    var peos = researchRows_(sheets.PR_PEORecords).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
-    var plos = researchRows_(sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
-    var mappings = researchRows_(sheets.PR_PLOMappings).filter(function(row) { return String(row[1]) === key; }).map(mappingFromRow_);
-    var references = {
-      mqf: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_MQFReference, 'mqf')),
-      tf: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_TFReference, 'tf')),
-      sdg: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_SDGReference, 'sdg')),
-      sc: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_SCReference, 'sc'))
-    };
-    return {profile: profile ? profileFromRow_(profile) : null, peos: peos, plos: plos, mappings: mappings, references: references};
-  });
+  return withResearchLock_(function() { return researchReviewDataFromSheets_(key, sheets); });
 }
 
 function getResearchReviewApi_(mqaCode) {
@@ -188,7 +215,9 @@ function getResearchReviewApi_(mqaCode) {
   var data = researchReviewData_(mqaCode);
   var result = validateResearchProgramme_(data);
   var profile = data.profile;
-  if (profile && ['Submitted', 'Approved', 'Returned for revision'].indexOf(profile.mappingStatus) !== -1) result.status = profile.mappingStatus;
+  if (profile && !result.critical.length && ['Submitted', 'Approved', 'Returned for revision'].indexOf(profile.mappingStatus) !== -1) {
+    result.status = profile.mappingStatus;
+  }
   result.updatedAt = serializeResearchDate_(profile && profile.updatedAt);
   result.updatedBy = profile && profile.updatedBy || '';
   return result;
@@ -206,6 +235,14 @@ function saveResearchStatusApi_(mqaCode, status) {
     var index = rows.findIndex(function(row) { return String(row[0]) === key; });
     if (index === -1) throw new Error('Research programme profile not found');
     var row = rows[index].slice();
+    var currentStatus = String(row[10] || 'Draft').trim();
+    if (status === 'Submitted') throw new Error('Submitted requires the guarded submission API');
+    if (!isLegalResearchStatusTransition_(currentStatus, status)) {
+      throw new Error('Illegal research review status transition');
+    }
+    if (['Approved', 'Returned for revision'].indexOf(status) !== -1 && !researchReviewAdmin_(access)) {
+      throw new Error('Graduate School admin only for terminal review decisions');
+    }
     var now = new Date();
     row[10] = status;
     row[12] = now;
@@ -216,9 +253,25 @@ function saveResearchStatusApi_(mqaCode, status) {
 }
 
 function submitResearchProgrammeApi_(mqaCode) {
-  requireProgrammeAccess_(mqaCode, 'submit-review');
-  var data = researchReviewData_(mqaCode);
-  var review = validateResearchProgramme_(data);
-  if (review.critical.length) throw new Error('Research programme cannot be submitted: critical review issues remain');
-  return saveResearchStatusApi_(mqaCode, 'Submitted');
+  var access = requireProgrammeAccess_(mqaCode, 'submit-review');
+  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
+  var sheets = ensureResearchSheets_();
+  return withResearchLock_(function() {
+    var data = researchReviewDataFromSheets_(key, sheets);
+    var review = validateResearchProgramme_(data);
+    if (review.critical.length) throw new Error('Research programme cannot be submitted: critical review issues remain');
+    var rows = researchRows_(sheets.PR_ProgrammeProfile);
+    var index = rows.findIndex(function(row) { return String(row[0]) === key; });
+    if (index === -1) throw new Error('Research programme profile not found');
+    var row = rows[index].slice();
+    if (!isLegalResearchStatusTransition_(row[10], 'Submitted')) {
+      throw new Error('Research programme is not in a submittable state');
+    }
+    var now = new Date();
+    row[10] = 'Submitted';
+    row[12] = now;
+    row[13] = (access.user && access.user.email) || '';
+    sheets.PR_ProgrammeProfile.getRange(index + 2, 1, 1, 14).setValues([row]);
+    return {status: 'Submitted', updatedAt: serializeResearchDate_(now), updatedBy: row[13]};
+  });
 }

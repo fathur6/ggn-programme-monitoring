@@ -43,10 +43,10 @@ function getUniversityDashboardApi_() {
   var user = getCurrentUser();
   if (!user) throw new Error('Unauthorized');
 
-  var programmes = getProgrammes(null);
+  var admin = isGraduateSchoolAdmin_(user);
+  var programmes = getProgrammes(admin ? null : user.faculty);
   var byFaculty = {};
   var totals = createEmptyStatusTotals_();
-  var admin = isGraduateSchoolAdmin_(user);
 
   programmes.forEach(function(programme) {
     var status = computeProgrammeStatus_(programme);
@@ -236,7 +236,7 @@ function computeResearchProgrammeStatus_(programme) {
   var peoReady = (metrics.peosWithIssues || 0) === 0 && metrics.ploTotal > 0;
   var ploReady = metrics.ploStatementsComplete === metrics.ploTotal && metrics.ploTotal > 0;
   var mqfReady = metrics.ploWithMQF === metrics.ploTotal && metrics.ploTotal > 0;
-  var mappingReady = (metrics.tfCoverage || 0) > 0;
+  var mappingReady = isResearchMappingComplete_(metrics);
   return {
     completionState: review.status,
     peoState: peoReady ? 'Complete' : 'Needs attention',
@@ -253,9 +253,16 @@ function computeResearchProgrammeStatus_(programme) {
       plos: metrics.ploTotal || 0,
       mqfDomainComplete: metrics.ploWithMQF || 0,
       taxonomyComplete: ploReady ? metrics.ploTotal : metrics.ploStatementsComplete || 0,
-      mappingComplete: mappingReady ? metrics.ploTotal : 0
+      mappingComplete: mappingReady ? metrics.ploTotal : (metrics.ploWithValidTF || 0)
     }
   };
+}
+
+function isResearchMappingComplete_(metrics) {
+  metrics = metrics || {};
+  return metrics.ploTotal > 0 &&
+    metrics.ploWithMQF === metrics.ploTotal &&
+    metrics.ploWithValidTF === metrics.ploTotal;
 }
 
 function hasProgrammeDocuments_(mqaCode) {
