@@ -18,4 +18,7 @@ assert(api.isProgrammeOverdue_({ completionState: 'Submitted' }, new Date('2026-
 const totals = api.createEmptyStatusTotals_();
 api.addStatusToTotals_(totals, { completionState: 'Draft', overdue: true, mqfDomainState: 'Needs Attention', taxonomyState: 'Needs Attention', mappingState: 'Needs Attention', documentState: 'Needs Attention', reviewState: 'Blocked', submissionState: 'Draft' });
 assert(totals.overdueCount === 1, 'Faculty/university overdue aggregation is inconsistent');
+api.addStatusToTotals_(totals, { completionState: 'Complete', phase1Complete: true, phase2Complete: false, phase2CompletedItems: 4, phase2TotalItems: 6, mqfDomainState: 'Complete', taxonomyState: 'Complete', mappingState: 'Not required', documentState: 'Not required', reviewState: 'Ready', submissionState: 'Ready' });
+assert(totals.phase1CompleteCount === 1, 'Phase 1 aggregation is inconsistent');
+assert(totals.phase2CompletedItems === 4 && totals.phase2TotalItems === 12, 'Phase 2 six-item aggregation is inconsistent');
 console.log('MQF overdue tests passed.');

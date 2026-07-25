@@ -60,11 +60,15 @@ function getUniversityDashboardApi_() {
         needsAttentionCount: 0,
         mqfDomainCompleteCount: 0,
         taxonomyCompleteCount: 0,
-        mappingCompleteCount: 0,
-        documentReadyCount: 0,
-        reviewCount: 0,
-        submissionCount: 0,
-        overdueCount: 0
+         mappingCompleteCount: 0,
+         documentReadyCount: 0,
+         reviewCount: 0,
+         submissionCount: 0,
+         overdueCount: 0,
+         phase1CompleteCount: 0,
+         phase2CompleteCount: 0,
+         phase2CompletedItems: 0,
+         phase2TotalItems: 0
       };
     }
     addStatusToTotals_(byFaculty[faculty], status);
@@ -343,11 +347,11 @@ function createEmptyStatusTotals_() {
     documentReadyCount: 0,
     reviewCount: 0,
     submissionCount: 0,
-      overdueCount: 0
-      ,phase1CompleteCount: 0
-      ,phase2CompleteCount: 0
-      ,phase2CompletedItems: 0
-      ,phase2TotalItems: 0
+      overdueCount: 0,
+      phase1CompleteCount: 0,
+      phase2CompleteCount: 0,
+      phase2CompletedItems: 0,
+      phase2TotalItems: 0
     };
 }
 
