@@ -456,6 +456,12 @@ new Vue({
        if (!faculty || !faculty.programmeCount) return 0;
        return Math.round(((faculty.phase1CompleteCount || 0) / faculty.programmeCount) * 100);
      },
+     facultyDisplayName: function(faculty) {
+       var fullName = String(faculty && (faculty.facultyFull || faculty.faculty) || '').trim();
+       var code = String(faculty && faculty.faculty || '').trim();
+       if (code) fullName = fullName.replace(new RegExp('\\s*\\(' + code.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&') + '\\)\\s*$'), '');
+       return fullName || code;
+     },
      phase2Percent: function(faculty) {
        if (!faculty || !faculty.phase2TotalItems) return 0;
        return Math.round(((faculty.phase2CompletedItems || 0) / faculty.phase2TotalItems) * 100);
