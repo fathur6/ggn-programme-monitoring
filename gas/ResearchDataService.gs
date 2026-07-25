@@ -11,8 +11,11 @@ var RESEARCH_SHEET_HEADERS = {
   PR_SCReference: ['Code', 'Title', 'Description', 'Active']
 };
 
+var RESEARCH_SHEETS_CACHE_ = null;
+
 function ensureResearchSheets_() {
   var ss = getSpreadsheet();
+  if (RESEARCH_SHEETS_CACHE_) return RESEARCH_SHEETS_CACHE_;
   var result = {};
   var lock = LockService.getScriptLock();
   try {
@@ -29,6 +32,7 @@ function ensureResearchSheets_() {
   } finally {
     lock.releaseLock();
   }
+  RESEARCH_SHEETS_CACHE_ = result;
   return result;
 }
 

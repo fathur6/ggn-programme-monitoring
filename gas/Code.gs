@@ -112,6 +112,10 @@ function getGovernanceItemsApi(filters) {
   return getGovernanceItemsApi_(filters || {});
 }
 
+function getFacultyUserDirectoryApi() {
+  return getFacultyUserDirectoryApi_();
+}
+
 function saveGovernanceItemApi(item) {
   return saveGovernanceItemApi_(item || {});
 }
@@ -132,18 +136,18 @@ function revokeAccessGrantApi(requestId, note) {
   return revokeAccessGrantApi_(requestId, note || '');
 }
 
-function getResearchProgrammeApi(mqaCode) { return getResearchProgrammeApi_(mqaCode); }
-function saveResearchProfileApi(mqaCode, profile) { return saveResearchProfileApi_(mqaCode, profile || {}); }
-function getResearchPEOsApi(mqaCode) { return getResearchPEOsApi_(mqaCode); }
-function saveResearchPEOsApi(mqaCode, peos) { return saveResearchPEOsApi_(mqaCode, peos || []); }
-function getResearchPLOsApi(mqaCode) { return getResearchPLOsApi_(mqaCode); }
-function saveResearchPLOsApi(mqaCode, plos) { return saveResearchPLOsApi_(mqaCode, plos || []); }
-function getResearchMappingsApi(mqaCode) { return getResearchMappingsApi_(mqaCode); }
-function saveResearchPLOMappingApi(mqaCode, ploId, mapping) { return saveResearchPLOMappingApi_(mqaCode, ploId, mapping || {}); }
-function getResearchCoverageApi(mqaCode) { return getResearchCoverageApi_(mqaCode); }
-function getResearchReviewApi(mqaCode) { return getResearchReviewApi_(mqaCode); }
-function saveResearchStatusApi(mqaCode, status) { return saveResearchStatusApi_(mqaCode, status); }
-function submitResearchProgrammeApi(mqaCode) { return submitResearchProgrammeApi_(mqaCode); }
+function getResearchProgrammeApi(programmeId) { return getResearchProgrammeApi_(programmeId); }
+function saveResearchProfileApi(programmeId, profile) { return saveResearchProfileApi_(programmeId, profile || {}); }
+function getResearchPEOsApi(programmeId) { return getResearchPEOsApi_(programmeId); }
+function saveResearchPEOsApi(programmeId, peos) { return saveResearchPEOsApi_(programmeId, peos || []); }
+function getResearchPLOsApi(programmeId) { return getResearchPLOsApi_(programmeId); }
+function saveResearchPLOsApi(programmeId, plos) { return saveResearchPLOsApi_(programmeId, plos || []); }
+function getResearchMappingsApi(programmeId) { return getResearchMappingsApi_(programmeId); }
+function saveResearchPLOMappingApi(programmeId, ploId, mapping) { return saveResearchPLOMappingApi_(programmeId, ploId, mapping || {}); }
+function getResearchCoverageApi(programmeId) { return getResearchCoverageApi_(programmeId); }
+function getResearchReviewApi(programmeId) { return getResearchReviewApi_(programmeId); }
+function saveResearchStatusApi(programmeId, status) { return saveResearchStatusApi_(programmeId, status); }
+function submitResearchProgrammeApi(programmeId) { return submitResearchProgrammeApi_(programmeId); }
 
 function approveDeleteFileApi(requestId) {
   var user = getCurrentUser_();
@@ -203,6 +207,42 @@ function sendTestAnnouncementApi() {
     var user = getCurrentUser_();
     if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
     return sendTestAnnouncement();
+  });
+}
+
+/** Send test progress email (to fathur6@gmail.com — ESERI, Penguji Sistem) */
+function sendTestProgressEmailApi() {
+  return withErrorHandling(function() {
+    var user = getCurrentUser_();
+    if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
+    return sendTestProgressEmail();
+  });
+}
+
+/** Send progress announcement to a specific faculty */
+function sendProgressAnnouncementApi(fac) {
+  return withErrorHandling(function() {
+    var user = getCurrentUser_();
+    if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
+    return sendProgressAnnouncement(fac);
+  });
+}
+
+/** Send progress announcement to all faculties */
+function sendAllProgressAnnouncementsApi() {
+  return withErrorHandling(function() {
+    var user = getCurrentUser_();
+    if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
+    return sendAllProgressAnnouncements();
+  });
+}
+
+/** Send progress announcement to selected faculties (JSON array string) */
+function sendProgressAnnouncementsByFacultyListApi(facList) {
+  return withErrorHandling(function() {
+    var user = getCurrentUser_();
+    if (!isGraduateSchoolAdmin_(user)) throw new Error('Admin only');
+    return sendProgressAnnouncementsByFacultyList(facList);
   });
 }
 

@@ -126,6 +126,12 @@ var TAXONOMY_LEVELS = {
   ]
 };
 
+var SC_CATEGORIES = [
+  { name: 'Ways of Thinking', codes: ['SC1', 'SC2', 'SC3'] },
+  { name: 'Ways of Practicing', codes: ['SC4', 'SC5', 'SC6'] },
+  { name: 'Ways of Being', codes: ['SC7', 'SC8'] }
+];
+
 function initApp() {
   showLoadingOverlay();
 
@@ -153,7 +159,7 @@ function projectMappingMatrixRow_(plo, tfReferences) {
   var domains = Array.isArray(plo.mqfDomains) ? plo.mqfDomains : [];
   var mqf = {};
   domains.forEach(function(domain) { mqf[domain] = true; });
-  var tf = (Array.isArray(tfReferences) ? tfReferences : []).filter(function(reference) {
+  var tf = Array.isArray(plo.tfIds) ? plo.tfIds : (Array.isArray(tfReferences) ? tfReferences : []).filter(function(reference) {
     return Array.isArray(reference.mqfDomains) && reference.mqfDomains.some(function(domain) {
       return domains.indexOf(domain) !== -1;
     });
@@ -182,14 +188,22 @@ new Vue({
     pendingDeletions: [],
     toast: null,
     toastTimer: null,
-    mqfClusters: MQF_CLUSTERS,
-    taxonomyLevels: TAXONOMY_LEVELS,
+     mqfClusters: MQF_CLUSTERS,
+     taxonomyLevels: TAXONOMY_LEVELS,
+     scCategories: SC_CATEGORIES,
     subgroupOpen: {},
     preparing: false
     ,dashboard: null
-    ,dashboardLoading: false
-    ,dashboardError: null
-    ,selectedFaculty: ''
+     ,dashboardLoading: false
+     ,dashboardLoadingProgress: 0
+     ,dashboardLoadingStatus: ''
+     ,dashboardLoadingTimer: null
+     ,dashboardError: null
+     ,selectedFaculty: ''
+     ,expandedFaculty: ''
+     ,facultyDetails: {}
+     ,facultyDetailsLoading: {}
+     ,facultyDetailsError: {}
      ,researchCategory: 'information'
      ,researchPanel: 'profile'
      ,researchProfile: null
@@ -208,7 +222,8 @@ new Vue({
     ,accessRequest: { targetFaculty: '', mqaCode: '', reason: '', scope: 'programme' }
     ,myAccessRequests: []
     ,accessRequests: []
-    ,governanceItems: []
+     ,governanceItems: []
+     ,facultyUserDirectory: []
   },
   computed: {
     filteredProgrammes: function() {
@@ -289,12 +304,6 @@ new Vue({
      taxonomyOptions: function() {
        return Object.keys(this.taxonomyLevels).reduce(function(all, key) { return all.concat(this.taxonomyLevels[key]); }.bind(this), []);
      },
-     isResearchProgramme: function(programme) {
-       if (!programme) return false;
-        var mode = String(programme.mode || '').trim().toLowerCase();
-        if (mode) return mode === 'research' || mode === 'postgraduate by research';
-        return false;
-     },
       reviewStatusClass: function() {
         return this.researchStatus === 'Ready for review' || this.researchStatus === 'Approved' ? 'status-good' : 'status-warn';
       },
@@ -304,14 +313,21 @@ new Vue({
            var mapping = self.researchMappings[plo.ploId || plo.code] || {};
            return projectMappingMatrixRow_({
              code: plo.code,
-             mqfDomains: plo.mqfDomains,
-             sdgIds: mapping.sdgIds,
+              mqfDomains: plo.mqfDomains,
+              tfIds: mapping.tfIds || mapping.derivedTFIds,
+              sdgIds: mapping.sdgIds,
              scIds: mapping.scIds
            }, self.researchReferences.TF);
         });
       }
   },
   methods: {
+    isResearchProgramme: function(programme) {
+      if (!programme) return false;
+      var mode = String(programme.mode || '').trim().toLowerCase();
+      if (mode) return mode === 'research' || mode === 'postgraduate by research';
+      return !!(programme.researchDetail);
+    },
     showToast: function(msg) {
       var self = this;
       if (this.toastTimer) clearTimeout(this.toastTimer);
@@ -336,11 +352,20 @@ new Vue({
     markDirty: function() {
       this.markResearchDirty();
     },
-    markResearchDirty: function() {
+     markResearchDirty: function() {
       this.researchDirty = true;
       this.researchSaveState = 'dirty';
-      this.dirty = true;
-    },
+       this.dirty = true;
+     },
+     formatResearchDate: function(value) {
+       if (!value) return '';
+       var date = new Date(value);
+       if (isNaN(date.getTime())) return value;
+       return date.toLocaleDateString('en-GB', {day: 'numeric', month: 'long', year: 'numeric'});
+     },
+     updateResearchTimestamp: function() {
+       if (this.researchProfile) this.$set(this.researchProfile, 'updatedAt', new Date().toISOString());
+     },
     nextResearchCode: function(records, prefix) {
       var highest = 0;
       (records || []).forEach(function(record) {
@@ -349,17 +374,43 @@ new Vue({
       });
       return prefix + (highest + 1);
     },
-    researchMapping: function(plo) {
-      var id = plo.ploId || plo.code;
-      if (!this.researchMappings[id]) this.$set(this.researchMappings, id, {ploId: plo.ploId, sdgIds: [], scIds: [], derivedTFIds: [], mappingNote: ''});
-      return this.researchMappings[id];
-    },
+     researchMapping: function(plo) {
+       var id = plo.ploId || plo.code;
+       if (!this.researchMappings[id]) this.$set(this.researchMappings, id, {ploId: plo.ploId, sdgIds: [], scIds: [], tfIds: [], derivedTFIds: [], mappingNote: ''});
+       var mapping = this.researchMappings[id];
+       var compatible = this.researchTFOptions(plo).filter(function(reference) { return this.isResearchTFCompatible(plo, reference); }.bind(this));
+       var selected = (mapping.tfIds || [])[0];
+       if (compatible.length && compatible.every(function(reference) { return reference.code !== selected; })) {
+         this.$set(mapping, 'tfIds', [compatible[0].code]);
+         this.$set(mapping, 'derivedTFIds', [compatible[0].code]);
+       }
+       return mapping;
+     },
+     researchTFOptions: function(plo) {
+       return this.researchReferences.TF || [];
+     },
+     isResearchTFCompatible: function(plo, reference) {
+       var domains = Array.isArray(plo.mqfDomains) ? plo.mqfDomains : [];
+       return Array.isArray(reference.mqfDomains) && reference.mqfDomains.some(function(domain) { return domains.indexOf(domain) !== -1; });
+     },
+     researchSCOptions: function(category) {
+       var codes = category && category.codes || [];
+       return (this.researchReferences.SC || []).filter(function(reference) { return codes.indexOf(reference.code) !== -1; });
+     },
     addResearchPEO: function() {
       this.researchPEOs.push({code: this.nextResearchCode(this.researchPEOs, 'PEO'), statement: ''});
       this.markResearchDirty();
     },
-    addResearchPLO: function() {
-      this.researchPLOs.push({code: this.nextResearchCode(this.researchPLOs, 'PLO'), parentPEO: '', statement: '', mqfDomains: [], taxonomy: '', rationale: ''});
+     addResearchPLO: function() {
+       this.researchPLOs.push({code: this.nextResearchCode(this.researchPLOs, 'PLO'), parentPEO: '', statement: '', mqfDomains: [], taxonomy: ''});
+       this.markResearchDirty();
+     },
+     removeResearchPLO: function(index) {
+       this.researchPLOs.splice(index, 1);
+       this.markResearchDirty();
+     },
+    setResearchPLOMQF: function(plo, domain) {
+      this.$set(plo, 'mqfDomains', domain ? [domain] : []);
       this.markResearchDirty();
     },
     loadProgrammes: function() {
@@ -370,7 +421,7 @@ new Vue({
            self.programmes = (result || []).filter(function(programme) {
              var mode = String(programme.mode || '').trim().toLowerCase();
              if (mode) return mode === 'research' || mode === 'postgraduate by research';
-             return false;
+             return !!(programme.researchDetail);
            });
           self.loading = false;
         })
@@ -380,20 +431,74 @@ new Vue({
         })
         .getProgrammesApi();
     },
-    loadDashboard: function() {
-      var self = this;
-      this.dashboardLoading = true;
-      this.dashboardError = null;
-      google.script.run
-        .withSuccessHandler(function(result) { self.dashboard = result; self.dashboardLoading = false; })
-        .withFailureHandler(function(err) { self.dashboardError = err.message; self.dashboardLoading = false; })
-        .getUniversityDashboardApi();
-    },
-    completionPercent: function(faculty) {
-      if (!faculty || !faculty.programmeCount) return 0;
-      return Math.round((faculty.completeCount / faculty.programmeCount) * 100);
-    },
-    openFaculty: function(faculty) {
+     loadDashboard: function() {
+       var self = this;
+       if (this.dashboardLoadingTimer) clearInterval(this.dashboardLoadingTimer);
+       this.dashboardLoading = true;
+       this.dashboardLoadingProgress = 12;
+       this.dashboardLoadingStatus = 'Checking your access...';
+       this.dashboardError = null;
+       var stages = ['Loading programme records...', 'Calculating faculty readiness...', 'Preparing dashboard summary...'];
+       var stage = 0;
+       this.dashboardLoadingTimer = setInterval(function() {
+         if (self.dashboardLoadingProgress < 86) self.dashboardLoadingProgress += 7;
+         self.dashboardLoadingStatus = stages[Math.min(stage++, stages.length - 1)];
+       }, 350);
+       google.script.run
+         .withSuccessHandler(function(result) { clearInterval(self.dashboardLoadingTimer); self.dashboardLoadingProgress = 100; self.dashboardLoadingStatus = 'Dashboard ready.'; self.dashboard = result; setTimeout(function() { self.dashboardLoading = false; }, 250); })
+         .withFailureHandler(function(err) { clearInterval(self.dashboardLoadingTimer); self.dashboardError = err.message; self.dashboardLoading = false; })
+         .getUniversityDashboardApi();
+       if (this.user.role === 'Admin') {
+         google.script.run.withSuccessHandler(function(items) { self.facultyUserDirectory = items || []; }).withFailureHandler(function(err) { self.showToast('User directory: ' + err.message); }).getFacultyUserDirectoryApi();
+       }
+     },
+     phase1Percent: function(faculty) {
+       if (!faculty || !faculty.programmeCount) return 0;
+       return Math.round(((faculty.phase1CompleteCount || 0) / faculty.programmeCount) * 100);
+     },
+     phase2Percent: function(faculty) {
+       if (!faculty || !faculty.phase2TotalItems) return 0;
+       return Math.round(((faculty.phase2CompletedItems || 0) / faculty.phase2TotalItems) * 100);
+     },
+     completionPercent: function(faculty) {
+       return Math.round((this.phase1Percent(faculty) + this.phase2Percent(faculty)) / 2);
+     },
+     statusTone: function(status) {
+       var value = String(status || '').toLowerCase();
+       if (value === 'complete' || value === 'ready' || value === 'submitted') return 'state-good';
+       if (value === 'blocked' || value === 'overdue') return 'state-bad';
+       return 'state-warn';
+     },
+     toggleFaculty: function(faculty) {
+       if (this.user.role !== 'Admin') {
+         this.showToast('Only accessible by admin');
+         return;
+       }
+       if (this.expandedFaculty === faculty) {
+         this.expandedFaculty = '';
+         return;
+       }
+       this.expandedFaculty = faculty;
+       if (this.facultyDetails[faculty] || this.facultyDetailsLoading[faculty]) return;
+       var self = this;
+       this.$set(this.facultyDetailsLoading, faculty, true);
+       this.$set(this.facultyDetailsError, faculty, '');
+       google.script.run
+         .withSuccessHandler(function(result) {
+           self.$set(self.facultyDetails, faculty, result);
+           self.$set(self.facultyDetailsLoading, faculty, false);
+         })
+         .withFailureHandler(function(err) {
+           self.$set(self.facultyDetailsError, faculty, err.message || 'Unable to load faculty details.');
+           self.$set(self.facultyDetailsLoading, faculty, false);
+         })
+         .getFacultyReportApi(faculty);
+     },
+     openFaculty: function(faculty) {
+      if (this.user.role !== 'Admin') {
+         this.showToast('Only accessible by admin');
+        return;
+      }
       this.selectedFaculty = faculty;
       this.search = '';
       this.setView('programmes');
@@ -475,17 +580,23 @@ new Vue({
         }).withFailureHandler(fail);
         invoke(runner);
       }
-      var mqaCode = this.currentProgramme.mqaCode;
-      request(function(run) { run.getResearchProgrammeApi(mqaCode); }, function(profile) { self.researchProfile = profile; });
-      request(function(run) { run.getResearchPEOsApi(mqaCode); }, function(peos) { self.researchPEOs = peos || []; });
-      request(function(run) { run.getResearchPLOsApi(mqaCode); }, function(plos) { self.researchPLOs = plos || []; });
+       var programmeId = this.currentProgramme.programmeId || this.currentProgramme.mqaCode;
+       request(function(run) { run.getResearchProgrammeApi(programmeId); }, function(profile) { self.researchProfile = profile; });
+       request(function(run) { run.getResearchPEOsApi(programmeId); }, function(peos) { self.researchPEOs = peos || []; });
+       request(function(run) { run.getResearchPLOsApi(programmeId); }, function(plos) { self.researchPLOs = plos || []; });
       request(function(run) { run.getResearchReferencesApi(); }, function(references) { self.researchReferences = references || self.researchReferences; });
-      request(function(run) { run.getResearchMappingsApi(mqaCode); }, function(mappings) {
+       request(function(run) { run.getResearchMappingsApi(programmeId); }, function(mappings) {
         self.researchMappings = {};
-        (mappings || []).forEach(function(mapping) { self.$set(self.researchMappings, mapping.ploId, mapping); });
+         (mappings || []).forEach(function(mapping) {
+           mapping.sdgIds = (mapping.sdgIds || []).slice(0, 1);
+           mapping.scIds = (mapping.scIds || []).slice(0, 1);
+           mapping.tfIds = (mapping.tfIds || mapping.derivedTFIds || []).slice(0, 1);
+           mapping.derivedTFIds = mapping.tfIds;
+           self.$set(self.researchMappings, mapping.ploId, mapping);
+         });
       });
-      request(function(run) { run.getResearchCoverageApi(mqaCode); }, function(coverage) { self.researchCoverage = coverage; });
-      request(function(run) { run.getResearchReviewApi(mqaCode); }, function(review) {
+       request(function(run) { run.getResearchCoverageApi(programmeId); }, function(coverage) { self.researchCoverage = coverage; });
+       request(function(run) { run.getResearchReviewApi(programmeId); }, function(review) {
         self.researchReview = review;
         self.researchStatus = review.status || self.researchStatus;
       });
@@ -508,68 +619,71 @@ new Vue({
       google.script.run.withSuccessHandler(function(mappings) {
         self.researchMappings = {};
         (mappings || []).forEach(function(mapping) { self.$set(self.researchMappings, mapping.ploId, mapping); });
-      }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchMappingsApi(this.currentProgramme.mqaCode);
+       }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchMappingsApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode);
     },
     saveResearchProfile: function() {
       var self = this; this.researchSaveState = 'saving'; this.researchError = null;
-      google.script.run.withSuccessHandler(function(profile) { self.researchProfile = profile; self.researchMutationComplete('Programme profile saved.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchProfileApi(this.currentProgramme.mqaCode, this.researchProfile);
+       google.script.run.withSuccessHandler(function(profile) { self.researchProfile = profile; self.researchMutationComplete('Programme profile saved.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchProfileApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode, this.researchProfile);
     },
     saveResearchPEOs: function() {
       var self = this; this.researchSaveState = 'saving'; this.researchError = null;
-      google.script.run.withSuccessHandler(function(peos) { self.researchPEOs = peos || []; self.researchMutationComplete('PEO records saved.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPEOsApi(this.currentProgramme.mqaCode, this.researchPEOs);
+       google.script.run.withSuccessHandler(function(peos) { self.researchPEOs = peos || []; self.updateResearchTimestamp(); self.researchMutationComplete('PEO records saved.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPEOsApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode, this.researchPEOs);
     },
     saveResearchPLOs: function() {
       var self = this; this.researchSaveState = 'saving'; this.researchError = null;
       var ploPayload = this.researchPLOs.map(function(plo) {
         return { ploId: plo.ploId, code: plo.code, parentPEO: plo.parentPEO, statement: plo.statement,
-          mqfDomains: plo.mqfDomains, taxonomy: plo.taxonomy, rationale: plo.rationale };
+           mqfDomains: plo.mqfDomains, taxonomy: plo.taxonomy };
       });
-      google.script.run.withSuccessHandler(function(plos) {
-        self.researchPLOs = plos || [];
-        self.researchMutationComplete('PLO records saved.');
-      }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOsApi(this.currentProgramme.mqaCode, ploPayload);
+       google.script.run.withSuccessHandler(function(plos) {
+         self.researchPLOs = plos || [];
+         self.updateResearchTimestamp();
+         self.researchMutationComplete('PLO records saved.');
+       }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOsApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode, ploPayload);
     },
     saveResearchPLOMapping: function(plo) {
       var self = this;
       var mapping = this.researchMapping(plo);
       var ploPayload = this.researchPLOs.map(function(item) {
         return { ploId: item.ploId, code: item.code, parentPEO: item.parentPEO, statement: item.statement,
-          mqfDomains: item.mqfDomains, taxonomy: item.taxonomy, rationale: item.rationale };
+           mqfDomains: item.mqfDomains, taxonomy: item.taxonomy };
       });
       this.researchSaveState = 'saving';
       this.researchError = null;
-      google.script.run.withSuccessHandler(function(savedPLOs) {
-        self.researchPLOs = savedPLOs || [];
-        var savedPLO = self.researchPLOs.filter(function(item) { return item.code === plo.code; })[0];
+       google.script.run.withSuccessHandler(function(savedPLOs) {
+         self.researchPLOs = savedPLOs || [];
+         self.updateResearchTimestamp();
+         var savedPLO = self.researchPLOs.filter(function(item) { return item.code === plo.code; })[0];
         if (!savedPLO || !savedPLO.ploId) {
           self.researchFailure({message: 'The PLO was not persisted, so its mapping was not saved.'});
           return;
         }
-        var mappingPayload = {
-          sdgIds: mapping.sdgIds || [],
-          scIds: mapping.scIds || [],
-          mappingNote: mapping.mappingNote || ''
+         var mappingPayload = {
+           sdgIds: mapping.sdgIds || [],
+           scIds: mapping.scIds || [],
+           tfIds: mapping.tfIds || [],
+           mappingNote: mapping.mappingNote || ''
         };
         google.script.run.withSuccessHandler(function(saved) {
           self.$set(self.researchMappings, savedPLO.ploId, saved);
           self.researchMutationComplete('PLO fields and mapping saved.');
-        }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOMappingApi(self.currentProgramme.mqaCode, savedPLO.ploId, mappingPayload);
-      }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOsApi(this.currentProgramme.mqaCode, ploPayload);
+         }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOMappingApi(self.currentProgramme.programmeId || self.currentProgramme.mqaCode, savedPLO.ploId, mappingPayload);
+       }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOsApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode, ploPayload);
     },
     researchMutationComplete: function(message) {
       this.researchDirty = false; this.dirty = false; this.researchSaveState = 'saved'; this.researchError = null; this.showToast(message); this.refreshResearchDerived();
     },
     loadResearchCoverage: function() {
       var self = this; if (!this.currentProgramme) return;
-      google.script.run.withSuccessHandler(function(coverage) { self.researchCoverage = coverage; }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchCoverageApi(this.currentProgramme.mqaCode);
+       google.script.run.withSuccessHandler(function(coverage) { self.researchCoverage = coverage; }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchCoverageApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode);
     },
     loadResearchReview: function() {
       var self = this; if (!this.currentProgramme) return;
-      google.script.run.withSuccessHandler(function(review) { self.researchReview = review; self.researchStatus = review.status || self.researchStatus; }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchReviewApi(this.currentProgramme.mqaCode);
+       google.script.run.withSuccessHandler(function(review) { self.researchReview = review; self.researchStatus = review.status || self.researchStatus; }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchReviewApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode);
     },
      submitResearchProgramme: function() {
        var self = this;
-      google.script.run.withSuccessHandler(function(result) { self.researchStatus = result.status; self.researchMutationComplete('Programme submitted for review.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).submitResearchProgrammeApi(this.currentProgramme.mqaCode);
+       google.script.run.withSuccessHandler(function(result) { self.researchStatus = result.status; self.researchMutationComplete('Programme submitted for review.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).submitResearchProgrammeApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode);
     },
     selectAllMQFDomains: function(plo) {
       plo.mqfDomains = this.researchReferences.MQF.map(function(domain) { return domain.code; }); this.markResearchDirty();
@@ -592,8 +706,12 @@ new Vue({
         if (tab) tab.focus();
       });
     },
-    toggleSDG: function(plo) { this.markResearchDirty(); },
-    toggleSC: function(plo) { this.markResearchDirty(); },
+     setSingleResearchReference: function(plo, key, code) {
+       var mapping = this.researchMapping(plo);
+       this.$set(mapping, key, code ? [code] : []);
+       if (key === 'tfIds') this.$set(mapping, 'derivedTFIds', code ? [code] : []);
+       this.markResearchDirty();
+     },
     leaveResearchWorkspace: function() { this.setView('programmes'); },
     loadPendingDeletions: function() {
       var self = this;

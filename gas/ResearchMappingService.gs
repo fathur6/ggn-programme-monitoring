@@ -1,6 +1,11 @@
 /** ResearchMappingService.gs - programme profile, PEO, and PLO persistence */
 
-var RESEARCH_TAXONOMY_IDS = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'];
+var RESEARCH_TAXONOMY_IDS = [
+  'C1', 'C2', 'C3', 'C4', 'C5', 'C6',
+  'A1', 'A2', 'A3', 'A4', 'A5', 'A6',
+  'P1', 'P2', 'P3', 'P4', 'P5', 'P6'
+];
+var RESEARCH_ROWS_CACHE_ = {};
 
 function serializeResearchDate_(value) {
   if (!value) return '';
@@ -82,25 +87,137 @@ function researchUser_(access) {
   return access && access.user || getCurrentUser_();
 }
 
-function researchProgramme_(mqaCode) {
-  var programme = findProgrammeByMqaCode_(String(mqaCode || '').trim());
+function researchProgramme_(programmeIdOrMqaCode) {
+  var programme = resolveProgramme_(String(programmeIdOrMqaCode || '').trim());
   if (!programme) throw new Error('Programme is not in the programme directory');
   if (!isResearchProgramme_(programme)) throw new Error('Programme is not postgraduate by research');
   return programme;
 }
 
-function requireResearchProgramme_(mqaCode) {
-  return researchProgramme_(mqaCode);
+function requireResearchProgramme_(programmeIdOrMqaCode) {
+  return researchProgramme_(programmeIdOrMqaCode);
+}
+
+function researchContext_(programmeIdOrMqaCode) {
+  var programme = researchProgramme_(programmeIdOrMqaCode);
+  var key = getResearchProgrammeKey_(programme);
+  var sheets = ensureResearchSheets_();
+  migrateLegacyResearchRows_(programme, key, sheets);
+  return {programme: programme, key: key, sheets: sheets};
+}
+
+function migrateLegacyResearchRows_(programme, key, sheets) {
+  var legacyKey = String(programme.mqaCode || '').trim();
+  if (!legacyKey || legacyKey === key) return;
+  var profileRows = researchRows_(sheets.PR_ProgrammeProfile);
+  var hasTarget = profileRows.some(function(row) { return String(row[0]).trim() === key; });
+  if (hasTarget) return;
+  var legacyProfile = profileRows.filter(function(row) { return String(row[0]).trim() === legacyKey; })[0];
+  var peoRows = researchRows_(sheets.PR_PEORecords).filter(function(row) { return String(row[1]).trim() === legacyKey; });
+  var ploRows = researchRows_(sheets.PR_PLORecords).filter(function(row) { return String(row[1]).trim() === legacyKey; });
+  var mappingRows = researchRows_(sheets.PR_PLOMappings).filter(function(row) { return String(row[1]).trim() === legacyKey; });
+  if (!legacyProfile && !peoRows.length && !ploRows.length && !mappingRows.length) return;
+  var peoIds = {};
+  var ploIds = {};
+  var cloneId = function(id) { return key + '::' + String(id || ''); };
+  peoRows = peoRows.map(function(row) { var copy = row.slice(); peoIds[String(row[0])] = cloneId(row[0]); copy[0] = peoIds[String(row[0])]; copy[1] = key; return copy; });
+  ploRows = ploRows.map(function(row) { var copy = row.slice(); ploIds[String(row[0])] = cloneId(row[0]); copy[0] = ploIds[String(row[0])]; copy[1] = key; return copy; });
+  mappingRows = mappingRows.map(function(row) { var copy = row.slice(); copy[0] = ploIds[String(row[0])] || cloneId(row[0]); copy[1] = key; return copy; });
+  if (legacyProfile) { var profile = legacyProfile.slice(); profile[0] = key; profile[1] = legacyKey; sheets.PR_ProgrammeProfile.appendRow(profile); }
+  peoRows.forEach(function(row) { sheets.PR_PEORecords.appendRow(row); });
+  ploRows.forEach(function(row) { sheets.PR_PLORecords.appendRow(row); });
+  mappingRows.forEach(function(row) { sheets.PR_PLOMappings.appendRow(row); });
+  RESEARCH_ROWS_CACHE_ = {};
 }
 
 function researchRows_(sheet) {
+  var cacheKey = typeof sheet.getName === 'function' ? sheet.getName() : '';
+  if (cacheKey && RESEARCH_ROWS_CACHE_[cacheKey]) return RESEARCH_ROWS_CACHE_[cacheKey];
   var values = sheet.getDataRange().getValues();
-  return values.length > 1 ? values.slice(1) : [];
+  var rows = values.length > 1 ? values.slice(1) : [];
+  if (cacheKey) RESEARCH_ROWS_CACHE_[cacheKey] = rows;
+  return rows;
 }
 
 function parseResearchJson_(value) {
   if (Array.isArray(value)) return value;
   try { return JSON.parse(value || '[]'); } catch (e) { return []; }
+}
+
+function canonicalResearchRecordCode_(value) {
+  return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
+}
+
+function normalizeLegacyMQF_(value) {
+  var code = String(value || '').trim().replace(/\s+/g, '');
+  var match = code.match(/^MQF(\d+)([A-Za-z]?)$/i);
+  if (!match) return code;
+  return 'MQF' + match[1] + String(match[2] || '').toLowerCase();
+}
+
+function readLegacyResearchDetail_(ss, mqaCode) {
+  var code = String(mqaCode && mqaCode.mqaCode || mqaCode || '').trim();
+  var sheet = ss.getSheetByName(code);
+  if (!sheet) return null;
+  var values = sheet.getDataRange().getValues();
+  var section = '';
+  var peos = [];
+  var plos = [];
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i] || [];
+    var marker = String(row[0] || '').trim().toUpperCase();
+    if (marker === 'PEO') { section = 'peo'; continue; }
+    if (marker === 'PLO') { section = 'plo'; continue; }
+    var recordCode = String(row[0] || '').trim();
+    var compactCode = recordCode.toUpperCase().replace(/\s+/g, '');
+    if (!recordCode || !section) continue;
+    if (section === 'peo' && /^PEO\d+$/.test(compactCode)) {
+      peos.push({
+        peoId: code + '::' + recordCode,
+        programmeId: code,
+        code: compactCode,
+        statement: String(row[1] || '').trim(),
+        sortOrder: peos.length,
+        updatedAt: '',
+        updatedBy: ''
+      });
+    }
+    if (section === 'plo' && /^PLO\d+$/.test(compactCode)) {
+      var mqf = normalizeLegacyMQF_(row[2]);
+      plos.push({
+        ploId: code + '::' + recordCode,
+        programmeId: code,
+        parentPEO: String(row[3] || '').trim(),
+        code: compactCode,
+        statement: String(row[1] || '').trim(),
+        mqfDomains: mqf ? [mqf] : [],
+        taxonomy: canonicalResearchTaxonomy_(row[4]),
+        rationale: '',
+        status: 'Draft',
+        updatedAt: '',
+        updatedBy: ''
+      });
+    }
+  }
+  if (!peos.length && !plos.length) return null;
+  return {peos: peos, plos: plos};
+}
+
+function legacyResearchMappings_(detail, references) {
+  var tfReference = researchTFReferenceMap_(references || {tf: []});
+  return (detail && detail.plos || []).map(function(plo) {
+    return {
+      ploId: plo.ploId,
+      programmeId: plo.programmeId,
+      sdgIds: [],
+      scIds: [],
+      derivedTFIds: deriveTFIds_(plo.mqfDomains, tfReference),
+      derivedLabel: 'Derived from legacy programme detail tab',
+      mappingNote: 'Read from ' + plo.programmeId,
+      updatedAt: '',
+      updatedBy: ''
+    };
+  });
 }
 
 function replaceResearchRows_(sheet, programmeId, width, rows) {
@@ -112,6 +229,19 @@ function replaceResearchRows_(sheet, programmeId, width, rows) {
   if (output.length > oldRows && sheet.insertRowsAfter) sheet.insertRowsAfter(sheet.getLastRow(), output.length - oldRows);
   if (oldRows > 0) sheet.getRange(2, 1, oldRows, width).clearContent();
   if (output.length > 0) sheet.getRange(2, 1, output.length, width).setValues(output);
+  RESEARCH_ROWS_CACHE_ = {};
+}
+
+function removeOrphanResearchMappings_(sheet, programmeId, retainedPloIds) {
+  var existing = researchRows_(sheet);
+  var output = existing.filter(function(row) {
+    return String(row[1] || '').trim() !== programmeId || retainedPloIds[String(row[0] || '').trim()];
+  });
+  var oldRows = Math.max(sheet.getLastRow() - 1, 0);
+  if (output.length > oldRows && sheet.insertRowsAfter) sheet.insertRowsAfter(sheet.getLastRow(), output.length - oldRows);
+  if (oldRows > 0) sheet.getRange(2, 1, oldRows, 8).clearContent();
+  if (output.length > 0) sheet.getRange(2, 1, output.length, 8).setValues(output);
+  RESEARCH_ROWS_CACHE_ = {};
 }
 
 function withResearchLock_(work) {
@@ -146,9 +276,10 @@ function ploFromRow_(row) {
 }
 
 function mappingFromRow_(row) {
+  var tfIds = parseResearchJson_(row[4]);
   return {
     ploId: row[0], programmeId: row[1], sdgIds: parseResearchJson_(row[2]),
-    scIds: parseResearchJson_(row[3]), derivedTFIds: parseResearchJson_(row[4]),
+    scIds: parseResearchJson_(row[3]), tfIds: tfIds, derivedTFIds: tfIds,
     derivedLabel: 'Derived from PLO mappings', mappingNote: row[5],
     updatedAt: serializeResearchDate_(row[6]), updatedBy: row[7]
   };
@@ -156,7 +287,7 @@ function mappingFromRow_(row) {
 
 function calculatePEOCoverage_(mappings, parentPEO) {
   var children = (mappings || []).filter(function(mapping) {
-    return String(mapping && mapping.parentPEO || '').trim() === String(parentPEO || '').trim();
+    return canonicalResearchRecordCode_(mapping && mapping.parentPEO) === canonicalResearchRecordCode_(parentPEO);
   });
   if (!children.length) throw new Error('No child PLO mappings for PEO: ' + parentPEO);
   return {
@@ -169,18 +300,18 @@ function calculatePEOCoverage_(mappings, parentPEO) {
 }
 
 function researchTFReferenceMap_(references) {
-  return (references.tf || []).reduce(function(result, reference) {
+  return getResearchReferenceList_(references, 'tf').reduce(function(result, reference) {
     result[reference.code] = reference.mqfDomains || [];
     return result;
   }, {});
 }
 
 function researchMappingForPLO_(plo, mapping, references) {
-  var tfIds = deriveTFIds_(plo.mqfDomains, researchTFReferenceMap_(references));
+  var tfIds = Array.isArray(mapping.tfIds) ? mapping.tfIds : (mapping.derivedTFIds || []);
   return {
     ploId: plo.ploId, programmeId: plo.programmeId, parentPEO: plo.parentPEO,
     code: plo.code, mqfDomains: plo.mqfDomains, sdgIds: mapping.sdgIds,
-    scIds: mapping.scIds, derivedTFIds: tfIds, derivedLabel: 'Derived from PLO mappings',
+    scIds: mapping.scIds, tfIds: tfIds, derivedTFIds: tfIds, derivedLabel: 'Selected TF mapping',
     mappingNote: mapping.mappingNote, updatedAt: mapping.updatedAt, updatedBy: mapping.updatedBy
   };
 }
@@ -191,43 +322,47 @@ function freshResearchMappings_(sheet, rows, ploById, references, rowIndexes) {
     var mapping = mappingFromRow_(row);
     var plo = ploById[mapping.ploId];
     var derivedTFIds = deriveTFIds_(plo ? plo.mqfDomains : [], tfReference);
-    if (JSON.stringify(parseResearchJson_(row[4])) !== JSON.stringify(derivedTFIds)) {
-      row[4] = JSON.stringify(derivedTFIds);
+    var storedTFIds = parseResearchJson_(row[4]).filter(function(tfId) { return derivedTFIds.indexOf(tfId) !== -1; });
+    var selectedTFIds = storedTFIds.length ? [storedTFIds[0]] : [];
+    if (JSON.stringify(storedTFIds) !== JSON.stringify(selectedTFIds)) {
+      row[4] = JSON.stringify(selectedTFIds);
       sheet.getRange((rowIndexes ? rowIndexes[index] : index) + 2, 1, 1, 8).setValues([row]);
+      RESEARCH_ROWS_CACHE_ = {};
     }
-    mapping.derivedTFIds = derivedTFIds;
+    mapping.tfIds = selectedTFIds;
+    mapping.derivedTFIds = selectedTFIds;
     return mapping;
   });
 }
 
-function getResearchProgrammeApi_(mqaCode) {
-  var access = requireProgrammeAccess_(mqaCode, 'view-programme');
-  requireResearchProgramme_(mqaCode);
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
+function getResearchProgrammeApi_(programmeIdOrMqaCode) {
+  var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'view-programme');
+  var context = researchContext_(programmeIdOrMqaCode);
+  var key = context.key;
   var row = researchRows_(ensureResearchSheets_().PR_ProgrammeProfile).filter(function(item) { return String(item[0]) === key; })[0];
   if (row) return profileFromRow_(row);
-  var programme = researchProgramme_(key);
+  var programme = context.programme;
   return {
-    programmeId: key, mqaCode: key, facultyOrCentre: programme.faculty || programme.facultyFull || '',
+     programmeId: key, mqaCode: programme.mqaCode, facultyOrCentre: programme.faculty || programme.facultyFull || '',
     programmeName: programme.name || '', studyLevel: programme.level || '', studyMode: 'Postgraduate by Research', studyField: '',
     session: '', documentVersion: '', dataOwner: '', mappingStatus: 'Draft', createdAt: '', updatedAt: '',
     updatedBy: researchUser_(access).email || ''
   };
 }
 
-function saveResearchProfileApi_(mqaCode, profile) {
-  var access = requireProgrammeAccess_(mqaCode, 'edit-programme');
-  requireResearchProgramme_(mqaCode);
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
-  var programme = researchProgramme_(key);
+function saveResearchProfileApi_(programmeIdOrMqaCode, profile) {
+  var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'edit-programme');
+  var context = researchContext_(programmeIdOrMqaCode);
+  var key = context.key;
+  var programme = context.programme;
   var user = researchUser_(access);
   return withResearchLock_(function() {
     var sheet = ensureResearchSheets_().PR_ProgrammeProfile;
     var now = new Date();
     var existing = researchRows_(sheet).filter(function(row) { return String(row[0]) === key; })[0];
-    var row = [key, key, programme.faculty || programme.facultyFull || '', programme.name || '', programme.level || '',
-      'Postgraduate by Research', String(profile.studyField || '').trim(), String(profile.session || '').trim(),
-      String(profile.documentVersion || '').trim(), String(profile.dataOwner || '').trim(),
+     var row = [key, programme.mqaCode, programme.faculty || programme.facultyFull || '', programme.name || '', programme.level || '',
+      'Postgraduate by Research', existing ? existing[6] : String(profile.studyField || '').trim(), existing ? existing[7] : String(profile.session || '').trim(),
+      existing ? existing[8] : String(profile.documentVersion || '').trim(), existing ? existing[9] : String(profile.dataOwner || '').trim(),
       'Draft', existing && existing[11] || now,
       now, user.email || ''];
     replaceResearchRows_(sheet, key, 14, [row]);
@@ -235,17 +370,40 @@ function saveResearchProfileApi_(mqaCode, profile) {
   });
 }
 
-function getResearchPEOsApi_(mqaCode) {
-  requireProgrammeAccess_(mqaCode, 'view-peos');
-  requireResearchProgramme_(mqaCode);
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
-  return researchRows_(ensureResearchSheets_().PR_PEORecords).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
+function touchResearchProfile_(key, user, now) {
+  var sheet = ensureResearchSheets_().PR_ProgrammeProfile;
+  var rows = researchRows_(sheet);
+  var index = rows.findIndex(function(row) { return String(row[0]) === key; });
+  if (index === -1) {
+    var programme = researchProgramme_(key);
+     var row = [key, programme.mqaCode, programme.faculty || programme.facultyFull || '', programme.name || '', programme.level || '',
+      'Postgraduate by Research', '', '', '', '', 'Draft', now, now, user.email || ''];
+    sheet.appendRow(row);
+    RESEARCH_ROWS_CACHE_ = {};
+    return profileFromRow_(row);
+  }
+  var row = rows[index].slice();
+  row[12] = now;
+  row[13] = user.email || '';
+  sheet.getRange(index + 2, 13, 1, 2).setValues([[now, user.email || '']]);
+  RESEARCH_ROWS_CACHE_ = {};
+  return profileFromRow_(row);
 }
 
-function saveResearchPEOsApi_(mqaCode, peos) {
-  var access = requireProgrammeAccess_(mqaCode, 'edit-peos');
-  requireResearchProgramme_(mqaCode);
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
+function getResearchPEOsApi_(programmeIdOrMqaCode) {
+  requireProgrammeAccess_(programmeIdOrMqaCode, 'view-peos');
+  var context = researchContext_(programmeIdOrMqaCode);
+  var key = context.key;
+  var peos = researchRows_(ensureResearchSheets_().PR_PEORecords).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
+  if (peos.length) return peos;
+  var legacy = readLegacyResearchDetail_(getSpreadsheet(), context.programme.mqaCode);
+  return legacy ? legacy.peos : [];
+}
+
+function saveResearchPEOsApi_(programmeIdOrMqaCode, peos) {
+  var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'edit-peos');
+  var context = researchContext_(programmeIdOrMqaCode);
+  var key = context.key;
   var normalized = (Array.isArray(peos) ? peos : []).map(normalizeResearchPEO_);
   normalized.forEach(function(peo) { if (!peo.code || !peo.statement) throw new Error('PEO code and statement are required'); });
   validateDuplicateCodes_(normalized, 'PEO');
@@ -254,14 +412,15 @@ function saveResearchPEOsApi_(mqaCode, peos) {
     var now = new Date();
     var rows = normalized.map(function(peo, index) { return [researchId_(), key, peo.code, peo.statement, index, now, user.email || '']; });
     replaceResearchRows_(ensureResearchSheets_().PR_PEORecords, key, 7, rows);
+    touchResearchProfile_(key, user, now);
     return rows.map(peoFromRow_);
   });
 }
 
-function saveResearchPLOsApi_(mqaCode, plos) {
-  var access = requireProgrammeAccess_(mqaCode, 'edit-plos');
-  requireResearchProgramme_(mqaCode);
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
+function saveResearchPLOsApi_(programmeIdOrMqaCode, plos) {
+  var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'edit-plos');
+  var context = researchContext_(programmeIdOrMqaCode);
+  var key = context.key;
   var normalized = (Array.isArray(plos) ? plos : []).map(normalizeResearchPLO_);
   normalized.forEach(function(plo) {
     if (!plo.code || !plo.statement) throw new Error('PLO code and statement are required');
@@ -272,7 +431,7 @@ function saveResearchPLOsApi_(mqaCode, plos) {
   var peos = researchRows_(sheets.PR_PEORecords).filter(function(row) { return String(row[1]) === key; }).map(function(row) { return {code: row[2]}; });
   validatePLOParents_(normalized, peos);
   var references = getResearchReferences_();
-  var mqfIds = references.mqf.map(function(reference) { return reference.code; });
+  var mqfIds = getResearchReferenceList_(references, 'mqf').map(function(reference) { return reference.code; });
   normalized.forEach(function(plo) { plo.mqfDomains = validateReferenceIds_(plo.mqfDomains, mqfIds); });
   var user = researchUser_(access);
   return withResearchLock_(function() {
@@ -289,35 +448,46 @@ function saveResearchPLOsApi_(mqaCode, plos) {
         JSON.stringify(plo.mqfDomains), plo.taxonomy, plo.rationale, 'Draft', now, user.email || ''];
     });
     replaceResearchRows_(sheets.PR_PLORecords, key, 11, rows);
+    var retainedPloIds = rows.reduce(function(result, row) { result[String(row[0])] = true; return result; }, {});
+    removeOrphanResearchMappings_(sheets.PR_PLOMappings, key, retainedPloIds);
+    touchResearchProfile_(key, user, now);
     return rows.map(ploFromRow_);
   });
 }
 
-function getResearchPLOsApi_(mqaCode) {
-  requireProgrammeAccess_(mqaCode, 'view-plos');
-  requireResearchProgramme_(mqaCode);
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
-  return researchRows_(ensureResearchSheets_().PR_PLORecords).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
+function getResearchPLOsApi_(programmeIdOrMqaCode) {
+  requireProgrammeAccess_(programmeIdOrMqaCode, 'view-plos');
+  var context = researchContext_(programmeIdOrMqaCode);
+  var key = context.key;
+  var plos = researchRows_(ensureResearchSheets_().PR_PLORecords).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
+  if (plos.length) return plos;
+  var legacy = readLegacyResearchDetail_(getSpreadsheet(), context.programme.mqaCode);
+  return legacy ? legacy.plos : [];
 }
 
-function getResearchMappingsApi_(mqaCode) {
-  requireProgrammeAccess_(mqaCode, 'view-mappings');
-  requireResearchProgramme_(mqaCode);
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
+function getResearchMappingsApi_(programmeIdOrMqaCode) {
+  requireProgrammeAccess_(programmeIdOrMqaCode, 'view-mappings');
+  var context = researchContext_(programmeIdOrMqaCode);
+  var key = context.key;
   var sheets = ensureResearchSheets_();
   return withResearchLock_(function() {
     var plos = researchRows_(sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
+    var references = getResearchReferences_();
+    if (!plos.length) {
+      var legacy = readLegacyResearchDetail_(getSpreadsheet(), context.programme.mqaCode);
+      return legacy ? legacyResearchMappings_(legacy, references) : [];
+    }
     var ploById = plos.reduce(function(result, plo) { result[plo.ploId] = plo; return result; }, {});
     var allRows = researchRows_(sheets.PR_PLOMappings);
     var rows = allRows.filter(function(row) { return String(row[1]) === key; });
-    return freshResearchMappings_(sheets.PR_PLOMappings, rows, ploById, getResearchReferences_(), rows.map(function(row) { return allRows.indexOf(row); }));
+    return freshResearchMappings_(sheets.PR_PLOMappings, rows, ploById, references, rows.map(function(row) { return allRows.indexOf(row); }));
   });
 }
 
-function saveResearchPLOMappingApi_(mqaCode, ploId, mapping) {
-  var access = requireProgrammeAccess_(mqaCode, 'edit-mappings');
-  requireResearchProgramme_(mqaCode);
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
+function saveResearchPLOMappingApi_(programmeIdOrMqaCode, ploId, mapping) {
+  var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'edit-mappings');
+  var context = researchContext_(programmeIdOrMqaCode);
+  var key = context.key;
   var sheets = ensureResearchSheets_();
   var user = researchUser_(access);
   return withResearchLock_(function() {
@@ -326,32 +496,59 @@ function saveResearchPLOMappingApi_(mqaCode, ploId, mapping) {
     })[0];
     if (!ploRow) throw new Error('PLO is not part of the programme');
     var references = getResearchReferences_();
-    var sdgIds = validateReferenceIds_(mapping && mapping.sdgIds, references.sdg.map(function(reference) { return reference.code; }));
-    var scIds = validateReferenceIds_(mapping && mapping.scIds, references.sc.map(function(reference) { return reference.code; }));
+    var sdgIds = validateReferenceIds_(mapping && mapping.sdgIds, getResearchReferenceList_(references, 'sdg').map(function(reference) { return reference.code; }));
+    var scIds = validateReferenceIds_(mapping && mapping.scIds, getResearchReferenceList_(references, 'sc').map(function(reference) { return reference.code; }));
+    var derivedTFIds = deriveTFIds_(parseResearchJson_(ploRow[5]), researchTFReferenceMap_(references));
+    var tfIds = validateReferenceIds_(mapping && (mapping.tfIds || mapping.derivedTFIds), derivedTFIds);
+    if (sdgIds.length > 1 || scIds.length > 1 || tfIds.length > 1) throw new Error('Select only one SDG, TF, and SC per PLO');
     var now = new Date();
     var row = [String(ploRow[0]), key, JSON.stringify(sdgIds), JSON.stringify(scIds),
-      JSON.stringify(deriveTFIds_(parseResearchJson_(ploRow[5]), researchTFReferenceMap_(references))),
+      JSON.stringify(tfIds),
       String(mapping && mapping.mappingNote || '').trim(), now, user.email || ''];
     var sheet = sheets.PR_PLOMappings;
     var rows = researchRows_(sheet);
     var index = rows.findIndex(function(existing) { return String(existing[0]) === String(ploId) && String(existing[1]) === key; });
     if (index === -1) sheet.appendRow(row); else sheet.getRange(index + 2, 1, 1, 8).setValues([row]);
+    RESEARCH_ROWS_CACHE_ = {};
     return mappingFromRow_(row);
   });
 }
 
-function getResearchCoverageApi_(mqaCode) {
-  requireProgrammeAccess_(mqaCode, 'view-mappings');
-  requireResearchProgramme_(mqaCode);
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
+function getResearchCoverageApi_(programmeIdOrMqaCode) {
+  requireProgrammeAccess_(programmeIdOrMqaCode, 'view-mappings');
+  var context = researchContext_(programmeIdOrMqaCode);
+  var key = context.key;
   var sheets = ensureResearchSheets_();
   return withResearchLock_(function() {
     var plos = researchRows_(sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
     var peos = researchRows_(sheets.PR_PEORecords).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
+    var references = getResearchReferences_();
+    if (!plos.length || !peos.length) {
+      var legacy = readLegacyResearchDetail_(getSpreadsheet(), context.programme.mqaCode);
+      if (legacy) {
+        if (!plos.length) plos = legacy.plos;
+        if (!peos.length) peos = legacy.peos;
+        var legacyMappings = legacyResearchMappings_(legacy, references);
+        var legacyMapped = plos.map(function(plo) {
+          return researchMappingForPLO_(plo, legacyMappings.filter(function(mapping) { return mapping.ploId === plo.ploId; })[0] || {sdgIds: [], scIds: []}, references);
+        });
+        return {
+          peoCoverage: peos.map(function(peo) {
+            try { return {peoId: peo.peoId, code: peo.code, coverage: calculatePEOCoverage_(legacyMapped, peo.code)}; }
+            catch (e) { return {peoId: peo.peoId, code: peo.code, issue: e.message}; }
+          }),
+          globalCoverage: {
+            mqfIds: uniqueTrimmed_(plos.reduce(function(all, plo) { return all.concat(plo.mqfDomains); }, [])).sort(),
+            tfIds: uniqueTrimmed_(legacyMapped.reduce(function(all, mapping) { return all.concat(mapping.derivedTFIds); }, [])).sort(),
+            sdgIds: [], scIds: []
+          },
+          ploReadiness: plos.map(function(plo) { return {ploId: plo.ploId, code: plo.code, ready: true, issue: ''}; })
+        };
+      }
+    }
     var allMappingRows = researchRows_(sheets.PR_PLOMappings);
     var mappingRows = allMappingRows.filter(function(row) { return String(row[1]) === key; });
     var ploById = plos.reduce(function(result, plo) { result[plo.ploId] = plo; return result; }, {});
-    var references = getResearchReferences_();
     var mappings = freshResearchMappings_(sheets.PR_PLOMappings, mappingRows, ploById, references, mappingRows.map(function(row) { return allMappingRows.indexOf(row); }));
     var mappingByPlo = mappings.reduce(function(result, mapping) { result[mapping.ploId] = mapping; return result; }, {});
     var mapped = plos.map(function(plo) {

@@ -21,13 +21,37 @@ var RESEARCH_REFERENCE_SEEDS_ = {
     ['TF4', 'Professional and Ethical Practice', 'Taxonomy framework grouping', JSON.stringify(['MQF3a', 'MQF3b', 'MQF4a', 'MQF4b', 'MQF5']), true]
   ],
   PR_SDGReference: [
-    ['SDG4', 'Quality Education', 'Ensure inclusive and equitable quality education.', true]
+    ['SDG1', 'No Poverty', 'End poverty in all its forms everywhere.', true],
+    ['SDG2', 'Zero Hunger', 'End hunger, achieve food security and improved nutrition and promote sustainable agriculture.', true],
+    ['SDG3', 'Good Health and Well-being', 'Ensure healthy lives and promote well-being for all at all ages.', true],
+    ['SDG4', 'Quality Education', 'Ensure inclusive and equitable quality education and promote lifelong learning opportunities for all.', true],
+    ['SDG5', 'Gender Equality', 'Achieve gender equality and empower all women and girls.', true],
+    ['SDG6', 'Clean Water and Sanitation', 'Ensure availability and sustainable management of water and sanitation for all.', true],
+    ['SDG7', 'Affordable and Clean Energy', 'Ensure access to affordable, reliable, sustainable and modern energy for all.', true],
+    ['SDG8', 'Decent Work and Economic Growth', 'Promote sustained, inclusive and sustainable economic growth, full and productive employment and decent work for all.', true],
+    ['SDG9', 'Industry, Innovation and Infrastructure', 'Build resilient infrastructure, promote inclusive and sustainable industrialization and foster innovation.', true],
+    ['SDG10', 'Reduced Inequalities', 'Reduce inequality within and among countries.', true],
+    ['SDG11', 'Sustainable Cities and Communities', 'Make cities and human settlements inclusive, safe, resilient and sustainable.', true],
+    ['SDG12', 'Responsible Consumption and Production', 'Ensure sustainable consumption and production patterns.', true],
+    ['SDG13', 'Climate Action', 'Take urgent action to combat climate change and its impacts.', true],
+    ['SDG14', 'Life Below Water', 'Conserve and sustainably use the oceans, seas and marine resources for sustainable development.', true],
+    ['SDG15', 'Life on Land', 'Protect, restore and promote sustainable use of terrestrial ecosystems, sustainably manage forests, combat desertification, and halt biodiversity loss.', true],
+    ['SDG16', 'Peace, Justice and Strong Institutions', 'Promote peaceful and inclusive societies, provide access to justice, and build effective, accountable and inclusive institutions.', true],
+    ['SDG17', 'Partnerships for the Goals', 'Strengthen the means of implementation and revitalize the Global Partnership for Sustainable Development.', true]
   ],
   PR_SCReference: [
-    ['SC2', 'Research and Innovation', 'Approved strategic challenge reference.', true],
-    ['SC3', 'Societal Impact', 'Approved strategic challenge reference.', true]
+    ['SC1', 'Systems-thinking competency', 'Ways of Thinking', true],
+    ['SC2', 'Anticipatory competency', 'Ways of Thinking', true],
+    ['SC3', 'Critical thinking competency', 'Ways of Thinking', true],
+    ['SC4', 'Strategic competency', 'Ways of Practicing', true],
+    ['SC5', 'Collaboration competency', 'Ways of Practicing', true],
+    ['SC6', 'Integrated problem-solving competency', 'Ways of Practicing', true],
+    ['SC7', 'Self-awareness competency', 'Ways of Being', true],
+    ['SC8', 'Normative competency', 'Ways of Being', true]
   ]
 };
+
+var RESEARCH_REFERENCES_CACHE_ = null;
 
 function isActiveReference_(value) {
   return value === true || String(value).toLowerCase() === 'true' || String(value).toLowerCase() === 'active';
@@ -64,6 +88,7 @@ function seedResearchReferences_(sheets) {
 }
 
 function getResearchReferences_() {
+  if (RESEARCH_REFERENCES_CACHE_) return RESEARCH_REFERENCES_CACHE_;
   var sheets = ensureResearchSheets_();
   seedResearchReferences_(sheets);
   var result = {};
@@ -73,6 +98,10 @@ function getResearchReferences_() {
     result[name.replace('PR_', '').replace('Reference', '')] = rows.slice(1).filter(function(row) {
       return isValidReferenceRow_(row, name, activeColumn);
     }).map(function(row) {
+      var code = String(row[0]).trim();
+      var seed = (RESEARCH_REFERENCE_SEEDS_[name] || []).filter(function(item) { return String(item[0]) === code; })[0];
+      var title = name === 'PR_SCReference' && seed ? seed[1] : row[1];
+      var description = name === 'PR_SCReference' && seed ? seed[2] : row[2];
       if (name === 'PR_TFReference') {
         var mqfDomains;
         try {
@@ -80,11 +109,12 @@ function getResearchReferences_() {
         } catch (e) {
           return null;
         }
-        return { code: String(row[0]).trim(), title: row[1], description: row[2], mqfDomains: mqfDomains };
+        return { code: code, title: title, description: description, mqfDomains: mqfDomains };
       }
-      return { code: String(row[0]).trim(), title: row[1], description: row[2] };
+      return { code: code, title: title, description: description };
     }).filter(function(row) { return row !== null; });
   });
+  RESEARCH_REFERENCES_CACHE_ = result;
   return result;
 }
 
@@ -124,6 +154,15 @@ function validateReferenceIds_(ids, allowedIds) {
 
 function isUnsafeReferenceId_(value) {
   return value === '__proto__' || Object.prototype.hasOwnProperty.call(Object.prototype, value);
+}
+
+function getResearchReferenceList_(references, key) {
+  references = references || {};
+  var lower = String(key || '').toLowerCase();
+  var upper = lower.toUpperCase();
+  if (Array.isArray(references[lower])) return references[lower];
+  if (Array.isArray(references[upper])) return references[upper];
+  return [];
 }
 
 function getResearchReferencesApi() {

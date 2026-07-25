@@ -1,11 +1,3 @@
 function updatePICApi_(raw) {
-  var user = getCurrentUser_();
-  if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
-  var ss = getSpreadsheet();
-  var pic = ss.getSheetByName('PIC');
-  var rows = JSON.parse(raw);
-  pic.clearContents();
-  pic.appendRow(['Faculty', 'Graduate Coordinator', 'Graduate Coordinator Email', 'Faculty PIC', 'Faculty PIC Email']);
-  rows.forEach(function(r) { pic.appendRow(r); });
-  return 'OK: ' + rows.length + ' rows written';
+  throw new Error('Endpoint disabled: PIC sheet is no longer used');
 }

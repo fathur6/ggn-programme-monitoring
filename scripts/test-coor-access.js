@@ -20,47 +20,61 @@ function loadAuth(sheets, programmes) {
       openById: function() { return spreadsheet; },
       getActiveSpreadsheet: function() { return spreadsheet; }
     },
-    findProgrammeByMqaCode_: function(code) { return programmes[code] || null; }
+    findProgrammeByMqaCode_: function(code) { return programmes[code] || null; },
+    findProgrammesByMqaCode_: function(code) {
+      return Object.keys(programmes).filter(function(key) { return programmes[key].mqaCode === code; }).map(function(key) { return programmes[key]; });
+    },
+    resolveProgramme_: function(identity) {
+      return programmes[identity] || programmes[String(identity || '').trim()] || null;
+    }
   };
   vm.runInNewContext(fs.readFileSync('gas/Auth.gs', 'utf8'), context);
   return context;
 }
 
-const coorEmail = 'coor@example.com';
-const coor = [
-  ['Faculty', 'Name', 'Email'],
-  ['  Faculty of Computing  ', '  Dr Coordinator  ', '  COOR@EXAMPLE.COM  ']
+const userEmail = 'user@unisza.edu.my';
+const user = [
+  ['Faculty', 'Graduate Coordinator', 'Graduate Coordinator Email', 'Position'],
+  ['  FIK  ', '  Faculty User  ', '  USER@UNISZA.EDU.MY  ', 'PIC']
 ];
 const programmes = {
-  'MQA/COMPUTING': { faculty: 'Faculty of Computing' },
-  'MQA/BUSINESS': { faculty: 'Faculty of Business' }
+  'MQA/COMPUTING': { faculty: 'FIK', programmeId: 'FIK::CS6001::MQA/COMPUTING', mqaCode: 'MQA/COMPUTING' },
+  'MQA/BUSINESS': { faculty: 'FPP', programmeId: 'FPP::BS6001::MQA/BUSINESS', mqaCode: 'MQA/BUSINESS' },
+  'FUHA::PL6008::MQA/FA10523': { faculty: 'FUHA', programmeId: 'FUHA::PL6008::MQA/FA10523', mqaCode: 'MQA/FA10523' },
+  'FSSG::PS6001::MQA/FA10523': { faculty: 'FSSG', programmeId: 'FSSG::PS6001::MQA/FA10523', mqaCode: 'MQA/FA10523' }
 };
-const auth = loadAuth({ COOR: makeSheet(coor) }, programmes);
+const auth = loadAuth({ USER: makeSheet(user) }, programmes);
 
-const coordinator = auth.lookupUser_(coorEmail);
-assert.strictEqual(coordinator.role, 'Faculty Coordinator');
-assert.strictEqual(coordinator.faculty, 'Faculty of Computing');
-assert.strictEqual(coordinator.name, 'Dr Coordinator');
-assert.strictEqual(auth.canViewProgramme_(coordinator, 'MQA/COMPUTING'), true);
-assert.strictEqual(auth.canViewProgramme_(coordinator, 'MQA/BUSINESS'), false);
+const facultyUser = auth.lookupUser_(userEmail);
+assert.strictEqual(facultyUser.role, 'Faculty User');
+assert.strictEqual(facultyUser.faculty, 'FIK');
+assert.strictEqual(facultyUser.name, 'Faculty User');
+assert.strictEqual(auth.canViewProgramme_(facultyUser, 'MQA/COMPUTING'), true);
+assert.strictEqual(auth.canViewProgramme_(facultyUser, 'MQA/BUSINESS'), false);
+assert.strictEqual(auth.canViewProgramme_(facultyUser, 'FUHA::PL6008::MQA/FA10523'), false);
+assert.strictEqual(auth.canViewProgramme_(facultyUser, 'FUHA::PL6008::MQA/FA10523', {
+  email: userEmail, programmeId: 'FSSG::PS6001::MQA/FA10523', mqaCode: 'MQA/FA10523', targetFaculty: 'FSSG'
+}), false, 'A grant for a duplicate MQA programme must not authorize another identity');
 
-const blankFaculty = loadAuth({ COOR: makeSheet([
-  ['Faculty', 'Name', 'Email'],
-  ['', 'Malformed Coordinator', coorEmail]
+const blankFaculty = loadAuth({ USER: makeSheet([
+  ['Faculty', 'Graduate Coordinator', 'Graduate Coordinator Email', 'Position'],
+  ['', 'Malformed User', userEmail, 'PIC']
 ]) }, programmes);
-assert.strictEqual(blankFaculty.lookupUser_(coorEmail), null);
+assert.strictEqual(blankFaculty.lookupUser_(userEmail), null);
 
-const ppsPrecedence = loadAuth({
-  PPS: makeSheet([['Name', 'Email'], ['Admin', coorEmail]]),
-  PIC: makeSheet([['Faculty', 'Coordinator Name', 'Coordinator Email', 'PIC Name', 'PIC Email', 'TDA Name', 'TDA Email']]),
-  COOR: makeSheet(coor)
+const admin = loadAuth({
+  ADMIN: makeSheet([['Name', 'Email', 'Position'], ['Admin User', userEmail, 'UGS Admin']]),
+  USER: makeSheet(user)
 }, programmes);
-assert.strictEqual(ppsPrecedence.lookupUser_(coorEmail).role, 'Admin');
+const adminUser = admin.decorateUser_(admin.lookupUser_(userEmail));
+assert.strictEqual(adminUser.role, 'Admin');
+assert.strictEqual(admin.canViewProgramme_(adminUser, 'MQA/BUSINESS'), true);
 
-const picPrecedence = loadAuth({
-  PIC: makeSheet([['Faculty', 'Coordinator Name', 'Coordinator Email', 'PIC Name', 'PIC Email', 'TDA Name', 'TDA Email'], ['Faculty of Business', 'Graduate Coordinator', 'PIC@EXAMPLE.COM', 'Faculty PIC', coorEmail, '', '']]),
-  COOR: makeSheet(coor)
+const legacySourcesIgnored = loadAuth({
+  PPS: makeSheet([['Name', 'Email'], ['Legacy Admin', userEmail]]),
+  PIC: makeSheet([['Faculty', 'Name', 'Email'], ['FPP', 'Legacy PIC', userEmail]]),
+  COOR: makeSheet([['Faculty', 'Name', 'Email'], ['FPP', 'Legacy Coordinator', userEmail]])
 }, programmes);
-assert.strictEqual(picPrecedence.lookupUser_(coorEmail).role, 'Faculty PIC');
+assert.strictEqual(legacySourcesIgnored.lookupUser_(userEmail), null);
 
-console.log('COOR access behavior tests passed.');
+console.log('USER/ADMIN access behavior tests passed.');

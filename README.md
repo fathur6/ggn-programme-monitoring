@@ -78,6 +78,38 @@ git diff --check
 
 The checks are static and syntax-based because the deployed Google Apps Script services require the UniSZA account, configured spreadsheet, Drive folder, and domain OAuth session.
 
+### Task 8 Readiness Gate
+
+Run each check independently from the project root:
+
+```bash
+node scripts/verify-mqf-rebuild.js
+node scripts/test-research-mapping.js
+node scripts/test-research-mapping-client.js
+node scripts/test-mqf-overdue.js
+node scripts/test-coor-access.js
+node scripts/test-task7-boundaries.js
+node -e "const fs=require('fs'); const s=fs.readFileSync('gas/JavaScript.html','utf8').replace(/^<script>\\s*/,'').replace(/\\s*<\\/script>\\s*$/,''); new Function(s); console.log('JavaScript syntax passed');"
+node -e "for (const f of require('fs').readdirSync('gas').filter(f=>f.endsWith('.gs'))) new Function(require('fs').readFileSync('gas/'+f,'utf8')); console.log('GAS source syntax passed.');"
+node -e "JSON.parse(require('fs').readFileSync('gas/appsscript.json','utf8')); console.log('Manifest JSON passed');"
+git diff --check
+git check-ignore -v gas/Config.gs gas/.clasp.json
+git ls-files gas/Config.gs gas/.clasp.json
+```
+
+Before deployment, use an authorized test deployment and verify the following without changing production data:
+
+- Login, dashboard, programme directory, `Maklumat Program`, `Pemetaan`, and `Review & Submit`.
+- PEO parent and child PLO relationships.
+- MQF multi-select and derived TF refresh.
+- SDG/SC multi-select and PEO roll-up refresh.
+- Coverage Matrix containment and accessible table headers at desktop and 390px widths.
+- Invalid PLO warning or critical submit blocker.
+- Unsaved-change navigation warning.
+- Faculty isolation, access expiry, document permissions, and admin approval actions.
+
+Do not submit, upload, delete, approve, send email, or run `clasp push`/`clasp deploy` during local verification. This repository has no local browser harness for the authenticated Apps Script session; browser checks require the authorized test deployment and representative accounts.
+
 ## Deployment Caution
 
 Deploy only after reviewing the authorization changes in `Auth.gs`, `Code.gs`, `GovernanceService.gs`, and `AccessRequestService.gs`. Use a test deployment first, then verify faculty isolation, Graduate School drilldown, seven-day access expiry, document permissions, and admin approval actions with representative accounts. Do not expose the local `Config.gs` or `.clasp.json` contents in logs, commits, or screenshots.

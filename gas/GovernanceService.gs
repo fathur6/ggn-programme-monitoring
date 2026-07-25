@@ -44,7 +44,7 @@ function getUniversityDashboardApi_() {
   if (!user) throw new Error('Unauthorized');
 
   var admin = isGraduateSchoolAdmin_(user);
-  var programmes = getProgrammes_(admin ? null : user.faculty).filter(isResearchProgramme_);
+  var programmes = getProgrammes_(null).filter(isResearchProgramme_);
   var byFaculty = {};
   var totals = createEmptyStatusTotals_();
 
@@ -173,6 +173,59 @@ function getGovernanceItemsApi_(filters) {
   });
 }
 
+function getFacultyUserDirectoryApi_() {
+  var user = getCurrentUser_();
+  if (!isGraduateSchoolAdmin_(user)) throw new Error('Forbidden: administrator access required');
+  var sheet = getSpreadsheet().getSheetByName('USER');
+  if (!sheet) return [];
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+  var headers = values[0].map(function(value) { return String(value || '').trim().toLowerCase(); });
+  function column(names, fallback) {
+    for (var i = 0; i < names.length; i++) {
+      var index = headers.indexOf(names[i]);
+      if (index !== -1) return index;
+    }
+    return fallback;
+  }
+  var facultyColumn = column(['faculty', 'faculty code', 'faculty/centre'], 0);
+  var nameColumn = column(['name', 'staff name', 'user'], 1);
+  var positionColumn = column(['position', 'role', 'designation'], 3);
+  var programmes = getProgrammes_(null);
+  var facultyNames = programmes.reduce(function(result, programme) {
+    var code = String(programme.faculty || '').trim();
+    if (code && programme.facultyFull) result[code] = String(programme.facultyFull).trim();
+    return result;
+  }, {});
+  var groups = {};
+  values.slice(1).forEach(function(row) {
+    var faculty = String(row[facultyColumn] || '').trim();
+    var name = String(row[nameColumn] || '').trim();
+    var position = String(row[positionColumn] || '').trim();
+    if (!faculty || !name) return;
+    if (!groups[faculty]) {
+      var fullName = facultyNames[faculty] || faculty;
+      groups[faculty] = { code: faculty, name: fullName, users: [] };
+    }
+    groups[faculty].users.push({ name: name, position: position });
+  });
+  function positionRank(position) {
+    var value = String(position || '').toLowerCase();
+    if ((value.indexOf('deputy dean') !== -1 && value.indexOf('academic') !== -1) ||
+        (value.indexOf('timbalan dekan') !== -1 && value.indexOf('akademik') !== -1)) return 1;
+    if (value.indexOf('graduate coordinator') !== -1 || value.indexOf('penyelaras siswazah') !== -1) return 2;
+    if (value.indexOf('faculty pic') !== -1 || value.indexOf('institute pic') !== -1 || value === 'pic' || value.indexOf(' pic') !== -1) return 3;
+    return 4;
+  }
+  return Object.keys(groups).map(function(code) {
+    var group = groups[code];
+    group.users.sort(function(a, b) {
+      return positionRank(a.position) - positionRank(b.position) || a.name.localeCompare(b.name);
+    });
+    return group;
+  }).sort(function(a, b) { return a.name.localeCompare(b.name); });
+}
+
 function saveGovernanceItemApi_(item) {
   var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
@@ -201,32 +254,46 @@ function computeProgrammeStatus_(programme) {
 }
 
 function computeResearchProgrammeStatus_(programme) {
-  var review = getResearchReviewApi_(programme.mqaCode);
+  var review = validateResearchProgramme_(researchReviewData_(programme.mqaCode));
   var metrics = review.metrics || {};
-  var ready = review.status === 'Ready for review' || review.status === 'Submitted' || review.status === 'Approved';
-  var submitted = review.status === 'Submitted' || review.status === 'Approved';
-  var peoReady = (metrics.peosWithIssues || 0) === 0 && metrics.ploTotal > 0;
-  var ploReady = metrics.ploStatementsComplete === metrics.ploTotal && metrics.ploTotal > 0;
-  var mqfReady = metrics.ploWithMQF === metrics.ploTotal && metrics.ploTotal > 0;
-  var taxonomyReady = metrics.ploWithValidTaxonomy === metrics.ploTotal && metrics.ploTotal > 0;
-  var mappingReady = isResearchMappingComplete_(metrics);
+
+  var peoOk = (metrics.peosTotal || 0) > 0 && (metrics.peoStatementsComplete || 0) === (metrics.peosTotal || 0);
+  var ploOk = (metrics.ploTotal || 0) > 0 && (metrics.ploStatementsComplete || 0) === (metrics.ploTotal || 0);
+  var mqfOk = (metrics.ploWithMQF || 0) === (metrics.ploTotal || 0) && (metrics.ploTotal || 0) > 0;
+  var taxonomyOk = (metrics.ploWithValidTaxonomy || 0) === (metrics.ploTotal || 0) && (metrics.ploTotal || 0) > 0;
+  var phase1Complete = peoOk && ploOk && mqfOk && taxonomyOk;
+  var phase2SDGCount = Math.min(metrics.phase2SDGCount || 0, 3);
+  var phase2SCCategoryCount = Math.min(metrics.phase2SCCategoryCount || 0, 3);
+  var phase2CompletedItems = phase2SDGCount + phase2SCCategoryCount;
+  var phase2Complete = phase2CompletedItems === 6;
+  var phase2Percent = Math.round((phase2CompletedItems / 6) * 100);
+
   return {
-    completionState: review.status,
-    peoState: peoReady ? 'Complete' : 'Needs attention',
-    ploState: ploReady ? 'Complete' : 'Needs attention',
-    mqfDomainState: mqfReady ? 'Complete' : 'Needs attention',
-    taxonomyState: taxonomyReady ? 'Complete' : 'Needs attention',
-    mappingState: mappingReady ? 'Complete' : 'Needs attention',
+    completionState: phase1Complete ? 'Complete' : 'Needs attention',
+    peoState: peoOk ? 'Complete' : 'Needs attention',
+    ploState: ploOk ? 'Complete' : 'Needs attention',
+    mqfDomainState: mqfOk ? 'Complete' : 'Needs attention',
+    taxonomyState: taxonomyOk ? 'Complete' : 'Needs attention',
+    phase1Complete: phase1Complete,
+    phase2Complete: phase2Complete,
+    phase2Percent: phase2Percent,
+    phase2CompletedItems: phase2CompletedItems,
+    phase2TotalItems: 6,
+    mappingState: 'Not required',
     documentState: 'Not required',
-    reviewState: review.critical && review.critical.length ? 'Blocked' : 'Ready',
-    submissionState: submitted ? 'Submitted' : (ready ? 'Ready' : review.status),
-    overdue: isProgrammeOverdue_({completionState: submitted ? 'Submitted' : review.status}),
-    counts: {
-      peos: review.peoCoverage ? review.peoCoverage.length : 0,
-      plos: metrics.ploTotal || 0,
-      mqfDomainComplete: metrics.ploWithMQF || 0,
+    reviewState: phase1Complete ? 'Ready' : 'Blocked',
+    submissionState: phase1Complete ? 'Ready' : 'Needs attention',
+    overdue: isProgrammeOverdue_({completionState: phase1Complete ? 'Complete' : 'Needs attention'}),
+     counts: {
+       peos: metrics.peosTotal || 0,
+       peoComplete: metrics.peoStatementsComplete || 0,
+       plos: metrics.ploTotal || 0,
+       ploComplete: metrics.ploStatementsComplete || 0,
+       mqfDomainComplete: metrics.ploWithMQF || 0,
       taxonomyComplete: metrics.ploWithValidTaxonomy || 0,
-      mappingComplete: mappingReady ? metrics.ploTotal : (metrics.ploWithValidTF || 0)
+      phase2SDGCount: phase2SDGCount,
+      phase2SCCategoryCount: phase2SCCategoryCount,
+      mappingComplete: 0
     }
   };
 }
@@ -276,12 +343,20 @@ function createEmptyStatusTotals_() {
     documentReadyCount: 0,
     reviewCount: 0,
     submissionCount: 0,
-    overdueCount: 0
-  };
+      overdueCount: 0
+      ,phase1CompleteCount: 0
+      ,phase2CompleteCount: 0
+      ,phase2CompletedItems: 0
+      ,phase2TotalItems: 0
+    };
 }
 
 function addStatusToTotals_(totals, status) {
   totals.programmeCount++;
+  if (status.phase1Complete) totals.phase1CompleteCount++;
+  if (status.phase2Complete) totals.phase2CompleteCount++;
+  totals.phase2CompletedItems += status.phase2CompletedItems || 0;
+  totals.phase2TotalItems += status.phase2TotalItems || 6;
   if (status.completionState === 'Complete') totals.completeCount++;
   else totals.needsAttentionCount++;
   if (status.mqfDomainState === 'Complete') totals.mqfDomainCompleteCount++;

@@ -58,6 +58,10 @@ assert(/PLO Workspace[\s\S]*?\+ Add PLO/.test(index), 'PLO Workspace does not ex
 assert(/type="button"/.test(index), 'Research workspace actions are missing explicit button types');
 assert(/addResearchPLO:\s*function/.test(source), 'Research PLO add flow is missing');
 assert(/isResearchProgramme/.test(source), 'Client research programme guard is missing');
+assert(/getResearchProgrammeApi\(programmeId\)/.test(source) && /getResearchMappingsApi\(programmeId\)/.test(source),
+  'Research workspace reads must use the selected programme identity');
+assert(/saveResearchProfileApi\(this\.currentProgramme\.programmeId/.test(source) && /saveResearchPLOMappingApi\(self\.currentProgramme\.programmeId/.test(source),
+  'Research workspace writes must use the selected programme identity');
 [
   {programme: {mode: 'Research', level: 'Other'}, expected: true},
   {programme: {mode: 'Postgraduate by Research', level: 'Masters'}, expected: true},
@@ -104,9 +108,10 @@ assert.deepStrictEqual(mappingMatrixRows.call({
 }), [{
   code: 'PLO-unmapped', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sdg: [], sc: []
 }], 'The matrix runtime must derive TF coverage for a PLO without a mapping row');
-['MQF', 'SDG', 'SC'].forEach(function(referenceType) {
+['MQF', 'SDG'].forEach(function(referenceType) {
   assert(new RegExp('researchReferences\\.' + referenceType).test(index), 'Research editor does not consume the ' + referenceType + ' API reference key');
 });
+assert(/researchReferences\.SC/.test(source), 'Research editor does not consume the SC API reference key');
 assert(/researchReferences\.TF/.test(source), 'Matrix projection does not consume the TF API reference key');
 assert(/PLO Mapping Matrix/.test(index), 'Read-only PLO mapping matrix is missing');
 assert(/aria-label="PLO mapping matrix"/.test(index), 'PLO mapping matrix needs an accessible name');
@@ -133,13 +138,13 @@ assert(/ploId/.test(mappingSave), 'Mapping save does not use a persisted PLO id'
 assert(/saveResearchPLOMappingApi/.test(mappingSave), 'Mapping save API is missing');
 assert(/sdgIds/.test(mappingSave) && /scIds/.test(mappingSave), 'Explicit SDG and SC selections are not persisted');
 assert(/parentPEO/.test(mappingSave) && /statement/.test(mappingSave), 'PLO parent or statement is not included in save flow');
-assert(/mqfDomains/.test(mappingSave) && /taxonomy/.test(mappingSave) && /rationale/.test(mappingSave), 'Complete PLO field set is not included in save flow');
+assert(/mqfDomains/.test(mappingSave) && /taxonomy/.test(mappingSave) && !/rationale/.test(mappingSave), 'PLO save flow includes an obsolete rationale field');
 assert(/savedPLO/.test(mappingSave), 'Mapping save does not resolve the server-returned PLO');
 assert(/researchMutationComplete/.test(mappingSave) && /refreshResearchDerived/.test(methodSource('researchMutationComplete')), 'Mapping save does not refresh server-derived state');
 
 const ploSave = methodSource('saveResearchPLOs');
 assert(/parentPEO/.test(ploSave) && /statement/.test(ploSave) && /mqfDomains/.test(ploSave), 'PLO API payload omits core editable fields');
-assert(/taxonomy/.test(ploSave) && /rationale/.test(ploSave), 'PLO API payload omits taxonomy or rationale');
+assert(/taxonomy/.test(ploSave) && !/rationale/.test(ploSave), 'PLO API payload includes an obsolete rationale field');
 assert(/researchMutationComplete/.test(ploSave) && /refreshResearchDerived/.test(methodSource('researchMutationComplete')), 'PLO save does not refresh server-derived state');
 
 console.log('Research mapping client regression checks passed.');

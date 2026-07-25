@@ -3,7 +3,7 @@
 var ACCESS_REQUEST_HEADERS = [
   'RequestId', 'RequesterEmail', 'RequesterFaculty', 'TargetFaculty', 'MQACode',
   'Reason', 'Scope', 'RequestedAt', 'Status', 'ApproverEmail', 'ApprovedAt',
-  'ExpiresAt', 'RevokedAt', 'DecisionNote'
+  'ExpiresAt', 'RevokedAt', 'DecisionNote', 'ProgrammeId'
 ];
 
 function ensureAccessRequestsSheet_() {
@@ -22,11 +22,11 @@ function createAccessRequestApi_(request) {
   if (isGraduateSchoolAdmin_(user)) throw new Error('Graduate School administrators already have access');
 
   var targetFaculty = String(request.targetFaculty || '').trim();
-  var mqaCode = String(request.mqaCode || '').trim();
+  var programmeId = String(request.programmeId || request.mqaCode || '').trim();
   var reason = String(request.reason || '').trim();
-  if (!mqaCode) throw new Error('A research programme is required');
+  if (!programmeId) throw new Error('A research programme is required');
   if (!reason) throw new Error('A reason is required');
-  var programme = findProgrammeByMqaCode_(mqaCode);
+  var programme = typeof resolveProgramme_ === 'function' ? resolveProgramme_(programmeId) : findProgrammeByMqaCode_(programmeId);
   if (!programme) throw new Error('Programme not found');
   if (!isResearchProgramme_(programme)) throw new Error('Only postgraduate research programmes are eligible');
   if (targetFaculty && targetFaculty !== String(programme.faculty || '').trim()) {
@@ -43,9 +43,8 @@ function createAccessRequestApi_(request) {
   var sheet = ensureAccessRequestsSheet_();
   var id = 'ACCESS-' + Utilities.getUuid();
   sheet.appendRow([
-    id, user.email, user.faculty || '', targetFaculty, mqaCode, reason,
-    request.scope || (mqaCode ? 'programme' : 'faculty'), new Date(), 'Pending',
-    '', '', '', '', ''
+    id, user.email, user.faculty || '', targetFaculty, programme.mqaCode, reason,
+    request.scope || 'programme', new Date(), 'Pending', '', '', '', '', '', programme.programmeId
   ]);
   return { requestId: id, status: 'Pending' };
 }
@@ -59,14 +58,14 @@ function getAccessRequestsApi_(filters) {
   return data.slice(1).filter(function(row) {
     if (!row[0]) return false;
     if (!isGraduateSchoolAdmin_(user) && String(row[1]) !== String(user.email)) return false;
-    var programme = findProgrammeByMqaCode_(row[4]);
+    var programme = typeof resolveProgramme_ === 'function' ? resolveProgramme_(row[14] || row[4]) : findProgrammeByMqaCode_(row[4]);
     if (!programme || !isResearchProgramme_(programme)) return false;
     if (requestedStatus && String(row[8]) !== String(requestedStatus)) return false;
     return true;
   }).map(function(row) {
     var item = {
       requestId: row[0], requesterEmail: row[1], requesterFaculty: row[2],
-      targetFaculty: row[3], mqaCode: row[4], reason: row[5], scope: row[6],
+      targetFaculty: row[3], mqaCode: row[4], programmeId: row[14] || row[4], reason: row[5], scope: row[6],
       requestedAt: row[7], status: row[8], approvedAt: row[10], expiresAt: row[11],
       revokedAt: row[12]
     };
@@ -92,7 +91,7 @@ function decideAccessRequestApi_(requestId, decision, note) {
     var data = sheet.getDataRange().getValues();
     var rowNumber = findAccessRequestRow_(data, requestId);
     if (rowNumber === -1) throw new Error('Access request not found');
-    requireResearchAccessRequestProgramme_(data[rowNumber][4]);
+    requireResearchAccessRequestProgramme_(data[rowNumber][14] || data[rowNumber][4]);
     if (String(data[rowNumber][8]) !== 'Pending') throw new Error('Access request is no longer pending');
 
     var now = new Date();
@@ -115,7 +114,7 @@ function revokeAccessGrantApi_(requestId, note) {
   var data = sheet.getDataRange().getValues();
   var rowNumber = findAccessRequestRow_(data, requestId);
   if (rowNumber === -1) throw new Error('Access request not found');
-  requireResearchAccessRequestProgramme_(data[rowNumber][4]);
+  requireResearchAccessRequestProgramme_(data[rowNumber][14] || data[rowNumber][4]);
   if (String(data[rowNumber][8]) !== 'Approved') throw new Error('Only approved access can be revoked');
   sheet.getRange(rowNumber + 1, 9).setValue('Revoked');
   sheet.getRange(rowNumber + 1, 13).setValue(new Date());
@@ -123,20 +122,21 @@ function revokeAccessGrantApi_(requestId, note) {
   return { requestId: requestId, status: 'Revoked' };
 }
 
-function requireResearchAccessRequestProgramme_(mqaCode) {
-  var programme = findProgrammeByMqaCode_(mqaCode);
+function requireResearchAccessRequestProgramme_(programmeIdOrMqaCode) {
+  var programme = typeof resolveProgramme_ === 'function' ? resolveProgramme_(programmeIdOrMqaCode) : findProgrammeByMqaCode_(programmeIdOrMqaCode);
   if (!programme || !isResearchProgramme_(programme)) {
     throw new Error('Access request references an invalid research programme');
   }
   return programme;
 }
 
-function getActiveAccessGrant_(email, mqaCode) {
+function getActiveAccessGrant_(email, programmeIdOrMqaCode) {
   var sheet = ensureAccessRequestsSheet_();
   var data = sheet.getDataRange().getValues();
-  var programme = findProgrammeByMqaCode_(mqaCode);
+  var programme = typeof resolveProgramme_ === 'function' ? resolveProgramme_(programmeIdOrMqaCode) : findProgrammeByMqaCode_(programmeIdOrMqaCode);
   if (!programme || !isResearchProgramme_(programme)) return null;
-  var requestedMqaCode = String(mqaCode || '').trim();
+  var requestedMqaCode = String(programme.mqaCode || programmeIdOrMqaCode || '').trim();
+  var requestedProgrammeId = String(programme.programmeId || requestedMqaCode).trim();
   var canonicalFaculty = String(programme.faculty || '').trim();
   if (!requestedMqaCode || !canonicalFaculty) return null;
   for (var i = data.length - 1; i >= 1; i--) {
@@ -148,9 +148,10 @@ function getActiveAccessGrant_(email, mqaCode) {
     if (!isFinite(expiryTimestamp) || expiryTimestamp <= Date.now()) continue;
     var grantMqaCode = String(row[4] || '').trim();
     var grantFaculty = String(row[3] || '').trim();
-    if (!grantMqaCode || grantMqaCode !== requestedMqaCode) continue;
+    var grantProgrammeId = String(row[14] || '').trim();
+    if (grantProgrammeId ? grantProgrammeId !== requestedProgrammeId : (!grantMqaCode || grantMqaCode !== requestedMqaCode)) continue;
     if (!grantFaculty || grantFaculty !== canonicalFaculty) continue;
-    return { email: row[1], mqaCode: grantMqaCode, targetFaculty: grantFaculty, expiresAt: row[11] };
+    return { email: row[1], mqaCode: grantMqaCode, programmeId: grantProgrammeId || requestedProgrammeId, targetFaculty: grantFaculty, expiresAt: row[11] };
   }
   return null;
 }

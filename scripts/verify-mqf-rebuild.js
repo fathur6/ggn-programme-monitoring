@@ -119,11 +119,14 @@ var publicGasGlobals = topLevelGasFunctions();
 assertContains(researchMapping, /function\s+uniqueTrimmed_\s*\(/, 'Shared trimming helper is missing');
 assertContains(researchMapping, /function\s+deriveTFIds_\s*\(/, 'TF derivation helper is missing');
 assertContains(researchMapping, /function\s+canonicalResearchTaxonomy_\s*\(/, 'Taxonomy canonicalization helper is missing');
+assertContains(researchMapping, /'P6'/, 'Psychomotor taxonomy references are missing');
 assertContains(researchMapping, /function\s+normalizeResearchPEO_\s*\(/, 'Research PEO normalization is missing');
 assertContains(researchMapping, /function\s+normalizeResearchPLO_\s*\(/, 'Research PLO normalization is missing');
 assertContains(researchMapping, /function\s+validatePLOParents_\s*\(/, 'Research PLO parent validation is missing');
 assertContains(researchMapping, /function\s+validateDuplicateCodes_\s*\(/, 'Research duplicate validation is missing');
 assertContains(researchMapping, /function\s+getResearchProgrammeApi_\s*\(/, 'Research programme API is missing');
+assertContains(researchMapping, /function\s+readLegacyResearchDetail_\s*\(/, 'Legacy programme detail adapter is missing');
+assertContains(researchMapping, /function\s+normalizeLegacyMQF_\s*\(/, 'Legacy MQF normalization is missing');
 assertContains(researchMapping, /function\s+saveResearchProfileApi_\s*\(/, 'Research profile save API is missing');
 assertContains(researchMapping, /function\s+getResearchPEOsApi_\s*\(/, 'Research PEO API is missing');
 assertContains(researchMapping, /function\s+saveResearchPEOsApi_\s*\(/, 'Research PEO save API is missing');
@@ -136,6 +139,9 @@ assertContains(researchMapping, /function\s+saveResearchPLOMappingApi_\s*\(/, 'P
 assertContains(researchMapping, /function\s+getResearchCoverageApi_\s*\(/, 'Research coverage API is missing');
 assertContains(researchReview, /function\s+validateResearchProgramme_\s*\(/, 'Research review validation is missing');
 assertContains(researchReview, /function\s+getResearchReviewApi_\s*\(/, 'Research review API is missing');
+assert(!/activeResearchReferences_/.test(researchReview), 'Research review references call an undefined helper');
+assertContains(researchReview, /function\s+researchReviewData_\s*\([\s\S]*?getResearchReferences_\(\)/,
+  'Research review data must load seeded references before locking');
 assertContains(researchReview, /function\s+saveResearchStatusApi_\s*\(/, 'Research status save API is missing');
 assertContains(researchReview, /function\s+submitResearchProgrammeApi_\s*\(/, 'Research submission API is missing');
 assertContains(researchReview, /function\s+isLegalResearchStatusTransition_\s*\(/, 'Research status transition legality check is missing');
@@ -152,9 +158,13 @@ assertContains(researchReview, /function\s+saveResearchStatusApi_[\s\S]*?isLegal
 assertContains(researchReview, /function\s+saveResearchStatusApi_[\s\S]*?['"]Submitted['"][\s\S]*?throws?\s*new\s+Error/, 'Status save does not redirect Submitted to guarded submission');
 assertContains(researchMapping, /Derived from PLO mappings/, 'Derived mapping label is missing');
 assertContains(programmeService, /mode:\s*String\(data\[i\]\[10\]/, 'Programme mode metadata is not exposed');
-assertContains(programmeService, /function\s+isResearchProgramme_[\s\S]*?if \(mode\) return mode === 'research' \|\| mode === 'postgraduate by research';[\s\S]*?return false;/, 'Research programme predicate must fail closed when mode is missing or unknown');
+assertContains(programmeService, /function\s+hasResearchDetailSheet_\s*\(/, 'Research detail-tab fallback is missing');
+assertContains(programmeService, /researchDetail:\s*hasResearchDetailSheet_\(ss, data\[i\]\[columns\.mqaCode\]\)/,
+  'Programme loader does not inspect the bounded research detail-tab fallback');
+assertContains(programmeService, /function\s+isResearchProgramme_[\s\S]*?if \(mode\) return mode === 'research' \|\| mode === 'postgraduate by research';[\s\S]*?return programme\.researchDetail === true;/,
+  'Research programme predicate must use the bounded detail-tab fallback when mode is missing');
 assertContains(researchMapping, /function\s+requireResearchProgramme_\s*\(/, 'Research programme mode guard is missing');
-assertContains(researchMapping, /requireResearchProgramme_\(mqaCode\)/, 'Research APIs do not enforce the research programme guard');
+assertContains(researchMapping, /requireResearchProgramme_\((?:mqaCode|programmeIdOrMqaCode)\)/, 'Research APIs do not enforce the research programme guard');
 assertContains(researchMapping, /Postgraduate by Research/, 'Research profile mode is not canonical');
 assertContains(researchMapping, /deriveTFIds_\(/, 'TF derivation is not invoked by mapping functions');
 assert(!/\b(getPEOs|savePEOs|getPLOs|savePLOs)\s*\(/.test(researchMapping), 'Research service calls legacy PEO/PLO services');
@@ -238,6 +248,11 @@ assertContains(auth, /canViewProgramme_\s*\(/, 'Missing programme access helper'
 assertContains(auth, /requireProgrammeAccess_\s*\(/, 'Missing programme access guard');
 assertContains(auth, /capabilities\s*[:=]/, 'Current user does not expose normalized capabilities');
 assertContains(auth, /function\s+requireResearchProgrammeAccess_\s*\(/, 'Legacy service research/access guard is missing');
+assertContains(auth, /getSheetByName\('ADMIN'\)/, 'ADMIN sheet is not the university credential source');
+assertContains(auth, /getSheetByName\('USER'\)/, 'USER sheet is not the faculty credential source');
+assert(!/getSheetByName\('(?:PPS|PIC|COOR)'\)/.test(auth), 'Legacy credential sheets must not authenticate users');
+assert(!/getSheetByName\('PIC'\)/.test(email), 'Email recipients must not depend on the removed PIC sheet');
+assertContains(read('gas/update_pic.gs'), /Endpoint disabled: PIC sheet is no longer used/, 'PIC update endpoint must remain disabled');
 
 [
   'getPEOsApi',
@@ -255,7 +270,7 @@ assertContains(auth, /function\s+requireResearchProgrammeAccess_\s*\(/, 'Legacy 
 assertContains(code, /function\s+approveDeleteFileApi[\s\S]*?isGraduateSchoolAdmin_/, 'Admin delete endpoint is not Graduate School-admin guarded');
 assertContains(governance, /function\s+ensureGovernanceSheets_\s*\(/, 'Missing additive governance sheet setup');
 assertContains(governance, /function\s+getUniversityDashboardApi_\s*\(/, 'Missing university dashboard API implementation');
-assertContains(governance, /getProgrammes_\(admin \? null : user\.faculty\)\.filter\(isResearchProgramme_\)/, 'University dashboard is not research scoped');
+assertContains(governance, /getProgrammes_\(null\)\.filter\(isResearchProgramme_\)/, 'University dashboard is not university-wide research scoped');
 assertContains(governance, /getProgrammes_\(faculty\)\.filter\(isResearchProgramme_\)/, 'Faculty report is not research scoped');
 assertContains(governance, /MQFDomainState/, 'Dashboard does not monitor MQF Domain state');
 assertContains(governance, /TaxonomyState/, 'Dashboard does not monitor Taxonomy state');
@@ -278,7 +293,7 @@ assertContains(access, /function\s+revokeAccessGrantApi_\s*\(/, 'Missing access 
 assertContains(access, /getActiveAccessGrant_\s*\(/, 'Missing active access grant lookup');
 assertContains(access, /function\s+getActiveAccessGrant_[\s\S]*?if \(!requestedMqaCode \|\| !canonicalFaculty\) return null;/,
   'Active access grants must require a canonical research programme identity');
-assertContains(access, /function\s+getActiveAccessGrant_[\s\S]*?if \(!grantMqaCode \|\| grantMqaCode !== requestedMqaCode\) continue;/,
+assertContains(access, /function\s+getActiveAccessGrant_[\s\S]*?grantProgrammeId[^\n]*requestedProgrammeId[\s\S]*?grantMqaCode[^\n]*requestedMqaCode/,
   'Active access grants must reject blank or mismatched MQA codes');
 assertContains(access, /function\s+getActiveAccessGrant_[\s\S]*?if \(!grantFaculty \|\| grantFaculty !== canonicalFaculty\) continue;/,
   'Active access grants must reject blank or mismatched faculties');
@@ -355,6 +370,8 @@ assert(!/function\s+prepareAllSheetsApi[\s\S]*?delete(Row|Rows|Sheet)/.test(code
 assertContains(index, /class="app-nav"/, 'Persistent application navigation is missing');
 assertContains(index, /currentView === 'dashboard'/, 'University dashboard view is missing');
 assertContains(index, /Faculty readiness/, 'Faculty readiness dashboard is missing');
+assertContains(index, /Only accessible by admin/, 'Faculty review restriction tooltip is missing');
+assertContains(javascript, /openFaculty:\s*function\(faculty\)[\s\S]*?Only accessible by admin/, 'Faculty review must be admin guarded in the client');
 assertContains(javascript, /getUniversityDashboardApi\(\)/, 'Dashboard API is not loaded by the client');
 assertContains(javascript, /function\(faculty\)/, 'Dashboard faculty completion helper is missing');
 assertContains(styles, /--action-green/, 'Operational Clarity action token is missing');
@@ -369,6 +386,13 @@ const researchDetailSource = index.slice(researchDetailStart, researchDetailEnd)
 assertContains(researchDetailSource, /Maklumat Program/, 'Programme Information category is missing');
 assertContains(researchDetailSource, /Pemetaan/, 'Mapping category is missing');
 assertContains(researchDetailSource, /PLO Workspace/, 'PLO workspace is missing');
+assertContains(researchDetailSource, /plo-record-list/, 'Programme Information must render loaded PLO records');
+assertContains(researchDetailSource, /PLO statement/, 'Programme Information PLO statement field is missing');
+assertContains(researchDetailSource, /MQF:<\/strong>/, 'Programme Information PLO MQF display is missing');
+assertContains(researchDetailSource, /Taxonomy:<\/strong>/, 'Programme Information PLO Taxonomy display is missing');
+assertContains(researchDetailSource, /aria-label="MQF domain"/, 'Programme Information MQF dropdown is missing');
+assertContains(researchDetailSource, /aria-label="Taxonomy"/, 'Programme Information Taxonomy dropdown is missing');
+assertContains(javascript, /setResearchPLOMQF:\s*function/, 'PLO MQF dropdown handler is missing');
 assertContains(researchDetailSource, /Coverage Matrix/, 'Coverage matrix is missing');
 assertContains(researchDetailSource, /TF derived from MQF mapping/, 'Derived TF label is missing');
 assertContains(researchDetailSource, /Derived from PLO mappings/, 'PEO derived label is missing');
@@ -414,6 +438,16 @@ assertContains(javascript, /self\.programmes\s*=\s*\(result\s*\|\|\s*\[\]\)\.fil
   ['profile-updated-by', 'Last updated by', 'updatedBy']
 ].forEach(function(field) {
   var id = field[0];
+  if (id === 'profile-created') {
+    assertContains(researchDetailSource, /<label\s+for="profile-created">Created<\/label>\s*<input\s+id="profile-created"\s+value="\(MQA Document\)"\s+disabled>/,
+      'Created field must display the MQA document source');
+    return;
+  }
+  if (id === 'profile-updated') {
+    assertContains(researchDetailSource, /<label\s+for="profile-updated">Last updated<\/label>\s*<input\s+id="profile-updated"\s+:value="formatResearchDate\(researchProfile\.updatedAt\)"\s+disabled>/,
+      'Last updated field must use the formatted profile timestamp');
+    return;
+  }
   var control = new RegExp('<label\\s+for="' + id + '">' + field[1] + '</label>\\s*<input\\s+id="' + id + '"(?=[^>]*:value="researchProfile\\.' + field[2] + '")(?=[^>]*\\b(?:disabled|readonly)\\b)[^>]*>');
   assertContains(researchDetailSource, control, 'Research profile audit field must have a labeled read-only profile binding: ' + id);
 });
@@ -457,6 +491,7 @@ assertContains(auth, /function\s+getCurrentUser_\s*\(/, 'Private authentication 
 assertContains(auth, /function\s+resolveSessionToken\s*\(token\)[\s\S]*?lookupUser_\(/,
   'Session resolution must retain internal user lookup');
 assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\(/, 'Research references API is missing');
+assertContains(researchReferences, /function\s+getResearchReferenceList_\s*\(/, 'Reference key normalization helper is missing');
 assertContains(email, /function\s+sendAnnouncement\s*\(fac\)[\s\S]*?getFacultyRecipientData_\(fac\)[\s\S]*?getFacultyRecipients_\(fac\)/,
   'Announcement sending must retain private recipient resolution');
 assertContains(plo, /function\s+getNextPLOCode_\s*\(/, 'Private PLO code helper is missing');

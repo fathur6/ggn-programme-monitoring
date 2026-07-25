@@ -103,35 +103,47 @@ function getAuthorizedProgrammeScope_() {
   };
 }
 
-function canViewProgramme_(user, mqaCode, optAccess) {
-  if (!user || !mqaCode) return false;
+function canViewProgramme_(user, programmeIdOrMqaCode, optAccess) {
+  if (!user || !programmeIdOrMqaCode) return false;
   if (isGraduateSchoolAdmin_(user)) return true;
 
-  var programme = findProgrammeByMqaCode_(mqaCode);
+  var programme = typeof resolveProgramme_ === 'function'
+    ? resolveProgramme_(programmeIdOrMqaCode)
+    : findProgrammeByMqaCode_(programmeIdOrMqaCode);
   if (!programme) return false;
   if (programme.faculty === String(user.faculty || '').trim()) return true;
 
   if (!optAccess || optAccess.email !== user.email) return false;
-  if (!optAccess.mqaCode || optAccess.mqaCode !== mqaCode) return false;
+  var requestedIdentity = String(programme.programmeId || '').trim();
+  var isCompositeRequest = requestedIdentity && String(programmeIdOrMqaCode).trim() === requestedIdentity;
+  if (isCompositeRequest) {
+    if (optAccess.programmeId) {
+      if (optAccess.programmeId !== requestedIdentity) return false;
+    } else if (typeof findProgrammesByMqaCode_ === 'function' && findProgrammesByMqaCode_(programme.mqaCode).length > 1) {
+      return false;
+    }
+  } else if (optAccess.mqaCode !== String(programme.mqaCode).trim()) {
+    return false;
+  }
   return !!optAccess.targetFaculty && optAccess.targetFaculty === programme.faculty;
 }
 
-function requireProgrammeAccess_(mqaCode, action) {
+function requireProgrammeAccess_(programmeIdOrMqaCode, action) {
   var user = getCurrentUser_();
   if (!user) throw new Error('Unauthorized');
 
   var access = typeof getActiveAccessGrant_ === 'function'
-    ? getActiveAccessGrant_(user.email, mqaCode)
+    ? getActiveAccessGrant_(user.email, programmeIdOrMqaCode)
     : null;
-  if (!canViewProgramme_(user, mqaCode, access)) {
+  if (!canViewProgramme_(user, programmeIdOrMqaCode, access)) {
     throw new Error('Forbidden: programme access is outside your authorized scope');
   }
   return { user: user, action: action || 'view', access: access };
 }
 
-function requireResearchProgrammeAccess_(mqaCode, action) {
-  var access = requireProgrammeAccess_(mqaCode, action);
-  var programme = findProgrammeByMqaCode_(mqaCode);
+function requireResearchProgrammeAccess_(programmeIdOrMqaCode, action) {
+  var access = requireProgrammeAccess_(programmeIdOrMqaCode, action);
+  var programme = resolveProgramme_(programmeIdOrMqaCode);
   if (!programme || !isResearchProgramme_(programme)) {
     throw new Error('Forbidden: programme is not postgraduate by research');
   }
@@ -142,40 +154,36 @@ function lookupUser_(email) {
   var ss = getSpreadsheet();
   var emailStr = String(email).trim().toLowerCase();
 
-  var ppsSheet = ss.getSheetByName('PPS');
-  if (ppsSheet) {
-    var ppsData = ppsSheet.getDataRange().getValues();
-    for (var i = 1; i < ppsData.length; i++) {
-      if (String(ppsData[i][1]).trim().toLowerCase() === emailStr) {
-        return { email: email, role: 'Admin', faculty: null, name: ppsData[i][0] };
+  var adminSheet = ss.getSheetByName('ADMIN');
+  if (adminSheet) {
+    var adminData = adminSheet.getDataRange().getValues();
+    for (var i = 1; i < adminData.length; i++) {
+      if (String(adminData[i][1] || '').trim().toLowerCase() === emailStr) {
+        return {
+          email: email,
+          role: 'Admin',
+          faculty: null,
+          name: String(adminData[i][0] || '').trim(),
+          position: String(adminData[i][2] || '').trim()
+        };
       }
     }
   }
 
-  var picSheet = ss.getSheetByName('PIC');
-  if (picSheet) {
-    var picData = picSheet.getDataRange().getValues();
-    for (var i = 1; i < picData.length; i++) {
-      if (String(picData[i][2]).trim().toLowerCase() === emailStr) {
-        return { email: email, role: 'Graduate Coordinator', faculty: picData[i][0], name: picData[i][1] };
-      }
-      if (String(picData[i][4]).trim().toLowerCase() === emailStr) {
-        return { email: email, role: 'Faculty PIC', faculty: picData[i][0], name: picData[i][3] };
-      }
-      if (picData[i][6] && String(picData[i][6]).trim().toLowerCase() === emailStr) {
-        return { email: email, role: 'Timbalan Dekan Akademik', faculty: picData[i][0], name: picData[i][5] || '' };
-      }
-    }
-  }
-
-  var coorSheet = ss.getSheetByName('COOR');
-  if (coorSheet) {
-    var coorData = coorSheet.getDataRange().getValues();
-    for (var i = 1; i < coorData.length; i++) {
-      var coorFaculty = String(coorData[i][0] || '').trim();
-      if (String(coorData[i][2]).trim().toLowerCase() === emailStr) {
-        if (!coorFaculty) continue;
-        return { email: email, role: 'Faculty Coordinator', faculty: coorFaculty, name: String(coorData[i][1] || '').trim() };
+  var userSheet = ss.getSheetByName('USER');
+  if (userSheet) {
+    var userData = userSheet.getDataRange().getValues();
+    for (var j = 1; j < userData.length; j++) {
+      var userFaculty = String(userData[j][0] || '').trim();
+      if (String(userData[j][2] || '').trim().toLowerCase() === emailStr) {
+        if (!userFaculty) continue;
+        return {
+          email: email,
+          role: 'Faculty User',
+          faculty: userFaculty,
+          name: String(userData[j][1] || '').trim(),
+          position: String(userData[j][3] || '').trim()
+        };
       }
     }
   }

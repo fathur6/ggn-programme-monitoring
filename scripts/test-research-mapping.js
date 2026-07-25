@@ -19,6 +19,11 @@ const referenceSource = fs.readFileSync('gas/ResearchReferenceService.gs', 'utf8
 const mappingSource = fs.readFileSync('gas/ResearchMappingService.gs', 'utf8');
 const programmeSource = fs.readFileSync('gas/ProgrammeService.gs', 'utf8');
 const api = new Function('getSpreadsheet', 'getCurrentUser_', 'LockService', dataSource + '\n' + referenceSource + '\nreturn { RESEARCH_SHEET_HEADERS: RESEARCH_SHEET_HEADERS, getResearchProgrammeKey_: getResearchProgrammeKey_, validateReferenceIds_: validateReferenceIds_, getResearchReferences_: getResearchReferences_, getResearchReferencesApi: getResearchReferencesApi };')(undefined, undefined, undefined);
+const researchReferenceList = new Function(
+  extractFunction('getResearchReferenceList_', referenceSource) + '\nreturn getResearchReferenceList_;'
+)();
+assert.strictEqual(researchReferenceList({MQF: [{code: 'MQF1'}]}, 'mqf')[0].code, 'MQF1', 'Uppercase MQF references were not available to save logic');
+assert.strictEqual(researchReferenceList({SDG: [{code: 'SDG4'}]}, 'sdg')[0].code, 'SDG4', 'Uppercase SDG references were not available to save logic');
 
 var task2HelpersSource = [
   'uniqueTrimmed_', 'canonicalResearchTaxonomy_',
@@ -26,7 +31,34 @@ var task2HelpersSource = [
   'validateDuplicateCodes_', 'validatePLOParents_'
 ].map(function(name) { return extractFunction(name, mappingSource); }).join('\n');
 var task2Helpers = new Function(task2HelpersSource + '\nreturn { uniqueTrimmed_: uniqueTrimmed_, canonicalResearchTaxonomy_: canonicalResearchTaxonomy_, normalizeResearchPEO_: normalizeResearchPEO_, normalizeResearchPLO_: normalizeResearchPLO_, validateDuplicateCodes_: validateDuplicateCodes_, validatePLOParents_: validatePLOParents_ };')();
-const serverResearchPredicate = new Function(extractFunction('isResearchProgramme_', programmeSource) + '\nreturn isResearchProgramme_;')();
+const serverResearchPredicate = new Function(
+  extractFunction('isResearchProgramme_', programmeSource) + '\nreturn isResearchProgramme_;'
+)();
+const researchDetailPredicate = new Function(
+  extractFunction('hasResearchDetailSheet_', programmeSource) + '\nreturn hasResearchDetailSheet_;'
+)();
+const programmeIdentity = new Function(
+  extractFunction('programmeIdentity_', programmeSource) + '\nreturn programmeIdentity_;'
+)();
+const duplicateProgrammes = [
+  {faculty: 'FUHA', progCode: 'PL6008', mqaCode: 'MQA/FA10523'},
+  {faculty: 'FSSG', progCode: 'PS6001', mqaCode: 'MQA/FA10523'}
+].map(function(programme) {
+  programme.programmeId = programmeIdentity(programme);
+  return programme;
+});
+const findByIdentity = new Function(
+  'getProgrammes_', 'programmeIdentity_', extractFunction('findProgrammeByIdentity_', programmeSource) + '\nreturn findProgrammeByIdentity_;'
+)(function() { return duplicateProgrammes; }, programmeIdentity);
+assert.strictEqual(duplicateProgrammes[0].programmeId, 'FUHA::PL6008::MQA/FA10523');
+assert.strictEqual(duplicateProgrammes[1].programmeId, 'FSSG::PS6001::MQA/FA10523');
+assert.strictEqual(findByIdentity('FSSG::PS6001::MQA/FA10523'), duplicateProgrammes[1], 'Duplicate MQA identity did not resolve exactly');
+assert.strictEqual(findByIdentity('MQA/FA10523'), null, 'Identity resolver must not collapse an MQA-only duplicate lookup');
+const legacyDetailParser = new Function(
+  extractFunction('canonicalResearchTaxonomy_', mappingSource) + '\n' +
+  extractFunction('normalizeLegacyMQF_', mappingSource) + '\n' +
+  extractFunction('readLegacyResearchDetail_', mappingSource) + '\nreturn readLegacyResearchDetail_;'
+)();
 
 const researchSheetNames = Object.keys(api.RESEARCH_SHEET_HEADERS);
 assert.deepStrictEqual(researchSheetNames, [
@@ -98,8 +130,8 @@ assert.strictEqual(references.MQF.some(row => row.code === 'MQF1'), false, 'Inac
 assert.strictEqual(references.MQF.some(row => row.code === 'MQF2'), true, 'Missing approved MQF rows must be seeded');
 assert.strictEqual(references.MQF.length, 10);
 assert.strictEqual(references.TF.length, 3);
-assert.strictEqual(references.SDG.length, 1);
-assert.strictEqual(references.SC.length, 2);
+assert.strictEqual(references.SDG.length, 17);
+assert.strictEqual(references.SC.length, 8);
 assert.deepStrictEqual(runtimeApi.getResearchReferencesApi(), references);
 assert.deepStrictEqual(Object.keys(spreadsheet.sheets).filter(name => name.indexOf('PR_') === 0).sort(), researchSheetNames.slice().sort());
 assert.deepStrictEqual(spreadsheet.sheets.LegacyProgramme.rows, [['legacy', 'data']]);
@@ -120,7 +152,7 @@ const unauthenticatedApi = new Function('getSpreadsheet', 'getCurrentUser_', 'Lo
 assert.throws(() => unauthenticatedApi(), /unauthorized/i);
 
 var task3HelpersSource = [
-  'uniqueTrimmed_', 'deriveTFIds_', 'calculatePEOCoverage_'
+  'uniqueTrimmed_', 'canonicalResearchRecordCode_', 'deriveTFIds_', 'calculatePEOCoverage_'
 ].map(function(name) { return extractFunction(name, mappingSource); }).join('\n');
 var task3Helpers = new Function(task3HelpersSource + '\nreturn { deriveTFIds_: deriveTFIds_, calculatePEOCoverage_: calculatePEOCoverage_ };')();
 
@@ -153,9 +185,12 @@ assert.deepStrictEqual(task3Helpers.calculatePEOCoverage_([
   derivedLabel: 'Derived from PLO mappings'
 });
 assert.throws(function() { task3Helpers.calculatePEOCoverage_([], 'PEO-EMPTY'); }, /no child plo mappings/i);
+assert.strictEqual(task3Helpers.calculatePEOCoverage_([{parentPEO: 'PEO 1', derivedTFIds: ['TF1'], sdgIds: [], scIds: []}], 'PEO1').childCount, 1,
+  'PEO coverage must normalize spaced parent identifiers');
 
 assert.deepStrictEqual(task2Helpers.uniqueTrimmed_([' MQF2 ', 'MQF1', ' MQF2 ', '']), ['MQF2', 'MQF1']);
 assert.strictEqual(task2Helpers.canonicalResearchTaxonomy_(' c4 '), 'C4');
+assert.strictEqual(task2Helpers.canonicalResearchTaxonomy_(' p6 '), 'P6');
 assert.strictEqual(task2Helpers.canonicalResearchTaxonomy_(null), '');
 assert.deepStrictEqual(task2Helpers.normalizeResearchPEO_({code: ' PEO1 ', statement: ' Test '}), {code: 'PEO1', statement: 'Test'});
 assert.deepStrictEqual(task2Helpers.normalizeResearchPLO_({
@@ -179,24 +214,69 @@ assert.throws(function() { task2Helpers.validateDuplicateCodes_([{code: 'PLO1'},
   {programme: {level: 'Doctorate'}, expected: false},
   {programme: {mode: 'Coursework', level: 'Doctorate'}, expected: false},
   {programme: {mode: 'Unknown', level: 'Masters'}, expected: false},
-  {programme: {research: true, mode: 'Unknown', level: 'Masters'}, expected: false}
+  {programme: {research: true, mode: 'Unknown', level: 'Masters'}, expected: false},
+  {programme: {mode: '', researchDetail: true, level: 'Masters'}, expected: true},
+  {programme: {mode: '', researchDetail: false, level: 'Masters'}, expected: false}
 ].forEach(function(example) {
   assert.strictEqual(serverResearchPredicate(example.programme), example.expected, 'Server research predicate mismatch for ' + JSON.stringify(example.programme));
 });
+
+assert.strictEqual(researchDetailPredicate({getSheetByName: function(name) {
+  return name === 'MQA/FA5581' ? {} : null;
+}}, 'MQA/FA5581'), true, 'MQA detail tab should identify a research programme');
+assert.strictEqual(researchDetailPredicate({getSheetByName: function() { return {}; }}, 'MQA/COURSE'), false,
+  'Non-MQA research identifiers must fail closed');
+assert.strictEqual(researchDetailPredicate({getSheetByName: function() {
+  return {};
+}}, 'MQA/PA12020'), true, 'Existing MQA detail tabs should identify research programmes');
+var legacyDetail = legacyDetailParser({getSheetByName: function() {
+  return {getDataRange: function() { return {getValues: function() {
+    return [['PEO'], ['PEO1', 'Objective'], ['PEO2', 'Objective 2'], ['PLO'],
+      ['PLO 1', 'Outcome', 'MQF 1', 'PEO1', 'C4']];
+  }}; }};
+}}, 'MQA/FA5582');
+assert.strictEqual(legacyDetail.peos.length, 2, 'Legacy PEO rows were not parsed');
+assert.strictEqual(legacyDetail.plos[0].mqfDomains[0], 'MQF1', 'Legacy MQF code was not normalized');
+assert.strictEqual(legacyDetail.plos[0].parentPEO, 'PEO1', 'Legacy PLO parent PEO was not parsed');
+assert.strictEqual(legacyDetail.plos[0].taxonomy, 'C4', 'Legacy PLO taxonomy was not parsed');
+var legacyMQF = new Function(extractFunction('normalizeLegacyMQF_', mappingSource) + '\nreturn normalizeLegacyMQF_;')();
+assert.strictEqual(legacyMQF('MQF 3A'), 'MQF3a', 'Alphabetic legacy MQF code casing was not canonicalized');
+
+var migrationSource = extractFunction('researchRows_', mappingSource) + '\n' + extractFunction('migrateLegacyResearchRows_', mappingSource);
+var migrationApi = new Function('RESEARCH_ROWS_CACHE_', migrationSource + '\nreturn {migrateLegacyResearchRows_: migrateLegacyResearchRows_};')({});
+function MigrationSheet(name, rows) {
+  this.name = name;
+  this.rows = rows;
+  this.getName = function() { return this.name; };
+  this.getDataRange = function() { return {getValues: function() { return this.rows.map(function(row) { return row.slice(); }, this);}.bind(this)}; };
+  this.appendRow = function(row) { this.rows.push(row.slice()); };
+}
+var migrationSheets = {
+  PR_ProgrammeProfile: new MigrationSheet('profile', [['header'], ['MQA/FA10523', 'MQA/FA10523', 'FUHA', 'Legacy', 'Masters', 'Research']]),
+  PR_PEORecords: new MigrationSheet('peos', [['header'], ['legacy-peo', 'MQA/FA10523', 'PEO1', 'Objective']]),
+  PR_PLORecords: new MigrationSheet('plos', [['header'], ['legacy-plo', 'MQA/FA10523', 'PEO1', 'PLO1', 'Outcome']]),
+  PR_PLOMappings: new MigrationSheet('mappings', [['header'], ['legacy-plo', 'MQA/FA10523', '[]', '[]', '[]', '']])
+};
+migrationApi.migrateLegacyResearchRows_(duplicateProgrammes[0], duplicateProgrammes[0].programmeId, migrationSheets);
+assert.strictEqual(migrationSheets.PR_ProgrammeProfile.rows[2][0], duplicateProgrammes[0].programmeId, 'Legacy profile was not cloned to the composite identity');
+assert.strictEqual(migrationSheets.PR_PEORecords.rows[2][1], duplicateProgrammes[0].programmeId, 'Legacy PEO was not isolated');
+assert.strictEqual(migrationSheets.PR_PLORecords.rows[2][1], duplicateProgrammes[0].programmeId, 'Legacy PLO was not isolated');
+assert.strictEqual(migrationSheets.PR_PLOMappings.rows[2][0], duplicateProgrammes[0].programmeId + '::legacy-plo', 'PLO mapping relationship was not preserved');
 
 var reviewSource = fs.readFileSync('gas/ResearchReviewService.gs', 'utf8');
 var reviewDepsSource = [
   'uniqueTrimmed_', 'canonicalResearchTaxonomy_', 'deriveTFIds_'
 ].map(function(name) { return extractFunction(name, mappingSource); }).join('\n');
+var referenceHelperSource = extractFunction('getResearchReferenceList_', referenceSource);
 var reviewHelpersSource = [
   'reviewIssue_', 'reviewWarning_', 'researchReviewReferences_',
-  'reviewReferenceCodes_', 'reviewTFMap_', 'reviewMappingForPLO_',
+  'reviewReferenceCodes_', 'reviewTFMap_', 'reviewSelectedTFIds_', 'reviewMappingForPLO_',
   'reviewPolicyRequires_', 'validateResearchProgramme_'
 ].map(function(name) { return extractFunction(name, reviewSource); }).join('\n');
 var RESEARCH_TAXONOMY_IDS = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'];
 var reviewHelperApi = new Function(
   'RESEARCH_TAXONOMY_IDS',
-  reviewDepsSource + '\n' + reviewHelpersSource + '\n' +
+  reviewDepsSource + '\n' + referenceHelperSource + '\n' + reviewHelpersSource + '\n' +
   'return { validateResearchProgramme_: validateResearchProgramme_ };'
 )(RESEARCH_TAXONOMY_IDS);
 
@@ -333,7 +413,7 @@ assert.strictEqual(metrics.metrics.ploWithValidTF, 2, 'ploWithValidTF mismatch')
 assert.strictEqual(metrics.metrics.ploWithSDG, 2, 'ploWithSDG mismatch');
 assert.strictEqual(metrics.metrics.ploWithSC, 2, 'ploWithSC mismatch');
 assert.strictEqual(metrics.metrics.mqfDomainCoverage, 3, 'mqfDomainCoverage mismatch');
-assert.strictEqual(metrics.metrics.tfCoverage, 3, 'tfCoverage mismatch');
+assert.strictEqual(metrics.metrics.tfCoverage, 2, 'tfCoverage mismatch');
 assert.strictEqual(metrics.metrics.peosWithIssues, 0, 'peosWithIssues mismatch');
 assert.strictEqual(metrics.peoCoverage.length, 2, 'peoCoverage length mismatch');
 assert.strictEqual(metrics.peoCoverage[0].ploCount, 1, 'PEO1 child count mismatch');

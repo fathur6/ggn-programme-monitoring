@@ -43,10 +43,10 @@ function researchReviewReferences_(references) {
   }
   source = source || {};
   return {
-    mqf: Array.isArray(source.mqf) ? source.mqf : [],
-    tf: Array.isArray(source.tf) ? source.tf : [],
-    sdg: Array.isArray(source.sdg) ? source.sdg : [],
-    sc: Array.isArray(source.sc) ? source.sc : []
+    mqf: getResearchReferenceList_(source, 'mqf'),
+    tf: getResearchReferenceList_(source, 'tf'),
+    sdg: getResearchReferenceList_(source, 'sdg'),
+    sc: getResearchReferenceList_(source, 'sc')
   };
 }
 
@@ -61,6 +61,14 @@ function reviewTFMap_(references) {
     result[String(reference.code || '').trim()] = Array.isArray(reference.mqfDomains) ? reference.mqfDomains : [];
     return result;
   }, {});
+}
+
+function reviewSelectedTFIds_(plo, mapping, tfMap) {
+  var domains = uniqueTrimmed_(plo && plo.mqfDomains || []);
+  var compatible = deriveTFIds_(domains, tfMap);
+  var stored = uniqueTrimmed_(mapping && (mapping.tfIds || mapping.derivedTFIds) || []);
+  var selected = stored.filter(function(tfId) { return compatible.indexOf(tfId) !== -1; });
+  return selected.length ? [selected[0]] : compatible.slice(0, 1);
 }
 
 function reviewMappingForPLO_(plo, index, mappings) {
@@ -99,6 +107,8 @@ function validateResearchProgramme_(input) {
     : [];
   var tfMap = reviewTFMap_(references);
   var allMQF = [], allTF = [], allSDG = [], allSC = [];
+  var scCategories = {};
+  var requiredSCCategories = ['Ways of Thinking', 'Ways of Practicing', 'Ways of Being'];
   var statementsComplete = 0;
   var withMQF = 0;
   var withValidTaxonomy = 0;
@@ -106,10 +116,14 @@ function validateResearchProgramme_(input) {
   var withSDG = 0;
   var withSC = 0;
   var peoChildren = {};
+  var peoStatementsComplete = 0;
 
   peos.forEach(function(peo) {
     var code = String(peo && peo.code || '').trim();
+    var statement = String(peo && peo.statement || '').trim();
     if (code) peoCodes[code] = true;
+    if (code && statement) peoStatementsComplete++;
+    if (!statement) critical.push(reviewIssue_('PEO_STATEMENT_REQUIRED', 'PEO statement is required', '', code));
   });
 
   plos.forEach(function(plo, index) {
@@ -121,10 +135,15 @@ function validateResearchProgramme_(input) {
     var mapping = reviewMappingForPLO_(plo, index, mappings);
     var sdgIds = uniqueTrimmed_(mapping && mapping.sdgIds || []);
     var scIds = uniqueTrimmed_(mapping && mapping.scIds || []);
+    scIds.forEach(function(scId) {
+      var reference = references.sc.filter(function(item) { return String(item.code || '').trim() === scId; })[0];
+      var category = reference && String(reference.description || '').trim();
+      if (requiredSCCategories.indexOf(category) !== -1) scCategories[category] = true;
+    });
     var validDomains = domains.filter(function(domain) { return mqfCodes.indexOf(domain) !== -1; });
     var hasValidMQF = domains.length > 0 && mqfCodes.length > 0 && validDomains.length === domains.length;
     var expectedTF = deriveTFIds_(validDomains, tfMap);
-    var actualTF = uniqueTrimmed_(mapping && mapping.derivedTFIds || []);
+    var actualTF = reviewSelectedTFIds_(plo, mapping, tfMap);
 
     if (!code) critical.push(reviewIssue_('PLO_CODE_REQUIRED', 'PLO code is required'));
     else if (ploCodes[code]) critical.push(reviewIssue_('PLO_CODE_DUPLICATE', 'PLO code must be unique: ' + code, code));
@@ -151,8 +170,8 @@ function validateResearchProgramme_(input) {
     else warnings.push(reviewWarning_('PLO_SDG_MISSING', 'PLO should map to at least one SDG', code));
     if (scIds.length) withSC++;
     else warnings.push(reviewWarning_('PLO_SC_MISSING', 'PLO should map to at least one sustainability competency', code));
-    if (hasValidMQF && expectedTF.length && JSON.stringify(expectedTF) !== JSON.stringify(actualTF.sort())) {
-      critical.push(reviewIssue_('PLO_TF_DERIVATION_FAILED', 'Derived TF mapping does not match MQF domains', code));
+    if (hasValidMQF && (actualTF.length !== 1 || actualTF.some(function(tfId) { return expectedTF.indexOf(tfId) === -1; }))) {
+      critical.push(reviewIssue_('PLO_TF_DERIVATION_FAILED', 'Select one TF supported by the selected MQF domains', code));
     } else if (hasValidMQF && !expectedTF.length && domains.length) {
       critical.push(reviewIssue_('PLO_TF_DERIVATION_FAILED', 'No TF can be derived from the MQF domains', code));
     } else if (hasValidMQF && expectedTF.length) {
@@ -180,6 +199,8 @@ function validateResearchProgramme_(input) {
     critical: critical,
     warnings: warnings,
     metrics: {
+      peosTotal: peos.length,
+      peoStatementsComplete: peoStatementsComplete,
       ploTotal: plos.length,
       ploStatementsComplete: statementsComplete,
       ploWithMQF: withMQF,
@@ -191,6 +212,8 @@ function validateResearchProgramme_(input) {
       tfCoverage: uniqueTrimmed_(allTF).sort().length,
       sdgCoverage: uniqueTrimmed_(allSDG).sort().length,
       scCoverage: uniqueTrimmed_(allSC).sort().length,
+      phase2SDGCount: uniqueTrimmed_(allSDG).sort().length,
+      phase2SCCategoryCount: requiredSCCategories.filter(function(category) { return scCategories[category]; }).length,
       peosWithIssues: peos.filter(function(peo) { return !peoChildren[String(peo && peo.code || '').trim()]; }).length
     },
     peoCoverage: peos.map(function(peo) {
@@ -201,30 +224,39 @@ function validateResearchProgramme_(input) {
   };
 }
 
-function researchReviewDataFromSheets_(key, sheets) {
+function researchReviewDataFromSheets_(key, sheets, references) {
   var profile = researchRows_(sheets.PR_ProgrammeProfile).filter(function(row) { return String(row[0]) === key; })[0];
   var peos = researchRows_(sheets.PR_PEORecords).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
   var plos = researchRows_(sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
   var mappings = researchRows_(sheets.PR_PLOMappings).filter(function(row) { return String(row[1]) === key; }).map(mappingFromRow_);
-  var references = {
-    mqf: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_MQFReference, 'mqf')),
-    tf: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_TFReference, 'tf')),
-    sdg: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_SDGReference, 'sdg')),
-    sc: activeResearchReferences_(readResearchReferenceRows_(sheets.PR_SCReference, 'sc'))
+  if (!peos.length || !plos.length) {
+    var legacy = readLegacyResearchDetail_(getSpreadsheet(), String(key).split('::').pop());
+    if (legacy) {
+      if (!peos.length) peos = legacy.peos;
+      if (!plos.length) plos = legacy.plos;
+      if (!mappings.length) mappings = legacyResearchMappings_(legacy, references);
+    }
+  }
+  return {
+    profile: profile ? profileFromRow_(profile) : null,
+    peos: peos,
+    plos: plos,
+    mappings: mappings,
+    references: references || {mqf: [], tf: [], sdg: [], sc: []}
   };
-  return {profile: profile ? profileFromRow_(profile) : null, peos: peos, plos: plos, mappings: mappings, references: references};
 }
 
-function researchReviewData_(mqaCode) {
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
+function researchReviewData_(programmeIdOrMqaCode) {
+  var context = researchContext_(programmeIdOrMqaCode);
+  var key = context.key;
+  var references = getResearchReferences_();
   var sheets = ensureResearchSheets_();
-  return withResearchLock_(function() { return researchReviewDataFromSheets_(key, sheets); });
+  return withResearchLock_(function() { return researchReviewDataFromSheets_(key, sheets, references); });
 }
 
-function getResearchReviewApi_(mqaCode) {
-  requireProgrammeAccess_(mqaCode, 'view-review');
-  requireResearchProgramme_(mqaCode);
-  var data = researchReviewData_(mqaCode);
+function getResearchReviewApi_(programmeIdOrMqaCode) {
+  requireProgrammeAccess_(programmeIdOrMqaCode, 'view-review');
+  var data = researchReviewData_(programmeIdOrMqaCode);
   var result = validateResearchProgramme_(data);
   var profile = data.profile;
   if (profile && !result.critical.length && ['Submitted', 'Approved', 'Returned for revision'].indexOf(profile.mappingStatus) !== -1) {
@@ -235,12 +267,12 @@ function getResearchReviewApi_(mqaCode) {
   return result;
 }
 
-function saveResearchStatusApi_(mqaCode, status) {
-  var access = requireProgrammeAccess_(mqaCode, 'save-review');
-  requireResearchProgramme_(mqaCode);
+function saveResearchStatusApi_(programmeIdOrMqaCode, status) {
+  var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'save-review');
+  var context = researchContext_(programmeIdOrMqaCode);
   status = String(status && (status.status || status.mappingStatus) || status || '').trim();
   if (RESEARCH_REVIEW_STATUSES.indexOf(status) === -1) throw new Error('Invalid research review status');
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
+  var key = context.key;
   var sheets = ensureResearchSheets_();
   return withResearchLock_(function() {
     var sheet = sheets.PR_ProgrammeProfile;
@@ -265,13 +297,14 @@ function saveResearchStatusApi_(mqaCode, status) {
   });
 }
 
-function submitResearchProgrammeApi_(mqaCode) {
-  var access = requireProgrammeAccess_(mqaCode, 'submit-review');
-  requireResearchProgramme_(mqaCode);
-  var key = getResearchProgrammeKey_({mqaCode: mqaCode});
+function submitResearchProgrammeApi_(programmeIdOrMqaCode) {
+  var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'submit-review');
+  var context = researchContext_(programmeIdOrMqaCode);
+  var key = context.key;
+  var references = getResearchReferences_();
   var sheets = ensureResearchSheets_();
   return withResearchLock_(function() {
-    var data = researchReviewDataFromSheets_(key, sheets);
+    var data = researchReviewDataFromSheets_(key, sheets, references);
     var review = validateResearchProgramme_(data);
     if (review.critical.length) throw new Error('Research programme cannot be submitted: critical review issues remain');
     var rows = researchRows_(sheets.PR_ProgrammeProfile);
