@@ -15,11 +15,11 @@
 
 The immediate contention source is client fan-out: `loadResearchWorkspace` starts seven independent `google.script.run` calls for profile, PEOs, PLOs, references, mappings, coverage, and review. [VERIFIED: codebase grep, `gas/JavaScript.html:589-638`] Each server call can touch the same script-wide lock during first-use sheet creation/reference seeding, while mapping and coverage also hold that lock during read paths. [VERIFIED: codebase grep, `gas/ResearchDataService.gs:16-36`, `gas/ResearchReferenceService.gs:60-87`, `gas/ResearchMappingService.gs:247-255,468-484,517-575`] Google documents that `google.script.run` is asynchronous, concurrent calls may execute out of order, and the browser-side API permits up to ten concurrent calls. [CITED: https://developers.google.com/apps-script/guides/html/communication]
 
-The primary implementation recommendation is one authenticated aggregate research-workspace read RPC that builds one consistent snapshot and returns per-capability result envelopes, plus one aggregate assessment mapping/review RPC for the lazy assessment tab. [ASSUMED] The aggregate path should initialize/read shared Sheets once, keep pure projection work outside the lock, and expose retryable versus terminal endpoint errors to Vue. [ASSUMED] If the aggregate refactor is intentionally deferred, a serialized client queue is the safe fallback, but it trades contention reduction for higher latency. [ASSUMED]
+The resolved implementation is one authenticated aggregate research-workspace read RPC that builds one consistent snapshot and returns per-capability result envelopes, plus one aggregate assessment mapping/review RPC used only when the assessment tab activates. The initial research aggregate contains profile, PEO, PLO, references, mappings, coverage, and research review; it does not load assessment mapping or assessment review. The aggregate paths initialize/read shared Sheets once, keep pure projection work outside the lock, and expose retryable versus terminal endpoint errors to Vue. Existing public endpoint wrappers remain available for targeted read refreshes and compatibility.
 
 `waitLock(30000)` is currently used as both a first-use initializer gate and a general read/write wrapper. [VERIFIED: codebase grep] Replace repeated long waits with a shared, bounded lock-acquisition helper based on `tryLock`, short exponential delays, and guaranteed release only after successful acquisition. [CITED: https://developers.google.com/apps-script/reference/lock/lock] Retry only lock acquisition or a clearly classified transient transport failure; do not blindly replay authorization, validation, schema, or non-idempotent mutation failures. [CITED: https://cloud.google.com/storage/docs/retry-strategy]
 
-**Primary recommendation:** Aggregate the seven initial reads and the two assessment reads, centralize lock acquisition/retry on the server, and replace `researchError` with endpoint-keyed error state and retry actions.
+**Resolved plan choice:** Aggregate the seven initial research reads, aggregate the two assessment reads only on assessment-tab activation, centralize lock acquisition/retry on the server, and replace `researchError` for read presentation with endpoint-keyed error state and retry actions.
 
 ## Architectural Responsibility Map
 
@@ -62,11 +62,10 @@ The primary implementation recommendation is one authenticated aggregate researc
 - Apps Script best practices recommend minimizing service calls, batching reads/writes, calculating in memory, and writing back in batches. [CITED: https://developers.google.com/apps-script/guides/support/best-practices]
 - No `CacheService` use was found in the requested research/assessment services; existing `CacheService` use is in OAuth state handling. [VERIFIED: codebase grep]
 
-### Planning state discrepancy
+### Planning state
 
-- The roadmap contains Phase 8 after the seven original phases, with no formal requirement IDs and `Plans: 0 plans`. [VERIFIED: `.planning/ROADMAP.md:215-224`]
-- `STATE.md` still reports `total_phases: 7` and current Phase 1, despite recording that Phase 8 was added. [VERIFIED: `.planning/STATE.md:4-12,71-74`]
-- The planner should treat this as planning metadata to reconcile separately; it is not a reason to widen the technical scope of this research. [ASSUMED]
+- `STATE.md` is reconciled to Phase 8, `current_phase: 8`, `current_phase_name: Research Workspace Loading Resilience`, and `total_phases: 8`. [VERIFIED: `.planning/STATE.md:4-16,29-35`]
+- This research and the three plans retain that Phase 8 context; no state-count correction or technical scope expansion is needed.
 
 ## Standard Stack
 
@@ -133,13 +132,13 @@ Vue commits successful panels independently
         +--> aggregate/auth failure shows top-level actionable message
 
 Assessment tab
-        |
-        v
+         |
+         v
 one getAssessmentWorkspaceApi(programmeId)
-        |
-        +--> one setup/read boundary
-        +--> one effective projection source
-        +--> mapping DTO + review DTO
+         |
+         +--> one setup/read boundary, only on tab activation
+         +--> one effective projection source
+         +--> mapping DTO + review DTO
         |
         v
 assessment panel state: mapping, review, mappingError, reviewError
@@ -194,7 +193,7 @@ This shape is recommended so Vue can preserve successful panels and retry only t
 
 ### Pattern 2: Narrow, bounded lock acquisition
 
-**What:** Use `tryLock` for a short per-attempt timeout, sleep between attempts with capped exponential backoff, run only the critical Sheet operation under the lock, and release in `finally`. [CITED: https://developers.google.com/apps-script/reference/lock/lock] [CITED: https://cloud.google.com/storage/docs/retry-strategy]
+**What:** Use the centralized Phase 8 policy: at most four `tryLock(5000)` acquisition attempts, with injected/capped delays of 250/500/1000 ms after the first three failed attempts, then a typed `RESEARCH_LOCK_BUSY` error. Run only setup, migration, reference seeding, or a mutation under the lock and release in `finally`. [CITED: https://developers.google.com/apps-script/reference/lock/lock] [CITED: https://cloud.google.com/storage/docs/retry-strategy]
 
 **When to use:** Sheet creation, legacy migration, seed append, and writes. Pure reads should not acquire the script lock unless a documented read-repair is removed or isolated into a write path. [VERIFIED: codebase read] [ASSUMED: recommendation]
 
@@ -202,7 +201,7 @@ This shape is recommended so Vue can preserve successful panels and retry only t
 
 ```javascript
 function withScriptLockRetry_(work) {
-  var delays = [250, 500, 1000]; // proposed values; confirm in plan
+  var delays = [250, 500, 1000];
   for (var attempt = 0; attempt < delays.length; attempt++) {
     var lock = LockService.getScriptLock();
     if (lock.tryLock(5000)) {
@@ -215,7 +214,7 @@ function withScriptLockRetry_(work) {
 }
 ```
 
-The exact delays, error code, and whether jitter is used are open implementation choices; tests must inject the sleeper or use a deterministic clock rather than wait in real time. [ASSUMED]
+The exact policy is resolved for Phase 8: four attempts, 5,000 ms per attempt, 250/500/1000 ms inter-attempt delays, no fourth-attempt sleep, and a maximum nominal wait of 21,750 ms before `RESEARCH_LOCK_BUSY`. Tests inject the sleeper and fake lock rather than wait in real time.
 
 ### Pattern 3: Generation/token guard for stale Vue responses
 
@@ -237,6 +236,7 @@ request(function(result) {
 - **Seven independent cold-start RPCs:** They multiply access/context/Sheet initialization and compete for one script-wide lock. [VERIFIED: codebase read] [CITED: https://developers.google.com/apps-script/reference/lock/lock-service]
 - **Global error for endpoint failure:** It hides which DTO failed and makes a successful partial load look wholly unusable. [VERIFIED: codebase read]
 - **Retry the entire mutation after an ambiguous response:** A lost response can mean the write committed; only retry operations proven idempotent or guarded by an operation key. [CITED: https://cloud.google.com/storage/docs/retry-strategy]
+- **Acquire a lock from inside a held lock:** `researchContext_`, `getResearchReferences_`, and assessment setup must not reacquire the script lock while an aggregate or targeted read boundary owns it. Use one locked setup/migration/capture boundary, no-lock prepared-sheet/reference helpers inside it, then project from captured data outside the lock where no repair is needed. [VERIFIED: current nested call graph; ASSUMED: Phase 8 design]
 - **Hold a script lock while doing all derived reads:** This increases contention and blocks unrelated users; read and calculate from an already captured snapshot outside the lock. [CITED: https://developers.google.com/apps-script/guides/support/best-practices] [ASSUMED: application]
 - **Use CacheService as authoritative state or a lock:** Cache values can disappear before expiry and are not a consistency mechanism. [CITED: https://developers.google.com/apps-script/reference/cache/cache-service]
 - **Retry every `Error` message containing “busy”:** Validation, authorization, schema, quota, and service failures must remain terminal unless explicitly classified. [CITED: https://cloud.google.com/storage/docs/retry-strategy] [CITED: https://developers.google.com/apps-script/guides/services/quotas]
@@ -359,38 +359,30 @@ This is only a starting seam. A stable internal error code is preferred over mat
 
 **Deprecated/outdated for this phase:** Treating concurrent `google.script.run` completion order as deterministic is incompatible with the official client contract. [CITED: https://developers.google.com/apps-script/guides/html/communication]
 
-## Assumptions Log
+## Resolved Planning Assumptions
 
 | # | Claim | Section | Risk if wrong |
 |---|---|---|---|
-| A1 | One aggregate initial research RPC is acceptable without changing DTO semantics. | Summary / Architecture | A larger server refactor could exceed Phase 8 capacity; use the serialized queue fallback. |
-| A2 | Proposed lock delays of 250/500/1000 ms and 5-second `tryLock` attempts are suitable starting values. | Architecture Pattern 2 | Too short causes avoidable failures; too long increases Apps Script runtime and user wait. |
-| A3 | Assessment mapping and review can share one setup/projection context while preserving the review’s stricter Primary SC validation. | Lazy assessment path | A naïve shared projection could change review semantics; add contract tests before implementation. |
-| A4 | Read-time TF repair can be removed or moved without violating existing data migration expectations. | Pitfall 2 | Existing data may depend on normalization side effects; inspect Phase 7 acceptance expectations before changing it. |
-| A5 | No new external package is needed. | Standard Stack | If a test runner is later required, run package legitimacy checks before installation. |
-| A6 | The planner may reconcile the roadmap/STATE phase-count discrepancy separately from technical implementation. | Planning state discrepancy | Incorrect state metadata could cause GSD orchestration to target the wrong phase. |
+| A1 | One aggregate initial research RPC is the selected contract; existing wrappers remain for targeted compatibility. | Summary / Architecture | Preserve existing DTOs and verify no internal public-endpoint fan-out. |
+| A2 | The exact retry policy is four `tryLock(5000)` attempts with 250/500/1000 ms inter-attempt delays and typed exhaustion. | Architecture Pattern 2 | Tests must assert the bounded budget and no additional call-site retry. |
+| A3 | Assessment mapping and review share one setup/projection context only in the lazy assessment aggregate, with strict review Primary SC validation preserved. | Lazy assessment path | Contract tests must prove independent envelopes and review semantics. |
+| A4 | Aggregate reads use pure mapping projection; targeted compatibility reads retain any one-value TF repair inside the single owned lock boundary. | Pitfall 2 | Tests must prove no nested lock acquisition and no post-capture aggregate mutation. |
+| A5 | No new external package is needed. | Standard Stack | Use existing Apps Script services and Node built-ins only. |
+| A6 | Phase 8 planning state is already reconciled to current phase 8 and total phases 8. | Planning state | Keep all plan context aligned to Phase 8; no state rewrite is needed. |
 
-## Open Questions
+## Resolved Open Questions
 
-1. **Should Phase 8 expose new public aggregate endpoints or only serialize existing endpoints?**
-   - What we know: The current seven initial calls are independent and share setup/lock paths. [VERIFIED: codebase read]
-   - What's unclear: Whether compatibility requires every existing public RPC to remain the only client-visible contract.
-   - Recommendation: Prefer private snapshot builders plus a new public aggregate wrapper; retain existing wrappers for targeted refresh and regression compatibility. [ASSUMED]
+1. **Should Phase 8 expose new public aggregate endpoints or only serialize existing endpoints? — RESOLVED**
+    - Decision: Expose authenticated `getResearchWorkspaceApi(programmeId)` and `getAssessmentWorkspaceApi(programmeId)` wrappers in `Code.gs`. Retain every existing public research/assessment wrapper for targeted refresh, mutation, and compatibility. The aggregate builders use private prepared-snapshot helpers and never call the seven public research readers internally.
 
-2. **What is the accepted total retry budget?**
-   - What we know: `waitLock(30000)` currently allows a long per-call wait, and seven calls can overlap. [VERIFIED: codebase read]
-   - What's unclear: The user-facing maximum wait and expected contention frequency are not recorded.
-   - Recommendation: Lock the budget in a plan task and test it deterministically; start with a short bounded budget rather than another 30-second wait. [ASSUMED]
+2. **What is the accepted total retry budget? — RESOLVED**
+    - Decision: `withResearchLockRetry_` performs at most four `tryLock(5000)` attempts, sleeps 250 ms, 500 ms, and 1000 ms only between failed attempts, and then throws `{code: 'RESEARCH_LOCK_BUSY', retryable: true}`. The maximum nominal acquisition wait is 20,000 ms of lock-attempt time plus 1,750 ms of injected backoff, with no unbounded or recursive retry. All call sites use these constants and deterministic tests assert the sequence.
 
-3. **Are legacy migrations allowed during reads?**
-   - What we know: `researchContext_` calls `migrateLegacyResearchRows_`, which appends cloned rows when the canonical identity is absent. [VERIFIED: codebase read]
-   - What's unclear: Whether Phase 8 may separate this migration from workspace loading.
-   - Recommendation: Treat migration as an explicit serialized setup step, not as an unguarded side effect in every read. [ASSUMED]
+3. **Are legacy migrations allowed during reads? — RESOLVED**
+    - Decision: Yes, but only as an explicit serialized preparation step. Aggregate and targeted research reads enter one `withPreparedResearchContext_` boundary that owns the lock, ensures sheets, calls `migrateLegacyResearchRows_` through its no-lock-internal form, seeds missing references through no-lock prepared helpers, and captures rows before releasing the lock. `researchContext_` no longer appends outside that boundary. A held mapping/coverage lock never calls the lock-acquiring `getResearchReferences_`; it consumes the prepared reference snapshot instead.
 
-4. **Should assessment review load with the mapping DTO even if mapping data is partial?**
-   - What we know: Current mapping success triggers review; mapping failure prevents review from being requested. [VERIFIED: `gas/JavaScript.html:719-726`]
-   - What's unclear: Whether the UI should display a review error separately or mark review unavailable when mapping fails.
-   - Recommendation: Return both capabilities from one aggregate response when the shared projection is available; otherwise attribute dependency failure explicitly to both affected panels. [ASSUMED]
+4. **Should assessment review load with the mapping DTO even if mapping data is partial? — RESOLVED**
+    - Decision: Assessment is lazy and is not part of the initial research aggregate. On assessment-tab activation, one authenticated `getAssessmentWorkspaceApi(programmeId)` call returns independent mapping and review envelopes from one shared setup/projection context. If setup/capture fails, both envelopes receive the same explicit dependency failure; if the shared context exists, mapping and review are attempted independently, so a mapping projection failure does not suppress a review result and vice versa. Review retains `requirePrimarySC` semantics.
 
 ## Environment Availability
 
@@ -427,8 +419,10 @@ The project explicitly disables Nyquist validation, so the standard `Validation 
 | Lock retries once and then succeeds | Server unit | Fake `tryLock` returns false, false, true; fake sleeper records delays | Work runs once, delay sequence is bounded, and release occurs exactly once after acquisition. [ASSUMED] |
 | Lock budget exhausts cleanly | Server unit | Fake lock always returns false | Typed retryable busy result/error is returned after the configured maximum; no work or release occurs. [ASSUMED] |
 | Terminal errors are not retried | Server unit | Work throws validation/authorization/schema error | One attempt only; original terminal classification is preserved. [CITED: https://cloud.google.com/storage/docs/retry-strategy] |
-| Read path is side-effect free | Server unit | Fake Sheets snapshots before/after aggregate read | No `appendRow`, `setValues`, or row repair occurs after initialization has been prepared. [ASSUMED] |
-| Assessment mapping/review share semantics | Server unit | Fake definitions/references/alignments | Mapping DTO preserves effective/provenance values and review retains strict Primary SC checks. [VERIFIED: existing assessment tests; ASSUMED: new aggregate contract] |
+| Cold-cache setup/migration is serialized once | Server unit | Fake lock depth plus fake Sheets and legacy rows | Migration/reference seeding appends only inside one acquired setup boundary; a held lock never calls another lock-acquiring helper. [RESOLVED] |
+| Read path is side-effect free after preparation | Server unit | Fake Sheets snapshots before/after aggregate read | No `appendRow`, `setValues`, or row repair occurs after initialization/reference/migration capture has completed. [ASSUMED] |
+| Assessment mapping/review share semantics | Server unit | Fake definitions/references/alignments | Lazy aggregate returns both capabilities from one setup; mapping DTO preserves effective/provenance values and review retains strict Primary SC checks. [RESOLVED] |
+| Targeted reference retry contract | Client/server unit | Fake fluent runner plus current-user auth double | `getResearchReferencesApi()` is called with no programme argument, authenticates the current user on the server, and cannot be represented as programme-identity authorization. [RESOLVED] |
 | Existing behavior remains green | Regression | Existing four scripts plus static/syntax checks | All baseline commands continue to pass. [VERIFIED: existing scripts] |
 
 ### Test implementation shape
