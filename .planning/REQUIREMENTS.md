@@ -99,13 +99,13 @@ Deferred until the v1 contract and core workspace are accepted.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ACAD-01–05 | Phase 1 | Pending |
-| DATA-01–07 | Phase 2 | Pending |
-| MAP-01–08 | Phase 3 | Pending |
-| GOV-01–03 | Phase 4 | Pending |
-| GOV-04–05 | Phase 5 | Pending |
-| UI-01–09 | Phase 6 | Pending |
-| TEST-01–07 | Phase 7 | Pending |
+| ACAD-01–05 | Phase 1: Academic Contract and Source Gate | Pending |
+| DATA-01–07 | Phase 2: Normalized Definitions and Idempotent Seed | Pending |
+| MAP-01–08 | Phase 3: Effective Projection and Canonical Validation | Pending |
+| GOV-01–03 | Phase 4: Authorized Persistence and Faculty Alignment | Pending |
+| GOV-04–05 | Phase 5: Review and Submission Readiness | Pending |
+| UI-01–09 | Phase 6: Pemetaan Pentaksiran Workspace | Pending |
+| TEST-01–07 | Phase 7: Regression and Acceptance Gate | Pending |
 
 **Coverage:**
 - v1 requirements: 53 total
