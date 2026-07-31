@@ -161,6 +161,26 @@ assert(!partialResearch.endpoints.review.error.message.includes('schema'), 'Serv
 assert(diagnostics.some(entry => entry.includes('endpoint=review') && entry.includes('RESEARCH_REVIEW_FAILED')));
 context.researchWorkspaceReviewFromSnapshot_ = originalReviewProjection;
 
+let researchMappingFailure;
+[
+  ['researchWorkspaceProfileFromSnapshot_', 'profile'],
+  ['researchWorkspacePEOsFromSnapshot_', 'peos'],
+  ['researchWorkspacePLOsFromSnapshot_', 'plos'],
+  ['researchWorkspaceMappingsFromSnapshot_', 'mappings']
+].forEach(([projection, endpoint]) => {
+  const originalProjection = context[projection];
+  context[projection] = () => { throw new Error(endpoint + ' projection failed'); };
+  const partial = callResearch();
+  assert.strictEqual(partial.ok, true, endpoint + ' projection failure must remain inside the aggregate');
+  assert.strictEqual(partial.endpoints[endpoint].ok, false, endpoint + ' projection must fail its own envelope');
+  assert.strictEqual(partial.endpoints[endpoint].error.endpoint, endpoint);
+  assert.strictEqual(partial.endpoints[endpoint].error.code, 'RESEARCH_' + endpoint.toUpperCase() + '_FAILED');
+  assert.strictEqual(partial.endpoints.references.ok, true, endpoint + ' failure must preserve reference data');
+  assert.strictEqual(partial.endpoints.profile.ok, endpoint === 'profile' ? false : true, endpoint + ' failure must preserve profile data when independent');
+  if (endpoint === 'mappings') researchMappingFailure = partial;
+  context[projection] = originalProjection;
+});
+
 const pureRowsBefore = JSON.stringify(spreadsheet.sheets);
 callResearch();
 assert.strictEqual(JSON.stringify(spreadsheet.sheets), pureRowsBefore, 'Aggregate read projection must not repair or append rows');
@@ -205,8 +225,11 @@ context.assessmentReviewFromProjection_ = () => { throw new Error('review projec
 const assessmentPartial = context.getAssessmentWorkspaceApi(currentProgramme.programmeId);
 assert.strictEqual(assessmentPartial.endpoints.mapping.ok, true);
 assert.strictEqual(assessmentPartial.endpoints.review.ok, false);
-assert.strictEqual(assessmentPartial.endpoints.review.error.endpoint, 'review');
-assert.strictEqual(assessmentPartial.endpoints.review.error.code, 'RESEARCH_REVIEW_FAILED');
+assert.strictEqual(assessmentPartial.endpoints.review.error.endpoint, 'assessment/review');
+assert.strictEqual(assessmentPartial.endpoints.review.error.code, 'ASSESSMENT_REVIEW_FAILED');
+assert.notStrictEqual(assessmentPartial.endpoints.review.error.endpoint, partialResearch.endpoints.review.error.endpoint);
+assert.notStrictEqual(assessmentPartial.endpoints.review.error.code, partialResearch.endpoints.review.error.code);
+assert(diagnostics.some(entry => entry.includes('endpoint=assessment/review') && entry.includes('ASSESSMENT_REVIEW_FAILED')));
 context.assessmentReviewFromProjection_ = originalAssessmentReview;
 
 const originalAssessmentProjection = context.assessmentProjection_;
@@ -216,8 +239,12 @@ context.assessmentProjection_ = (programme, definitions, alignments, refs, requi
 };
 const inverseAssessmentPartial = context.getAssessmentWorkspaceApi(currentProgramme.programmeId);
 assert.strictEqual(inverseAssessmentPartial.endpoints.mapping.ok, false);
-assert.strictEqual(inverseAssessmentPartial.endpoints.mapping.error.endpoint, 'mapping');
+assert.strictEqual(inverseAssessmentPartial.endpoints.mapping.error.endpoint, 'assessment/mapping');
+assert.strictEqual(inverseAssessmentPartial.endpoints.mapping.error.code, 'ASSESSMENT_MAPPING_FAILED');
+assert.notStrictEqual(inverseAssessmentPartial.endpoints.mapping.error.endpoint, researchMappingFailure.endpoints.mappings.error.endpoint);
+assert.notStrictEqual(inverseAssessmentPartial.endpoints.mapping.error.code, researchMappingFailure.endpoints.mappings.error.code);
 assert.strictEqual(inverseAssessmentPartial.endpoints.review.ok, true);
+assert(diagnostics.some(entry => entry.includes('endpoint=assessment/mapping') && entry.includes('ASSESSMENT_MAPPING_FAILED')));
 context.assessmentProjection_ = originalAssessmentProjection;
 }
 

@@ -468,11 +468,11 @@ function getAssessmentWorkspaceApi_(programmeIdOrMqaCode) {
 
   var mapping = researchWorkspaceEndpointEnvelope_('mapping', function() {
     return assessmentProjection_(prepared.programme, prepared.definitions, prepared.alignments, prepared.references, false);
-  });
+  }, {diagnosticEndpoint: 'assessment/mapping', namespace: 'ASSESSMENT'});
   var review = researchWorkspaceEndpointEnvelope_('review', function() {
     var projection = assessmentProjection_(prepared.programme, prepared.definitions, prepared.alignments, prepared.references, true);
     return assessmentReviewFromProjection_(projection);
-  });
+  }, {diagnosticEndpoint: 'assessment/review', namespace: 'ASSESSMENT'});
   return {ok: true, programmeId: prepared.key, endpoints: {mapping: mapping, review: review}};
 }
 

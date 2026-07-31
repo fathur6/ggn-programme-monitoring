@@ -568,14 +568,27 @@ new Vue({
       if (this.user.role !== 'Admin') return;
       google.script.run.withSuccessHandler(function(items) { self.governanceItems = items; }).withFailureHandler(function(err) { self.showToast('Governance: ' + err.message); }).getGovernanceItemsApi({});
     },
-     openProgramme: function(prog) {
-       if (this.researchDirty && !confirm('You have unsaved changes. Leave this programme without saving?')) return;
-       if (!this.isResearchProgramme(prog)) {
-         this.showToast('This programme is not Postgraduate by Research and cannot open the research workspace.');
-         return;
-       }
-       this.currentProgramme = prog;
-      this.currentView = 'detail';
+      openProgramme: function(prog) {
+        if (this.researchDirty && !confirm('You have unsaved changes. Leave this programme without saving?')) return;
+        if (!this.isResearchProgramme(prog)) {
+          this.showToast('This programme is not Postgraduate by Research and cannot open the research workspace.');
+          return;
+        }
+        this.researchProfile = null;
+        this.researchPEOs = [];
+        this.researchPLOs = [];
+        this.researchMappings = {};
+        this.researchReferences = {MQF: [], TF: [], SDG: [], SC: []};
+        this.researchCoverage = null;
+        this.researchReview = null;
+        this.researchStatus = 'Draft';
+        this.researchLoading = false;
+        this.researchError = null;
+        this.researchWorkspaceFatalError = null;
+        this.researchEndpointErrors = {profile: null, peos: null, plos: null, references: null, mappings: null, coverage: null, review: null};
+        this.researchEndpointLoading = {profile: false, peos: false, plos: false, references: false, mappings: false, coverage: false, review: false};
+        this.currentProgramme = prog;
+       this.currentView = 'detail';
        this.researchCategory = 'information';
        this.researchDirty = false;
        this.assessmentDirty = false;
@@ -653,18 +666,18 @@ new Vue({
          this.$set(errors, endpoint, null);
          return true;
        }
-       var sourceError = envelope && envelope.error || {};
-       var clientError = {
-         endpoint: endpoint,
-         code: sourceError.code || (assessment ? 'ASSESSMENT_' : 'RESEARCH_') + String(endpoint).toUpperCase() + '_FAILED',
-         message: sourceError.message || 'Unable to load the ' + this.researchEndpointLabel(endpoint).toLowerCase() + '.',
+        var sourceError = envelope && envelope.error || {};
+        var clientError = {
+          endpoint: sourceError.endpoint || (assessment ? 'assessment/' + endpoint : endpoint),
+          code: sourceError.code || (assessment ? 'ASSESSMENT_' : 'RESEARCH_') + String(endpoint).toUpperCase() + '_FAILED',
+          message: sourceError.message || 'Unable to load the ' + this.researchEndpointLabel(endpoint).toLowerCase() + '.',
          retryable: !!((envelope && envelope.retryable) || sourceError.retryable)
        };
        this.$set(loading, endpoint, false);
-       this.$set(errors, endpoint, clientError);
-       if (typeof console !== 'undefined' && console.error) {
-         console.error('[ResearchWorkspaceClient] endpoint=' + endpoint + ' code=' + clientError.code + ' message=' + clientError.message);
-       }
+        this.$set(errors, endpoint, clientError);
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('[ResearchWorkspaceClient] endpoint=' + clientError.endpoint + ' code=' + clientError.code + ' message=' + clientError.message);
+        }
        return false;
      },
      loadResearchWorkspace: function() {

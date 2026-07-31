@@ -2,13 +2,15 @@
 
 var RESEARCH_WORKSPACE_ENDPOINTS = ['profile', 'peos', 'plos', 'references', 'mappings', 'coverage', 'review'];
 
-function researchWorkspaceStableErrorCode_(error, endpoint) {
+function researchWorkspaceStableErrorCode_(error, endpoint, namespace) {
   var explicit = String(error && error.code || '').trim();
   if (explicit === 'RESEARCH_LOCK_BUSY') return explicit;
   var message = String(error && error.message || error || '').toLowerCase();
   if (explicit === 'UNAUTHORIZED' || message.indexOf('unauthorized') !== -1) return 'RESEARCH_UNAUTHORIZED';
   if (explicit === 'FORBIDDEN' || message.indexOf('forbidden') !== -1) return 'RESEARCH_FORBIDDEN';
-  return endpoint ? 'RESEARCH_' + String(endpoint).toUpperCase() + '_FAILED' : 'RESEARCH_WORKSPACE_FAILED';
+  var prefix = namespace || 'RESEARCH';
+  var suffix = endpoint ? String(endpoint).toUpperCase().replace(/[^A-Z0-9]+/g, '_') : 'WORKSPACE';
+  return prefix + '_' + suffix + '_FAILED';
 }
 
 function researchWorkspaceSafeMessage_(code, endpoint) {
@@ -19,20 +21,22 @@ function researchWorkspaceSafeMessage_(code, endpoint) {
   return 'Unable to load the research workspace.';
 }
 
-function researchWorkspaceEndpointEnvelope_(endpoint, producer) {
+function researchWorkspaceEndpointEnvelope_(endpoint, producer, options) {
+  options = options || {};
+  var diagnosticEndpoint = options.diagnosticEndpoint || endpoint;
   try {
     return {ok: true, data: producer(), error: null, retryable: false};
   } catch (error) {
-    var code = researchWorkspaceStableErrorCode_(error, endpoint);
-    var message = researchWorkspaceSafeMessage_(code, endpoint);
+    var code = options.code || researchWorkspaceStableErrorCode_(error, endpoint, options.namespace);
+    var message = researchWorkspaceSafeMessage_(code, diagnosticEndpoint);
     var diagnostic = String(error && error.message || error || 'Unknown error');
     if (typeof console !== 'undefined' && console.error) {
-      console.error('[ResearchWorkspace] endpoint=' + endpoint + ' code=' + code + ' message=' + diagnostic + (error && error.stack ? '\n' + error.stack : ''));
+      console.error('[ResearchWorkspace] endpoint=' + diagnosticEndpoint + ' code=' + code + ' message=' + diagnostic + (error && error.stack ? '\n' + error.stack : ''));
     }
     return {
       ok: false,
       data: null,
-      error: {endpoint: endpoint, code: code, message: message},
+      error: {endpoint: diagnosticEndpoint, code: code, message: message},
       retryable: code === 'RESEARCH_LOCK_BUSY' || !!(error && error.retryable)
     };
   }
@@ -144,18 +148,28 @@ function getResearchWorkspaceApi_(programmeIdOrMqaCode) {
   try {
     access = requireResearchProgrammeAccess_(programmeIdOrMqaCode, 'view-research-workspace');
     var snapshot = researchWorkspaceSnapshot_(programmeIdOrMqaCode);
-    var profile = researchWorkspaceProfileFromSnapshot_(snapshot, access);
-    var peos = researchWorkspacePEOsFromSnapshot_(snapshot);
-    var plos = researchWorkspacePLOsFromSnapshot_(snapshot);
-    var mappings = researchWorkspaceMappingsFromSnapshot_(snapshot, plos);
     var endpointData = {
-      profile: function() { return profile; },
-      peos: function() { return peos; },
-      plos: function() { return plos; },
+      profile: function() { return researchWorkspaceProfileFromSnapshot_(snapshot, access); },
+      peos: function() { return researchWorkspacePEOsFromSnapshot_(snapshot); },
+      plos: function() { return researchWorkspacePLOsFromSnapshot_(snapshot); },
       references: function() { return snapshot.references; },
-      mappings: function() { return mappings; },
-      coverage: function() { return researchWorkspaceCoverageFromSnapshot_(snapshot, peos, plos, mappings); },
-      review: function() { return researchWorkspaceReviewFromSnapshot_(snapshot, profile, peos, plos, mappings); }
+      mappings: function() {
+        var plos = researchWorkspacePLOsFromSnapshot_(snapshot);
+        return researchWorkspaceMappingsFromSnapshot_(snapshot, plos);
+      },
+      coverage: function() {
+        var peos = researchWorkspacePEOsFromSnapshot_(snapshot);
+        var plos = researchWorkspacePLOsFromSnapshot_(snapshot);
+        var mappings = researchWorkspaceMappingsFromSnapshot_(snapshot, plos);
+        return researchWorkspaceCoverageFromSnapshot_(snapshot, peos, plos, mappings);
+      },
+      review: function() {
+        var profile = researchWorkspaceProfileFromSnapshot_(snapshot, access);
+        var peos = researchWorkspacePEOsFromSnapshot_(snapshot);
+        var plos = researchWorkspacePLOsFromSnapshot_(snapshot);
+        var mappings = researchWorkspaceMappingsFromSnapshot_(snapshot, plos);
+        return researchWorkspaceReviewFromSnapshot_(snapshot, profile, peos, plos, mappings);
+      }
     };
     var endpoints = RESEARCH_WORKSPACE_ENDPOINTS.reduce(function(result, endpoint) {
       result[endpoint] = researchWorkspaceEndpointEnvelope_(endpoint, endpointData[endpoint]);

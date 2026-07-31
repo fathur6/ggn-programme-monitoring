@@ -30,6 +30,8 @@ const methods = [
   'applyResearchEndpointResult',
   'loadResearchWorkspace',
   'retryResearchEndpoint',
+  'isResearchProgramme',
+  'openProgramme',
   'loadAssessmentWorkspace',
   'loadAssessmentMapping',
   'retryAssessmentEndpoint',
@@ -197,25 +199,53 @@ function testOrchestration() {
 
   state.assessmentMapping = null;
   state.assessmentReview = null;
-  state.loadAssessmentMapping();
-  assert.strictEqual(fake.calls.length, 5, 'Assessment activation must make one aggregate RPC');
-  assert.strictEqual(fake.calls[4].method, 'getAssessmentWorkspaceApi');
-  assert.deepStrictEqual(fake.calls[4].args, ['A']);
-  complete(fake.calls[4], {
-    ok: true,
-    endpoints: {
-      mapping: envelope([{code: 'PROGRESS_MASTER'}]),
-      review: {ok: false, data: null, error: {code: 'ASSESSMENT_REVIEW_FAILED', message: 'Review unavailable'}, retryable: true}
-    }
-  });
-  assert.strictEqual(state.assessmentMapping[0].code, 'PROGRESS_MASTER');
-  assert.strictEqual(state.assessmentEndpointErrors.review.endpoint, 'review');
-  assert.strictEqual(state.assessmentEndpointErrors.mapping, null);
-  state.loadAssessmentReview();
-  assert.strictEqual(fake.calls[5].method, 'getAssessmentReviewApi');
-  assert.deepStrictEqual(fake.calls[5].args, ['A']);
-  complete(fake.calls[5], {critical: [], warnings: [], status: 'Ready for review'});
-  assert.strictEqual(state.assessmentReview.status, 'Ready for review');
+  const clientDiagnostics = [];
+  const originalConsoleError = console.error;
+  console.error = message => clientDiagnostics.push(String(message));
+  try {
+    const researchToken = {generation: state.researchLoadGeneration, programmeId: 'A'};
+    state.applyResearchEndpointResult('mappings', {ok: false, error: {endpoint: 'mappings', code: 'RESEARCH_MAPPINGS_FAILED', message: 'Research mapping unavailable'}}, researchToken, 'research');
+    state.applyResearchEndpointResult('review', {ok: false, error: {endpoint: 'review', code: 'RESEARCH_REVIEW_FAILED', message: 'Research review unavailable'}}, researchToken, 'research');
+    assert.strictEqual(state.researchEndpointErrors.mappings.endpoint, 'mappings');
+    assert.strictEqual(state.researchEndpointErrors.mappings.code, 'RESEARCH_MAPPINGS_FAILED');
+    assert.strictEqual(state.researchEndpointErrors.review.endpoint, 'review');
+    assert.strictEqual(state.researchEndpointErrors.review.code, 'RESEARCH_REVIEW_FAILED');
+    assert(clientDiagnostics.some(entry => entry.includes('endpoint=mappings') && entry.includes('RESEARCH_MAPPINGS_FAILED')));
+    assert(clientDiagnostics.some(entry => entry.includes('endpoint=review') && entry.includes('RESEARCH_REVIEW_FAILED')));
+    state.loadAssessmentMapping();
+    assert.strictEqual(fake.calls.length, 5, 'Assessment activation must make one aggregate RPC');
+    assert.strictEqual(fake.calls[4].method, 'getAssessmentWorkspaceApi');
+    assert.deepStrictEqual(fake.calls[4].args, ['A']);
+    complete(fake.calls[4], {
+      ok: true,
+      endpoints: {
+        mapping: envelope([{code: 'PROGRESS_MASTER'}]),
+        review: {ok: false, data: null, error: {endpoint: 'assessment/review', code: 'ASSESSMENT_REVIEW_FAILED', message: 'Review unavailable'}, retryable: true}
+      }
+    });
+    assert.strictEqual(state.assessmentMapping[0].code, 'PROGRESS_MASTER');
+    assert.strictEqual(state.assessmentEndpointErrors.review.endpoint, 'assessment/review');
+    assert.strictEqual(state.assessmentEndpointErrors.review.code, 'ASSESSMENT_REVIEW_FAILED');
+    assert.notStrictEqual(state.assessmentEndpointErrors.review.endpoint, state.researchEndpointErrors.review.endpoint);
+    assert.notStrictEqual(state.assessmentEndpointErrors.review.code, state.researchEndpointErrors.review.code);
+    assert(clientDiagnostics.some(entry => entry.includes('endpoint=assessment/review') && entry.includes('ASSESSMENT_REVIEW_FAILED')));
+    assert.strictEqual(state.assessmentEndpointErrors.mapping, null);
+    state.retryAssessmentEndpoint('mapping');
+    assert.strictEqual(fake.calls[5].method, 'getAssessmentMappingApi');
+    fail(fake.calls[5], {endpoint: 'assessment/mapping', code: 'ASSESSMENT_MAPPING_FAILED', message: 'Mapping unavailable', retryable: true});
+    assert.strictEqual(state.assessmentEndpointErrors.mapping.endpoint, 'assessment/mapping');
+    assert.strictEqual(state.assessmentEndpointErrors.mapping.code, 'ASSESSMENT_MAPPING_FAILED');
+    assert.notStrictEqual(state.assessmentEndpointErrors.mapping.endpoint, state.researchEndpointErrors.mappings.endpoint);
+    assert.notStrictEqual(state.assessmentEndpointErrors.mapping.code, state.researchEndpointErrors.mappings.code);
+    assert(clientDiagnostics.some(entry => entry.includes('endpoint=assessment/mapping') && entry.includes('ASSESSMENT_MAPPING_FAILED')));
+    state.loadAssessmentReview();
+    assert.strictEqual(fake.calls[6].method, 'getAssessmentReviewApi');
+    assert.deepStrictEqual(fake.calls[6].args, ['A']);
+    complete(fake.calls[6], {critical: [], warnings: [], status: 'Ready for review'});
+    assert.strictEqual(state.assessmentReview.status, 'Ready for review');
+  } finally {
+    console.error = originalConsoleError;
+  }
   assert.ok(fake.calls.every((call) => !/save|reset/i.test(call.method)), 'Read orchestration must not replay mutations');
 }
 
@@ -229,13 +259,46 @@ function testStaleResponses() {
   try {
     state.loadResearchWorkspace();
     const callA = fake.calls[0];
-    state.currentProgramme = {programmeId: 'B', mqaCode: 'MQA-B'};
+    complete(callA, researchResult({
+      profile: envelope({programmeId: 'A', programmeName: 'programme A'}),
+      peos: envelope([{code: 'A-PEO'}]),
+      plos: envelope([{ploId: 'a-plo', code: 'A-PLO'}]),
+      references: envelope({MQF: [{code: 'A-MQF'}], TF: [], SDG: [], SC: []}),
+      mappings: envelope([{ploId: 'a-plo', sdgIds: ['A-SDG'], scIds: ['A-SC'], tfIds: ['A-TF']}]),
+      coverage: envelope({globalCoverage: {programme: 'A'}}),
+      review: envelope({status: 'A status', critical: [], warnings: []})
+    }));
     state.loadResearchWorkspace();
-    const callB = fake.calls[1];
-    complete(callA, researchResult({profile: envelope({programmeId: 'A', programmeName: 'stale A'})}));
-    assert.strictEqual(state.researchProfile, null, 'An old programme response must not write state');
-    complete(callB, researchResult({profile: envelope({programmeId: 'B', programmeName: 'current B'})}));
+    const refreshA = fake.calls[1];
+    state.openProgramme({programmeId: 'B', mqaCode: 'MQA-B', mode: 'Research'});
+    const callB = fake.calls[2];
+    assert.strictEqual(state.researchProfile, null, 'Programme switch must clear the prior profile');
+    assert.deepStrictEqual(state.researchPEOs, [], 'Programme switch must clear prior PEOs');
+    assert.deepStrictEqual(state.researchPLOs, [], 'Programme switch must clear prior PLOs');
+    assert.deepStrictEqual(state.researchMappings, {}, 'Programme switch must clear prior mappings');
+    assert.deepStrictEqual(state.researchReferences, {MQF: [], TF: [], SDG: [], SC: []}, 'Programme switch must clear prior references');
+    assert.strictEqual(state.researchCoverage, null, 'Programme switch must clear prior coverage');
+    assert.strictEqual(state.researchReview, null, 'Programme switch must clear prior review');
+    assert.strictEqual(state.researchStatus, 'Draft', 'Programme switch must reset prior status');
+    complete(refreshA, researchResult({profile: envelope({programmeId: 'A', programmeName: 'stale A'})}));
+    assert.strictEqual(state.researchProfile, null, 'An old populated programme response must not write state');
+    assert.deepStrictEqual(state.researchPEOs, [], 'An old response must not restore PEOs');
+    complete(callB, researchResult({
+      profile: envelope({programmeId: 'B', programmeName: 'current B'}),
+      peos: envelope([{code: 'B-PEO'}]),
+      plos: envelope([{ploId: 'b-plo', code: 'B-PLO'}]),
+      references: envelope({MQF: [{code: 'B-MQF'}], TF: [], SDG: [], SC: []}),
+      mappings: envelope([{ploId: 'b-plo', sdgIds: ['B-SDG'], scIds: ['B-SC'], tfIds: ['B-TF']}]),
+      coverage: envelope({globalCoverage: {programme: 'B'}}),
+      review: envelope({status: 'B status', critical: [], warnings: []})
+    }));
     assert.strictEqual(state.researchProfile.programmeId, 'B');
+    assert.strictEqual(state.researchPEOs[0].code, 'B-PEO');
+    assert.strictEqual(state.researchPLOs[0].code, 'B-PLO');
+    assert.strictEqual(state.researchMappings['b-plo'].sdgIds[0], 'B-SDG');
+    assert.strictEqual(state.researchReferences.MQF[0].code, 'B-MQF');
+    assert.strictEqual(state.researchCoverage.globalCoverage.programme, 'B');
+    assert.strictEqual(state.researchReview.status, 'B status');
     assert.ok(errors.length === 0, 'Ignored stale responses must not log endpoint failures');
   } finally {
     console.error = originalError;
