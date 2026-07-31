@@ -2,6 +2,9 @@ const assert = require('assert');
 const fs = require('fs');
 
 const source = fs.readFileSync('gas/ResearchLockService.gs', 'utf8');
+const dataSource = fs.readFileSync('gas/ResearchDataService.gs', 'utf8');
+const referenceSource = fs.readFileSync('gas/ResearchReferenceService.gs', 'utf8');
+const mappingSource = fs.readFileSync('gas/ResearchMappingService.gs', 'utf8');
 const api = new Function(
   'LockService',
   'Utilities',
@@ -121,4 +124,50 @@ assert.strictEqual(terminalWorkCalls, 1, 'Terminal work errors must not replay w
 
 assert.strictEqual(source.includes('waitLock'), false, 'Shared helper must use tryLock, not waitLock');
 assert.strictEqual(source.includes('Utilities.sleep'), true, 'Production default sleeper must use Apps Script Utilities');
+
+let lockDepth = 0;
+function preparedSheet(name, rows) {
+  return {
+    getName: () => name,
+    getLastRow: () => rows.length,
+    appendRow: row => {
+      assert.strictEqual(lockDepth, 1, 'Sheet setup and reference seeding must stay inside one owned lock');
+      rows.push(row.slice());
+    },
+    getDataRange: () => ({getValues: () => rows.map(row => row.slice())})
+  };
+}
+const preparedSheets = {};
+const preparedLockService = {
+  getScriptLock: () => ({
+    tryLock: () => { lockDepth++; return true; },
+    releaseLock: () => { lockDepth--; }
+  })
+};
+const preparedSpreadsheet = {
+  getSheetByName: name => preparedSheets[name] || null,
+  insertSheet: name => {
+    preparedSheets[name] = preparedSheet(name, []);
+    return preparedSheets[name];
+  }
+};
+const preparedApi = new Function(
+  'LockService', 'Utilities', 'getSpreadsheet', 'resolveProgramme_', 'isResearchProgramme_',
+  source + '\n' + dataSource + '\n' + referenceSource + '\n' + mappingSource +
+    '\nreturn withPreparedResearchContext_;'
+)(preparedLockService, {sleep: () => { throw new Error('Prepared context must not sleep'); }},
+  () => preparedSpreadsheet,
+  value => ({programmeId: 'FACULTY::PROGRAMME::MQA/PREPARED', mqaCode: 'MQA/PREPARED', level: 'Masters'}),
+  () => true
+);
+const preparedResult = preparedApi('FACULTY::PROGRAMME::MQA/PREPARED', context => {
+  assert.strictEqual(lockDepth, 1, 'Prepared reader must run inside the owned lock');
+  assert(context.references.MQF.length > 0, 'Prepared context must expose seeded references');
+  return {programmeId: context.key, referenceCount: context.references.MQF.length};
+});
+assert.deepStrictEqual(preparedResult, {
+  programmeId: 'FACULTY::PROGRAMME::MQA/PREPARED',
+  referenceCount: 11
+});
+assert.strictEqual(lockDepth, 0, 'Prepared context must release the lock after capture');
 console.log('Research lock retry tests passed.');
