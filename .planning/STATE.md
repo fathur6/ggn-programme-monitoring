@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 8
 current_phase_name: Research Workspace Loading Resilience
-status: planned
-stopped_at: Phase 8 plan checker passed
-last_updated: "2026-07-31T00:00:00.000Z"
+status: in_progress
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-07-31T03:32:39.471Z"
 last_activity: 2026-07-31
-last_activity_desc: Added Phase 8 planning for resilient research workspace loading.
+last_activity_desc: Phase 8 plans passed the plan-checker gate.
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 33
 ---
 
 # Project State
@@ -29,19 +29,19 @@ See: .planning/PROJECT.md (updated 2026-07-30)
 ## Current Position
 
 Phase: 8 of 8 (Research Workspace Loading Resilience)
-Plan: 3 of 3 in current phase
-Status: Planned
-Last activity: 2026-07-31 — Phase 8 plans passed the plan-checker gate.
+Plan: 1 of 3 in current phase
+Status: In Progress
+Last activity: 2026-07-31 — Completed Phase 8 Plan 08-01 bounded lock retry and prepared context migration.
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: N/A
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: 25 min
+- Total execution time: 25 min
 
 **By Phase:**
 
@@ -54,6 +54,8 @@ Progress: [░░░░░░░░░░] 0%
 - Last 5 plans: None
 - Trend: Not established
 
+| Phase 08 P01 | 25 min | 2 tasks | 9 files |
+
 ## Accumulated Context
 
 ### Decisions
@@ -63,6 +65,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Roadmap constraints curr
 - Phase 1 is a hard PPS/JAPSU source and academic-contract gate.
 - Final seed activation and submission-ready behavior remain blocked while material decisions are unresolved.
 - TF is derived from canonical MQF logic; Assessment Mapping has no SDG model; PPS defaults and faculty alignment remain separate.
+- [Phase 08]: Use four finite tryLock(5000) attempts with 250/500/1000 ms backoff and no fourth-attempt sleep. — Bounded acquisition prevents fan-out amplification while preserving deterministic retry behavior.
+- [Phase 08]: Retry lock acquisition only; protected work executes once and terminal work errors propagate unchanged. — Avoids replaying ambiguous authorization, validation, or mutation work.
+- [Phase 08]: Keep withResearchLock_ as the compatibility wrapper while prepared contexts consume no-lock helpers. — Preserves brownfield callers while preventing nested lock acquisition.
 
 ### Pending Todos
 
@@ -85,6 +90,6 @@ None yet; unresolved academic decisions are tracked as Phase 1 gates, not implem
 
 ## Session Continuity
 
-Last session: 2026-07-31T00:00:00.000Z
-Stopped at: Phase 8 plan checker passed
-Resume file: .planning/phases/08-make-research-workspace-loading-resilient-with-serialized-or/08-03-PLAN.md
+Last session: 2026-07-31T03:32:23.027Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None
