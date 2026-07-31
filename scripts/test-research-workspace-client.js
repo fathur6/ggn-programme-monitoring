@@ -3,6 +3,7 @@ const fs = require('fs');
 
 const source = fs.readFileSync('gas/JavaScript.html', 'utf8');
 const index = fs.readFileSync('gas/Index.html', 'utf8');
+const styles = fs.readFileSync('gas/Styles.html', 'utf8');
 
 function functionSource(name) {
   const start = source.indexOf(name + ': function');
@@ -323,6 +324,8 @@ function testUiContracts() {
   assert(/retryResearchEndpoint\(endpoint\)/.test(index), 'Research retry action is missing');
   assert(/retryAssessmentEndpoint\(endpoint\)/.test(index), 'Assessment retry action is missing');
   assert(/aria-live="polite"/.test(index) && /role="alert"/.test(index), 'Endpoint status is not announced accessibly');
+  assert(/assessmentEndpointLoading\.mapping/.test(index) && /Loading assessment instruments/.test(index), 'Assessment loading state is not rendered');
+  assert(/assessment-loading-spinner/.test(styles), 'Assessment loading spinner styling is missing');
   assert(/researchWorkspaceFatalError/.test(index) && /assessmentWorkspaceFatalError/.test(index), 'Fatal aggregate errors are not distinct');
   assert(/Pemetaan Program/.test(index) && /Pemetaan Pentaksiran/.test(index), 'Research tabs changed unexpectedly');
   assert(/researchError/.test(index), 'Mutation error presentation was removed');
