@@ -392,11 +392,12 @@ function assessmentReplaceRows_(sheet, output) {
   ASSESSMENT_ROWS_CACHE_ = {};
 }
 
-function withPreparedAssessmentContext_(programmeIdOrMqaCode, reader, requirePrimarySC) {
-  var access = requireResearchProgrammeAccess_(programmeIdOrMqaCode, 'view-assessment');
-  var programme = resolveProgramme_(programmeIdOrMqaCode);
-  var key = getResearchProgrammeKey_(programme);
-  return withResearchLockRetry_(function() {
+function withPreparedAssessmentContext_(programmeIdOrMqaCode, reader, requirePrimarySC, preparedIdentity) {
+  preparedIdentity = preparedIdentity || {};
+  var access = preparedIdentity.access || requireResearchProgrammeAccess_(programmeIdOrMqaCode, 'view-assessment');
+  var programme = preparedIdentity.programme || resolveProgramme_(programmeIdOrMqaCode);
+  var key = preparedIdentity.key || getResearchProgrammeKey_(programme);
+  var prepared = withResearchLockRetry_(function() {
     var ss = getSpreadsheet();
     var researchSheets = ensureResearchSheetsNoLock_(ss);
     RESEARCH_SHEETS_CACHE_ = researchSheets;
@@ -407,7 +408,7 @@ function withPreparedAssessmentContext_(programmeIdOrMqaCode, reader, requirePri
     ASSESSMENT_SHEETS_CACHE_ = sheets;
     var definitions = assessmentDefinitionsNoLock_(sheets);
     var alignments = assessmentRows_(sheets.PR_AssessmentAlignments).filter(function(row) { return String(row[0]) === key; }).map(assessmentAlignmentFromRow_);
-    return reader({
+    return {
       access: access,
       programme: programme,
       key: key,
@@ -416,8 +417,9 @@ function withPreparedAssessmentContext_(programmeIdOrMqaCode, reader, requirePri
       alignments: alignments,
       references: references,
       requirePrimarySC: !!requirePrimarySC
-    });
+    };
   });
+  return reader(prepared);
 }
 
 function assessmentProjectionForProgramme_(programmeIdOrMqaCode, requirePrimarySC) {
@@ -429,6 +431,49 @@ function assessmentProjectionForProgramme_(programmeIdOrMqaCode, requirePrimaryS
 
 function getAssessmentMappingApi_(programmeIdOrMqaCode) {
   return assessmentProjectionForProgramme_(programmeIdOrMqaCode, false).projection;
+}
+
+function assessmentReviewFromProjection_(projection) {
+  var critical = [], warnings = [];
+  (projection || []).forEach(function(instrument) {
+    if (!instrument.totals.matches) critical.push({code: 'ASSESSMENT_TOTAL_MISMATCH', instrumentCode: instrument.code, message: 'Assessment total does not reconcile for ' + instrument.name});
+    instrument.items.forEach(function(item) {
+      item.validation.critical.forEach(function(message) { critical.push({code: 'ASSESSMENT_ITEM_INVALID', instrumentCode: instrument.code, itemCode: item.code, message: message}); });
+      item.validation.warnings.forEach(function(message) { warnings.push({code: 'ASSESSMENT_ITEM_WARNING', instrumentCode: instrument.code, itemCode: item.code, message: message}); });
+    });
+  });
+  return {critical: critical, warnings: warnings, status: critical.length ? 'Needs attention' : 'Ready for review', instruments: projection};
+}
+
+function getAssessmentWorkspaceApi_(programmeIdOrMqaCode) {
+  var access;
+  try {
+    access = requireResearchProgrammeAccess_(programmeIdOrMqaCode, 'view-assessment-workspace');
+  } catch (error) {
+    return researchWorkspaceThrowSafe_(error);
+  }
+
+  var prepared;
+  try {
+    var programme = resolveProgramme_(programmeIdOrMqaCode);
+    var key = getResearchProgrammeKey_(programme);
+    prepared = withPreparedAssessmentContext_(programmeIdOrMqaCode, function(context) { return context; }, false, {
+      access: access,
+      programme: programme,
+      key: key
+    });
+  } catch (error) {
+    return researchWorkspaceThrowSafe_(error);
+  }
+
+  var mapping = researchWorkspaceEndpointEnvelope_('mapping', function() {
+    return assessmentProjection_(prepared.programme, prepared.definitions, prepared.alignments, prepared.references, false);
+  });
+  var review = researchWorkspaceEndpointEnvelope_('review', function() {
+    var projection = assessmentProjection_(prepared.programme, prepared.definitions, prepared.alignments, prepared.references, true);
+    return assessmentReviewFromProjection_(projection);
+  });
+  return {ok: true, programmeId: prepared.key, endpoints: {mapping: mapping, review: review}};
 }
 
 function saveAssessmentMappingApi_(programmeIdOrMqaCode, payload) {
@@ -483,13 +528,5 @@ function resetAssessmentMappingApi_(programmeIdOrMqaCode, itemIds) {
 
 function getAssessmentReviewApi_(programmeIdOrMqaCode) {
   var result = assessmentProjectionForProgramme_(programmeIdOrMqaCode, true);
-  var critical = [], warnings = [];
-  result.projection.forEach(function(instrument) {
-    if (!instrument.totals.matches) critical.push({code: 'ASSESSMENT_TOTAL_MISMATCH', instrumentCode: instrument.code, message: 'Assessment total does not reconcile for ' + instrument.name});
-    instrument.items.forEach(function(item) {
-      item.validation.critical.forEach(function(message) { critical.push({code: 'ASSESSMENT_ITEM_INVALID', instrumentCode: instrument.code, itemCode: item.code, message: message}); });
-      item.validation.warnings.forEach(function(message) { warnings.push({code: 'ASSESSMENT_ITEM_WARNING', instrumentCode: instrument.code, itemCode: item.code, message: message}); });
-    });
-  });
-  return {critical: critical, warnings: warnings, status: critical.length ? 'Needs attention' : 'Ready for review', instruments: result.projection};
+  return assessmentReviewFromProjection_(result.projection);
 }

@@ -147,6 +147,7 @@ function saveResearchPLOMappingApi(programmeId, ploId, mapping) { return saveRes
 function getResearchCoverageApi(programmeId) { return getResearchCoverageApi_(programmeId); }
 function getResearchReviewApi(programmeId) { return getResearchReviewApi_(programmeId); }
 function getResearchWorkspaceApi(programmeId) { return getResearchWorkspaceApi_(programmeId); }
+function getAssessmentWorkspaceApi(programmeId) { return getAssessmentWorkspaceApi_(programmeId); }
 function saveResearchStatusApi(programmeId, status) { return saveResearchStatusApi_(programmeId, status); }
 function submitResearchProgrammeApi(programmeId) { return submitResearchProgrammeApi_(programmeId); }
 
