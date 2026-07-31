@@ -255,6 +255,7 @@ function testStaticContracts() {
 function testUiContracts() {
   assert(/researchEndpointErrors/.test(index), 'Research endpoint errors are not rendered');
   assert(/assessmentEndpointErrors/.test(index), 'Assessment endpoint errors are not rendered');
+  assert(/Assessment \{\{ endpoint \}\} failed/.test(index), 'Assessment endpoint context is not distinguishable');
   assert(/researchEndpointLabel\(endpoint\)/.test(index), 'Endpoint labels are not visible in the UI');
   assert(/retryResearchEndpoint\(endpoint\)/.test(index), 'Research retry action is missing');
   assert(/retryAssessmentEndpoint\(endpoint\)/.test(index), 'Assessment retry action is missing');
