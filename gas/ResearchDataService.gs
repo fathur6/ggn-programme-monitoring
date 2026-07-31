@@ -14,25 +14,24 @@ var RESEARCH_SHEET_HEADERS = {
 var RESEARCH_SHEETS_CACHE_ = null;
 
 function ensureResearchSheets_() {
-  var ss = getSpreadsheet();
+  // LockService.getScriptLock() is owned by withResearchLockRetry_ so setup
+  // and its bounded retry policy remain centralized.
   if (RESEARCH_SHEETS_CACHE_) return RESEARCH_SHEETS_CACHE_;
-  var result = {};
-  var lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(30000);
-  } catch (e) {
-    throw new Error('Sistem sibuk. Sila cuba sebentar lagi.');
-  }
-  try {
-    Object.keys(RESEARCH_SHEET_HEADERS).forEach(function(name) {
-      var sheet = ss.getSheetByName(name) || ss.insertSheet(name);
-      if (sheet.getLastRow() === 0) sheet.appendRow(RESEARCH_SHEET_HEADERS[name]);
-      result[name] = sheet;
-    });
-  } finally {
-    lock.releaseLock();
-  }
+  var ss = getSpreadsheet();
+  var result = withResearchLockRetry_(function() {
+    return ensureResearchSheetsNoLock_(ss);
+  });
   RESEARCH_SHEETS_CACHE_ = result;
+  return result;
+}
+
+function ensureResearchSheetsNoLock_(ss) {
+  var result = {};
+  Object.keys(RESEARCH_SHEET_HEADERS).forEach(function(name) {
+    var sheet = ss.getSheetByName(name) || ss.insertSheet(name);
+    if (sheet.getLastRow() === 0) sheet.appendRow(RESEARCH_SHEET_HEADERS[name]);
+    result[name] = sheet;
+  });
   return result;
 }
 

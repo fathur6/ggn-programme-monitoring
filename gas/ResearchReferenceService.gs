@@ -58,39 +58,43 @@ function isActiveReference_(value) {
 }
 
 function seedResearchReferences_(sheets) {
-  var lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(30000);
-  } catch (e) {
-    throw new Error('Sistem sibuk. Sila cuba sebentar lagi.');
-  }
-  try {
-    Object.keys(RESEARCH_REFERENCE_SEEDS_).forEach(function(name) {
-      var sheet = sheets[name];
-      var rows = RESEARCH_REFERENCE_SEEDS_[name];
-      var actual = sheet.getDataRange().getValues();
-      var existingCodes = Object.create(null);
-      actual.slice(1).forEach(function(row) {
-        var code = String(row[0] || '').trim();
-        if (code) existingCodes[code] = true;
-      });
-      rows.forEach(function(row) {
-        var code = String(row[0] || '').trim();
-        if (!existingCodes[code]) {
-          sheet.appendRow(row);
-          existingCodes[code] = true;
-        }
-      });
+  withResearchLockRetry_(function() {
+    seedResearchReferencesNoLock_(sheets);
+  });
+}
+
+function seedResearchReferencesNoLock_(sheets) {
+  Object.keys(RESEARCH_REFERENCE_SEEDS_).forEach(function(name) {
+    var sheet = sheets[name];
+    var rows = RESEARCH_REFERENCE_SEEDS_[name];
+    var actual = sheet.getDataRange().getValues();
+    var existingCodes = Object.create(null);
+    actual.slice(1).forEach(function(row) {
+      var code = String(row[0] || '').trim();
+      if (code) existingCodes[code] = true;
     });
-  } finally {
-    lock.releaseLock();
-  }
+    rows.forEach(function(row) {
+      var code = String(row[0] || '').trim();
+      if (!existingCodes[code]) {
+        sheet.appendRow(row);
+        existingCodes[code] = true;
+      }
+    });
+  });
 }
 
 function getResearchReferences_() {
   if (RESEARCH_REFERENCES_CACHE_) return RESEARCH_REFERENCES_CACHE_;
-  var sheets = ensureResearchSheets_();
-  seedResearchReferences_(sheets);
+  var result = withResearchLockRetry_(function() {
+    var sheets = ensureResearchSheetsNoLock_(getSpreadsheet());
+    seedResearchReferencesNoLock_(sheets);
+    return getResearchReferencesNoLock_(sheets);
+  });
+  RESEARCH_REFERENCES_CACHE_ = result;
+  return result;
+}
+
+function getResearchReferencesNoLock_(sheets) {
   var result = {};
   Object.keys(RESEARCH_REFERENCE_SEEDS_).forEach(function(name) {
     var rows = sheets[name].getDataRange().getValues();
@@ -114,7 +118,6 @@ function getResearchReferences_() {
       return { code: code, title: title, description: description };
     }).filter(function(row) { return row !== null; });
   });
-  RESEARCH_REFERENCES_CACHE_ = result;
   return result;
 }
 

@@ -16,6 +16,7 @@ function extractFunction(name, source) {
 
 const dataSource = fs.readFileSync('gas/ResearchDataService.gs', 'utf8');
 const referenceSource = fs.readFileSync('gas/ResearchReferenceService.gs', 'utf8');
+const lockSource = fs.readFileSync('gas/ResearchLockService.gs', 'utf8');
 const mappingSource = fs.readFileSync('gas/ResearchMappingService.gs', 'utf8');
 const programmeSource = fs.readFileSync('gas/ProgrammeService.gs', 'utf8');
 const api = new Function('getSpreadsheet', 'getCurrentUser_', 'LockService', dataSource + '\n' + referenceSource + '\nreturn { RESEARCH_SHEET_HEADERS: RESEARCH_SHEET_HEADERS, getResearchProgrammeKey_: getResearchProgrammeKey_, validateReferenceIds_: validateReferenceIds_, getResearchReferences_: getResearchReferences_, getResearchReferencesApi: getResearchReferencesApi };')(undefined, undefined, undefined);
@@ -117,10 +118,11 @@ const spreadsheet = new FakeSpreadsheet({
   ])
 });
 let lockCount = 0;
-const runtimeApi = new Function('getSpreadsheet', 'getCurrentUser_', 'LockService', dataSource + '\n' + referenceSource + '\nreturn { getResearchReferences_: getResearchReferences_, getResearchReferencesApi: getResearchReferencesApi };')(
+const runtimeApi = new Function('getSpreadsheet', 'getCurrentUser_', 'LockService', 'Utilities', lockSource + '\n' + dataSource + '\n' + referenceSource + '\nreturn { getResearchReferences_: getResearchReferences_, getResearchReferencesApi: getResearchReferencesApi };')(
   () => spreadsheet,
   () => ({email: 'user@unisza.edu.my'}),
-  {getScriptLock: () => ({waitLock: () => { lockCount++; }, releaseLock: () => {}})}
+  {getScriptLock: () => ({tryLock: () => { lockCount++; return true; }, releaseLock: () => {}})},
+  {sleep: () => { throw new Error('Real Utilities.sleep must not run in this fixture'); }}
 );
 const references = runtimeApi.getResearchReferences_();
 assert.strictEqual(references.TF.some(row => row.code === 'TF1'), false, 'Malformed active TF JSON must be ignored');
@@ -144,10 +146,11 @@ assert.deepStrictEqual(spreadsheet.sheets.PR_TFReference.rows[2], ['TFX', 'Inact
 assert(lockCount > 0, 'First-use research sheet creation must use the script lock');
 researchSheetNames.forEach(name => assert.deepStrictEqual(spreadsheet.sheets[name].rows[0], api.RESEARCH_SHEET_HEADERS[name]));
 assert.deepStrictEqual(JSON.parse(spreadsheet.sheets.PR_TFReference.rows[3][3]), ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']);
-const unauthenticatedApi = new Function('getSpreadsheet', 'getCurrentUser_', 'LockService', dataSource + '\n' + referenceSource + '\nreturn getResearchReferencesApi;')(
+const unauthenticatedApi = new Function('getSpreadsheet', 'getCurrentUser_', 'LockService', 'Utilities', lockSource + '\n' + dataSource + '\n' + referenceSource + '\nreturn getResearchReferencesApi;')(
   () => spreadsheet,
   () => null,
-  {getScriptLock: () => ({waitLock: () => {}, releaseLock: () => {}})}
+  {getScriptLock: () => ({tryLock: () => true, releaseLock: () => {}})},
+  {sleep: () => { throw new Error('Real Utilities.sleep must not run in this fixture'); }}
 );
 assert.throws(() => unauthenticatedApi(), /unauthorized/i);
 
@@ -242,7 +245,9 @@ assert.strictEqual(legacyDetail.plos[0].taxonomy, 'C4', 'Legacy PLO taxonomy was
 var legacyMQF = new Function(extractFunction('normalizeLegacyMQF_', mappingSource) + '\nreturn normalizeLegacyMQF_;')();
 assert.strictEqual(legacyMQF('MQF 3A'), 'MQF3a', 'Alphabetic legacy MQF code casing was not canonicalized');
 
-var migrationSource = extractFunction('researchRows_', mappingSource) + '\n' + extractFunction('migrateLegacyResearchRows_', mappingSource);
+var migrationSource = extractFunction('researchRows_', mappingSource) + '\n' +
+  extractFunction('migrateLegacyResearchRowsNoLock_', mappingSource) + '\n' +
+  extractFunction('migrateLegacyResearchRows_', mappingSource);
 var migrationApi = new Function('RESEARCH_ROWS_CACHE_', migrationSource + '\nreturn {migrateLegacyResearchRows_: migrateLegacyResearchRows_};')({});
 function MigrationSheet(name, rows) {
   this.name = name;

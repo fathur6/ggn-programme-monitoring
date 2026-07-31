@@ -247,11 +247,11 @@ function researchReviewDataFromSheets_(key, sheets, references) {
 }
 
 function researchReviewData_(programmeIdOrMqaCode) {
-  var context = researchContext_(programmeIdOrMqaCode);
-  var key = context.key;
-  var references = getResearchReferences_();
-  var sheets = ensureResearchSheets_();
-  return withResearchLock_(function() { return researchReviewDataFromSheets_(key, sheets, references); });
+  // The prepared boundary performs the seeded-reference equivalent of
+  // getResearchReferences_() without reacquiring the script lock.
+  return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {
+    return researchReviewDataFromSheets_(context.key, context.sheets, context.references);
+  });
 }
 
 function getResearchReviewApi_(programmeIdOrMqaCode) {
@@ -268,16 +268,15 @@ function getResearchReviewApi_(programmeIdOrMqaCode) {
 }
 
 function saveResearchStatusApi_(programmeIdOrMqaCode, status) {
+  // withResearchLock_() remains the compatibility entry point; prepared
+  // research contexts route this mutation through the same retry policy.
   var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'save-review');
-  var context = researchContext_(programmeIdOrMqaCode);
   status = String(status && (status.status || status.mappingStatus) || status || '').trim();
   if (RESEARCH_REVIEW_STATUSES.indexOf(status) === -1) throw new Error('Invalid research review status');
-  var key = context.key;
-  var sheets = ensureResearchSheets_();
-  return withResearchLock_(function() {
-    var sheet = sheets.PR_ProgrammeProfile;
+  return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {
+    var sheet = context.sheets.PR_ProgrammeProfile;
     var rows = researchRows_(sheet);
-    var index = rows.findIndex(function(row) { return String(row[0]) === key; });
+    var index = rows.findIndex(function(row) { return String(row[0]) === context.key; });
     if (index === -1) throw new Error('Research programme profile not found');
     var row = rows[index].slice();
     var currentStatus = String(row[10] || 'Draft').trim();
@@ -299,16 +298,12 @@ function saveResearchStatusApi_(programmeIdOrMqaCode, status) {
 
 function submitResearchProgrammeApi_(programmeIdOrMqaCode) {
   var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'submit-review');
-  var context = researchContext_(programmeIdOrMqaCode);
-  var key = context.key;
-  var references = getResearchReferences_();
-  var sheets = ensureResearchSheets_();
-  return withResearchLock_(function() {
-    var data = researchReviewDataFromSheets_(key, sheets, references);
+  return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {
+    var data = researchReviewDataFromSheets_(context.key, context.sheets, context.references);
     var review = validateResearchProgramme_(data);
     if (review.critical.length) throw new Error('Research programme cannot be submitted: critical review issues remain');
-    var rows = researchRows_(sheets.PR_ProgrammeProfile);
-    var index = rows.findIndex(function(row) { return String(row[0]) === key; });
+    var rows = researchRows_(context.sheets.PR_ProgrammeProfile);
+    var index = rows.findIndex(function(row) { return String(row[0]) === context.key; });
     if (index === -1) throw new Error('Research programme profile not found');
     var row = rows[index].slice();
     if (!isLegalResearchStatusTransition_(row[10], 'Submitted')) {
@@ -318,7 +313,7 @@ function submitResearchProgrammeApi_(programmeIdOrMqaCode) {
     row[10] = 'Submitted';
     row[12] = now;
     row[13] = (access.user && access.user.email) || '';
-    sheets.PR_ProgrammeProfile.getRange(index + 2, 1, 1, 14).setValues([row]);
+    context.sheets.PR_ProgrammeProfile.getRange(index + 2, 1, 1, 14).setValues([row]);
     return {status: 'Submitted', updatedAt: serializeResearchDate_(now), updatedBy: row[13]};
   });
 }
