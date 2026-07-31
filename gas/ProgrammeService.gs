@@ -26,7 +26,7 @@ function getProgrammes_(userFilterFaculty) {
       progCode: data[i][columns.progCode],
       faculty: String(data[i][columns.faculty] || '').trim(),
       facultyFull: String(data[i][6] || '').trim(),
-      level: detectLevel(data[i][columns.name]),
+      level: detectLevel(data[i][columns.name] || data[i][columns.nameMy]),
       mode: String(data[i][10] || '').trim(),
       researchDetail: hasResearchDetailSheet_(ss, data[i][columns.mqaCode])
     };
@@ -98,8 +98,10 @@ function resolveProgramme_(programmeIdOrMqaCode) {
 }
 
 function detectLevel(name) {
-  var n = String(name).toLowerCase();
-  if (n.indexOf('doctor') > -1 || n.indexOf('doktor') > -1) return 'Doctorate';
+  var n = String(name || '').toLowerCase();
+  if (n.indexOf('doktor falsafah') > -1 || n.indexOf('doktor') > -1 || n.indexOf('doctor') > -1 ||
+      n.indexOf('doctoral') > -1 || n.indexOf('doctorate') > -1 ||
+      n.indexOf('ph.d') > -1 || n.indexOf('phd') > -1) return 'Doctorate';
   if (n.indexOf('master') > -1 || n.indexOf('sarjana') > -1) return 'Masters';
   return 'Other';
 }

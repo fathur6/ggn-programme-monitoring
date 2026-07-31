@@ -5,6 +5,7 @@ gas/config.gs
 **/.DS_Store
 **/.superpowers/
 graphify-out/
+.planning/graphs/
 *.png
 *.heic
 .playwright-mcp/

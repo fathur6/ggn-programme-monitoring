@@ -150,6 +150,10 @@ function getResearchWorkspaceApi(programmeId) { return getResearchWorkspaceApi_(
 function getAssessmentWorkspaceApi(programmeId) { return getAssessmentWorkspaceApi_(programmeId); }
 function saveResearchStatusApi(programmeId, status) { return saveResearchStatusApi_(programmeId, status); }
 function submitResearchProgrammeApi(programmeId) { return submitResearchProgrammeApi_(programmeId); }
+function getAssessmentMappingApi(programmeId) { return getAssessmentMappingApi_(programmeId); }
+function saveAssessmentMappingApi(programmeId, payload) { return saveAssessmentMappingApi_(programmeId, payload || {}); }
+function resetAssessmentMappingApi(programmeId, itemIds) { return resetAssessmentMappingApi_(programmeId, itemIds || []); }
+function getAssessmentReviewApi(programmeId) { return getAssessmentReviewApi_(programmeId); }
 
 function approveDeleteFileApi(requestId) {
   var user = getCurrentUser_();

@@ -602,8 +602,50 @@
   .code-input { width: 100px; font-family: 'JetBrains Mono', monospace; font-weight: 600; }
   .plo-workspace-row { padding: 16px; margin-bottom: 12px; background: var(--canvas); border: 1px solid var(--hairline); border-left: 3px solid var(--action-blue); border-radius: var(--radius-sm); }
   .plo-row-heading { flex-wrap: wrap; margin-bottom: 14px; }
-  .mapping-grid { display: grid; grid-template-columns: minmax(300px, 1.6fr) minmax(190px, .8fr) minmax(230px, .8fr); gap: 14px; margin-bottom: 14px; }
-  .mapping-grid select, .mapping-grid textarea { width: 100%; }
+   .mapping-grid { display: grid; grid-template-columns: minmax(300px, 1.6fr) minmax(190px, .8fr) minmax(230px, .8fr); gap: 14px; margin-bottom: 14px; }
+   .mapping-grid select, .mapping-grid textarea { width: 100%; }
+   .assessment-instrument-list { display: grid; gap: 18px; }
+   .assessment-instrument-card, .assessment-category-card, .assessment-item-card { border: 1px solid var(--border, #d9dee7); border-radius: 14px; background: #fff; }
+   .assessment-instrument-card { padding: 18px; box-shadow: 0 8px 22px rgba(29, 43, 76, .05); }
+   .assessment-instrument-heading, .assessment-category-heading, .assessment-item-heading { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+   .assessment-instrument-heading h4, .assessment-category-heading h5 { margin: 0 0 6px; }
+   .assessment-instrument-heading p, .assessment-item-heading p { margin: 5px 0 0; line-height: 1.5; }
+   .source-badge, .provenance-pill, .mark-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 9px; font-size: .72rem; font-weight: 700; letter-spacing: .02em; }
+   .source-badge { margin-top: 8px; color: #7b4f00; background: #fff4d6; }
+   .assessment-total { display: grid; justify-items: end; color: #23304f; }
+   .assessment-total strong { font-size: 1.25rem; }
+   .assessment-total span { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: #68738a; }
+   .assessment-legend { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0 18px; }
+   .assessment-subnav { display: flex; gap: 8px; margin: 0 0 18px; padding: 5px; border: 1px solid var(--hairline); border-radius: 12px; background: var(--canvas-muted); }
+   .assessment-subnav button { flex: 1; border: 0; border-radius: 8px; padding: 10px 12px; background: transparent; color: var(--slate); font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
+   .assessment-subnav button:hover, .assessment-subnav button:focus-visible { color: var(--ink); background: #fff; outline: 2px solid var(--action-blue); outline-offset: 1px; }
+   .assessment-subnav button.active { color: #fff; background: var(--ink); }
+   .provenance-default { color: #176b46; background: #e6f6ed; }
+   .provenance-faculty { color: #1556a6; background: #e7f0ff; }
+   .provenance-derived { color: #6242a5; background: #f0ebff; }
+   .provenance-pill .legend-swatch { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+   .assessment-category-list { display: grid; gap: 14px; margin-top: 18px; }
+   .assessment-item-list { display: none; }
+   .assessment-item-list-fallback { display: grid; gap: 12px; margin-top: 18px; }
+   .assessment-category-card { padding: 14px; background: #fbfcfe; }
+   .assessment-category-heading { padding-bottom: 10px; border-bottom: 1px solid #e5e9f0; }
+   .assessment-category-heading span { color: #68738a; font-size: .82rem; font-weight: 700; white-space: nowrap; }
+   .assessment-item-card { margin-top: 12px; padding: 14px; background: #fff; }
+   .assessment-item-heading strong { color: #23304f; }
+   .assessment-item-heading p { color: #4d5870; font-size: .9rem; }
+   .descriptor-ms { color: #5f6f86 !important; font-style: italic; }
+   .mark-badge { color: #23304f; background: #eef1f6; white-space: nowrap; }
+   .assessment-item-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+   .assessment-item-grid label, .derived-field, .assessment-note { display: grid; gap: 6px; color: #34415d; font-size: .8rem; font-weight: 700; }
+   .assessment-item-grid select, .assessment-note input { width: 100%; min-width: 0; }
+   .assessment-item-grid select[multiple] { min-height: 82px; }
+   .assessment-item-grid small { font-weight: 700; }
+   .derived-field { padding: 10px; border-radius: 9px; background: #f5f1ff; }
+   .derived-field strong { font-size: .9rem; color: #4b3283; }
+   .assessment-note { margin-top: 12px; }
+   .assessment-note input { font-weight: 400; }
+   .assessment-item-error { margin-top: 10px; color: #9b2c2c; font-size: .82rem; font-weight: 700; }
+   .empty-state { padding: 22px; border: 1px dashed #cbd3df; border-radius: 12px; color: #68738a; text-align: center; }
   .statement-field { margin-bottom: 12px; }
   .compact-textarea { width: 100%; min-height: 62px; box-sizing: border-box; border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 10px; font: 14px/1.5 inherit; resize: vertical; }
   .reference-options { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -674,9 +716,18 @@
     .programme-context { flex-direction: column; padding: 16px; }
     .context-status { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
     .research-tabs button { flex: 1; padding-left: 8px; padding-right: 8px; }
-    .profile-grid, .mapping-grid { grid-template-columns: 1fr; }
+     .profile-grid, .mapping-grid { grid-template-columns: 1fr; }
+     .assessment-item-grid { grid-template-columns: 1fr 1fr; }
+     .assessment-instrument-heading { flex-direction: column; }
+     .assessment-total { justify-items: start; }
+     .assessment-subnav { overflow-x: auto; }
+     .assessment-subnav button { min-width: 150px; white-space: nowrap; }
     .research-subsection, .coverage-section, .research-review { padding: 14px; }
     .panel-heading { flex-wrap: wrap; }
     .plo-row-actions { align-items: flex-start; flex-direction: column; }
-  }
+   }
+   @media (max-width: 560px) {
+     .assessment-item-grid { grid-template-columns: 1fr; }
+     .assessment-legend { align-items: flex-start; flex-direction: column; }
+   }
 </style>
