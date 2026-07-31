@@ -351,6 +351,27 @@ function freshResearchMappings_(sheet, rows, ploById, references, rowIndexes) {
   });
 }
 
+/** Pure aggregate-read equivalent of freshResearchMappings_. */
+function researchMappingsFromRows_(rows, plos, references) {
+  var ploById = (plos || []).reduce(function(result, plo) {
+    result[plo.ploId] = plo;
+    return result;
+  }, {});
+  var tfReference = researchTFReferenceMap_(references);
+  return (rows || []).map(function(row) {
+    var mapping = mappingFromRow_(row);
+    var plo = ploById[mapping.ploId];
+    var derivedTFIds = deriveTFIds_(plo ? plo.mqfDomains : [], tfReference);
+    var storedTFIds = (mapping.tfIds || []).filter(function(tfId) {
+      return derivedTFIds.indexOf(tfId) !== -1;
+    });
+    var selectedTFIds = storedTFIds.length ? [storedTFIds[0]] : [];
+    mapping.tfIds = selectedTFIds;
+    mapping.derivedTFIds = selectedTFIds;
+    return mapping;
+  });
+}
+
 function getResearchProgrammeApi_(programmeIdOrMqaCode) {
   var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'view-programme');
   return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {

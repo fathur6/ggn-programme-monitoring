@@ -13,6 +13,10 @@ var RESEARCH_SHEET_HEADERS = {
 
 var RESEARCH_SHEETS_CACHE_ = null;
 
+var RESEARCH_WORKSPACE_DATA_SHEETS = [
+  'PR_ProgrammeProfile', 'PR_PEORecords', 'PR_PLORecords', 'PR_PLOMappings'
+];
+
 function ensureResearchSheets_() {
   // LockService.getScriptLock() is owned by withResearchLockRetry_ so setup
   // and its bounded retry policy remain centralized.
@@ -33,6 +37,19 @@ function ensureResearchSheetsNoLock_(ss) {
     result[name] = sheet;
   });
   return result;
+}
+
+/**
+ * Captures the mutable workspace rows while the prepared context owns the
+ * script lock. The returned arrays are detached from the fake/Apps Script
+ * sheet values so later projection cannot accidentally write through them.
+ */
+function researchWorkspaceRowsSnapshotNoLock_(sheets) {
+  return RESEARCH_WORKSPACE_DATA_SHEETS.reduce(function(result, name) {
+    var values = sheets[name].getDataRange().getValues();
+    result[name] = values.length > 1 ? values.slice(1).map(function(row) { return row.slice(); }) : [];
+    return result;
+  }, {});
 }
 
 function getResearchProgrammeKey_(programme) {

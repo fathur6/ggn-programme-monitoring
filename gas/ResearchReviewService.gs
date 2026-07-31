@@ -254,17 +254,21 @@ function researchReviewData_(programmeIdOrMqaCode) {
   });
 }
 
-function getResearchReviewApi_(programmeIdOrMqaCode) {
-  requireProgrammeAccess_(programmeIdOrMqaCode, 'view-review');
-  var data = researchReviewData_(programmeIdOrMqaCode);
+function researchReviewResultFromData_(data) {
   var result = validateResearchProgramme_(data);
-  var profile = data.profile;
+  var profile = data && data.profile;
   if (profile && !result.critical.length && ['Submitted', 'Approved', 'Returned for revision'].indexOf(profile.mappingStatus) !== -1) {
     result.status = profile.mappingStatus;
   }
   result.updatedAt = serializeResearchDate_(profile && profile.updatedAt);
   result.updatedBy = profile && profile.updatedBy || '';
   return result;
+}
+
+function getResearchReviewApi_(programmeIdOrMqaCode) {
+  requireProgrammeAccess_(programmeIdOrMqaCode, 'view-review');
+  var data = researchReviewData_(programmeIdOrMqaCode);
+  return researchReviewResultFromData_(data);
 }
 
 function saveResearchStatusApi_(programmeIdOrMqaCode, status) {
