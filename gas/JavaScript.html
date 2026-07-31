@@ -212,13 +212,28 @@ new Vue({
      ,researchMappings: {}
      ,researchReferences: {MQF: [], TF: [], SDG: [], SC: []}
      ,researchCoverage: null
-     ,researchReview: null
+      ,researchReview: null
+      ,assessmentMapping: null
+      ,assessmentReview: null
+      ,assessmentPage: 'progress'
+      ,assessmentDirty: false
+      ,assessmentSaveState: 'clean'
       ,researchStatus: 'Draft'
       ,researchDirty: false
       ,researchSaveState: 'clean'
-      ,researchLoading: false
-      ,researchError: null
-      ,dirty: false
+       ,researchLoading: false
+       ,researchError: null
+       ,researchWorkspaceFatalError: null
+       ,researchLoadGeneration: 0
+       ,researchLoadProgrammeId: ''
+       ,researchEndpointNames: ['profile', 'peos', 'plos', 'references', 'mappings', 'coverage', 'review']
+       ,researchEndpointErrors: {profile: null, peos: null, plos: null, references: null, mappings: null, coverage: null, review: null}
+       ,researchEndpointLoading: {profile: false, peos: false, plos: false, references: false, mappings: false, coverage: false, review: false}
+       ,assessmentWorkspaceFatalError: null
+       ,assessmentEndpointNames: ['mapping', 'review']
+       ,assessmentEndpointErrors: {mapping: null, review: null}
+       ,assessmentEndpointLoading: {mapping: false, review: false}
+       ,dirty: false
     ,accessRequest: { targetFaculty: '', mqaCode: '', reason: '', scope: 'programme' }
     ,myAccessRequests: []
     ,accessRequests: []
@@ -307,7 +322,7 @@ new Vue({
       reviewStatusClass: function() {
         return this.researchStatus === 'Ready for review' || this.researchStatus === 'Approved' ? 'status-good' : 'status-warn';
       },
-      mappingMatrixRows: function() {
+       mappingMatrixRows: function() {
         var self = this;
         return this.researchPLOs.map(function(plo) {
            var mapping = self.researchMappings[plo.ploId || plo.code] || {};
@@ -318,8 +333,17 @@ new Vue({
               sdgIds: mapping.sdgIds,
              scIds: mapping.scIds
            }, self.researchReferences.TF);
-        });
-      }
+         });
+       },
+       assessmentVisibleInstruments: function() {
+         var prefix = this.assessmentPage === 'viva' ? 'VIVA_' : this.assessmentPage === 'thesis' ? 'THESIS_' : 'PROGRESS_';
+         return (this.assessmentMapping || []).filter(function(instrument) { return String(instrument.code || '').indexOf(prefix) === 0; });
+       },
+       assessmentPageIssues: function() {
+         var prefix = this.assessmentPage === 'viva' ? 'VIVA_' : this.assessmentPage === 'thesis' ? 'THESIS_' : 'PROGRESS_';
+         var review = this.assessmentReview || {};
+         return (review.critical || []).filter(function(issue) { return String(issue.instrumentCode || '').indexOf(prefix) === 0; });
+       }
   },
   methods: {
     isResearchProgramme: function(programme) {
@@ -355,8 +379,20 @@ new Vue({
      markResearchDirty: function() {
       this.researchDirty = true;
       this.researchSaveState = 'dirty';
+      this.dirty = true;
+      },
+      markAssessmentDirty: function() {
+       this.assessmentDirty = true;
+       this.assessmentSaveState = 'dirty';
+       this.researchDirty = true;
        this.dirty = true;
-     },
+      },
+      assessmentProvenanceClass: function(provenance) {
+       if (!provenance) return 'provenance-default';
+       if (provenance.kind === 'faculty') return 'provenance-faculty';
+       if (provenance.kind === 'derived') return 'provenance-derived';
+       return 'provenance-default';
+      },
      formatResearchDate: function(value) {
        if (!value) return '';
        var date = new Date(value);
@@ -540,8 +576,16 @@ new Vue({
        }
        this.currentProgramme = prog;
       this.currentView = 'detail';
-      this.researchCategory = 'information';
-      this.researchDirty = false;
+       this.researchCategory = 'information';
+       this.researchDirty = false;
+       this.assessmentDirty = false;
+       this.assessmentMapping = null;
+       this.assessmentReview = null;
+       this.assessmentWorkspaceFatalError = null;
+       this.assessmentEndpointErrors = {mapping: null, review: null};
+       this.assessmentEndpointLoading = {mapping: false, review: false};
+       this.assessmentPage = 'progress';
+       this.assessmentSaveState = 'clean';
       this.researchSaveState = 'clean';
       this.dirty = false;
       this.loadResearchWorkspace();
@@ -557,56 +601,141 @@ new Vue({
       if (view === 'dashboard') this.loadDashboard();
       if (view === 'programmes') this.loadProgrammes();
     },
-    loadResearchWorkspace: function() {
-      var self = this;
-      if (!this.currentProgramme) return;
-      this.researchLoading = true;
-      this.researchError = null;
-      this.researchSaveState = 'loading';
-      var pending = 7;
-      var failed = false;
-      function complete() {
-        pending -= 1;
-        if (pending === 0) {
-          self.researchLoading = false;
-          if (!failed) self.researchSaveState = 'clean';
-        }
-      }
-      function fail(error) {
-        failed = true;
-        self.researchError = error && error.message ? error.message : 'Unable to load the research workspace.';
-        self.researchSaveState = 'error';
-        self.showToast(self.researchError);
-        complete();
-      }
-      function request(invoke, success) {
-        var runner = google.script.run.withSuccessHandler(function(result) {
-          success(result);
-          complete();
-        }).withFailureHandler(fail);
-        invoke(runner);
-      }
-       var programmeId = this.currentProgramme.programmeId || this.currentProgramme.mqaCode;
-       request(function(run) { run.getResearchProgrammeApi(programmeId); }, function(profile) { self.researchProfile = profile; });
-       request(function(run) { run.getResearchPEOsApi(programmeId); }, function(peos) { self.researchPEOs = peos || []; });
-       request(function(run) { run.getResearchPLOsApi(programmeId); }, function(plos) { self.researchPLOs = plos || []; });
-      request(function(run) { run.getResearchReferencesApi(); }, function(references) { self.researchReferences = references || self.researchReferences; });
-       request(function(run) { run.getResearchMappingsApi(programmeId); }, function(mappings) {
-        self.researchMappings = {};
-         (mappings || []).forEach(function(mapping) {
-           mapping.sdgIds = (mapping.sdgIds || []).slice(0, 1);
-           mapping.scIds = (mapping.scIds || []).slice(0, 1);
-           mapping.tfIds = (mapping.tfIds || mapping.derivedTFIds || []).slice(0, 1);
-           mapping.derivedTFIds = mapping.tfIds;
-           self.$set(self.researchMappings, mapping.ploId, mapping);
-         });
-      });
-       request(function(run) { run.getResearchCoverageApi(programmeId); }, function(coverage) { self.researchCoverage = coverage; });
-       request(function(run) { run.getResearchReviewApi(programmeId); }, function(review) {
-        self.researchReview = review;
-        self.researchStatus = review.status || self.researchStatus;
-      });
-    },
+     researchProgrammeIdentity: function(programme) {
+       return String(programme && (programme.programmeId || programme.mqaCode) || '').trim();
+     },
+     isCurrentResearchRead: function(token) {
+       return !!(token && token.generation === this.researchLoadGeneration && this.currentProgramme &&
+         token.programmeId === this.researchProgrammeIdentity(this.currentProgramme));
+     },
+     researchEndpointLabel: function(endpoint) {
+       var labels = {profile: 'Programme profile', peos: 'PEO records', plos: 'PLO records', references: 'Reference data', mappings: 'PLO mappings', coverage: 'Coverage', review: 'Research review', mapping: 'Assessment mapping', assessmentReview: 'Assessment review', assessment: 'Assessment workspace'};
+       return labels[endpoint] || endpoint;
+     },
+     applyResearchEndpointResult: function(endpoint, envelope, token, kind) {
+       if (!this.isCurrentResearchRead(token)) return false;
+       var assessment = kind === 'assessment';
+       var names = assessment ? this.assessmentEndpointNames : this.researchEndpointNames;
+       if (names.indexOf(endpoint) === -1) return false;
+       var errors = assessment ? this.assessmentEndpointErrors : this.researchEndpointErrors;
+       var loading = assessment ? this.assessmentEndpointLoading : this.researchEndpointLoading;
+       if (envelope && envelope.ok) {
+         var value = envelope.data;
+         if (assessment) {
+           if (endpoint === 'mapping') this.assessmentMapping = value || [];
+           if (endpoint === 'review') this.assessmentReview = value || null;
+         } else if (endpoint === 'profile') {
+           this.researchProfile = value || null;
+         } else if (endpoint === 'peos') {
+           this.researchPEOs = value || [];
+         } else if (endpoint === 'plos') {
+           this.researchPLOs = value || [];
+         } else if (endpoint === 'references') {
+           this.researchReferences = value || this.researchReferences;
+         } else if (endpoint === 'mappings') {
+           this.researchMappings = {};
+           var self = this;
+           (value || []).forEach(function(mapping) {
+             var normalized = Object.assign({}, mapping);
+             normalized.sdgIds = (Array.isArray(mapping.sdgIds) ? mapping.sdgIds : []).slice(0, 1);
+             normalized.scIds = (Array.isArray(mapping.scIds) ? mapping.scIds : []).slice(0, 1);
+             normalized.tfIds = (Array.isArray(mapping.tfIds) ? mapping.tfIds : (Array.isArray(mapping.derivedTFIds) ? mapping.derivedTFIds : [])).slice(0, 1);
+             normalized.derivedTFIds = normalized.tfIds.slice(0, 1);
+             self.$set(self.researchMappings, mapping.ploId, normalized);
+           });
+         } else if (endpoint === 'coverage') {
+           this.researchCoverage = value || null;
+         } else if (endpoint === 'review') {
+           this.researchReview = value || null;
+           if (value && value.status) this.researchStatus = value.status;
+         }
+         this.$set(loading, endpoint, false);
+         this.$set(errors, endpoint, null);
+         return true;
+       }
+       var sourceError = envelope && envelope.error || {};
+       var clientError = {
+         endpoint: endpoint,
+         code: sourceError.code || (assessment ? 'ASSESSMENT_' : 'RESEARCH_') + String(endpoint).toUpperCase() + '_FAILED',
+         message: sourceError.message || 'Unable to load the ' + this.researchEndpointLabel(endpoint).toLowerCase() + '.',
+         retryable: !!((envelope && envelope.retryable) || sourceError.retryable)
+       };
+       this.$set(loading, endpoint, false);
+       this.$set(errors, endpoint, clientError);
+       if (typeof console !== 'undefined' && console.error) {
+         console.error('[ResearchWorkspaceClient] endpoint=' + endpoint + ' code=' + clientError.code + ' message=' + clientError.message);
+       }
+       return false;
+     },
+     loadResearchWorkspace: function() {
+       var self = this;
+       if (!this.currentProgramme) return;
+       var programmeId = this.researchProgrammeIdentity(this.currentProgramme);
+       var token = {generation: ++this.researchLoadGeneration, programmeId: programmeId};
+       this.researchLoadProgrammeId = programmeId;
+       this.researchLoading = true;
+       this.researchError = null;
+       this.researchWorkspaceFatalError = null;
+       this.researchSaveState = 'loading';
+       this.researchEndpointNames.forEach(function(endpoint) {
+         self.$set(self.researchEndpointLoading, endpoint, true);
+         self.$set(self.researchEndpointErrors, endpoint, null);
+       });
+       google.script.run
+         .withSuccessHandler(function(result) {
+           if (!self.isCurrentResearchRead(token)) return;
+           self.researchLoading = false;
+           if (!result || result.ok !== true || !result.endpoints) {
+             self.researchWorkspaceFatalError = 'Unable to load the research workspace. Please try again.';
+             self.researchSaveState = 'error';
+             self.researchEndpointNames.forEach(function(endpoint) { self.$set(self.researchEndpointLoading, endpoint, false); });
+             self.showToast(self.researchWorkspaceFatalError);
+             return;
+           }
+           self.researchEndpointNames.forEach(function(endpoint) {
+             self.applyResearchEndpointResult(endpoint, result.endpoints[endpoint], token, 'research');
+           });
+           self.researchSaveState = self.researchEndpointNames.some(function(endpoint) { return !!self.researchEndpointErrors[endpoint]; }) ? 'error' : 'clean';
+         })
+         .withFailureHandler(function(error) {
+           if (!self.isCurrentResearchRead(token)) return;
+           var message = error && error.message ? error.message : 'Unable to load the research workspace. Please try again.';
+           self.researchLoading = false;
+           self.researchWorkspaceFatalError = message;
+           self.researchSaveState = 'error';
+           self.researchEndpointNames.forEach(function(endpoint) { self.$set(self.researchEndpointLoading, endpoint, false); });
+           if (typeof console !== 'undefined' && console.error) console.error('[ResearchWorkspaceClient] endpoint=workspace code=RESEARCH_WORKSPACE_FAILED message=' + message);
+           self.showToast(message);
+         })
+         .getResearchWorkspaceApi(programmeId);
+     },
+     retryResearchEndpoint: function(endpoint) {
+       var self = this;
+       endpoint = String(endpoint || '').trim();
+       if (this.researchEndpointNames.indexOf(endpoint) === -1) {
+         var unknown = {endpoint: endpoint, code: 'CLIENT_UNKNOWN_RESEARCH_ENDPOINT', message: 'Unknown research endpoint.', retryable: false};
+         this.$set(this.researchEndpointErrors, endpoint, unknown);
+         if (typeof console !== 'undefined' && console.error) console.error('[ResearchWorkspaceClient] endpoint=' + endpoint + ' code=' + unknown.code + ' message=' + unknown.message);
+         return;
+       }
+       if (!this.currentProgramme) return;
+       var programmeId = this.researchProgrammeIdentity(this.currentProgramme);
+       var token = {generation: this.researchLoadGeneration, programmeId: programmeId};
+       this.$set(this.researchEndpointLoading, endpoint, true);
+       this.$set(this.researchEndpointErrors, endpoint, null);
+       var runner = google.script.run.withSuccessHandler(function(result) {
+         self.applyResearchEndpointResult(endpoint, {ok: true, data: result}, token, 'research');
+       }).withFailureHandler(function(error) {
+         self.applyResearchEndpointResult(endpoint, {ok: false, error: {code: error && error.code, message: error && error.message, retryable: !!(error && error.retryable)}, retryable: !!(error && error.retryable)}, token, 'research');
+       });
+       if (endpoint === 'profile') runner.getResearchProgrammeApi(programmeId);
+       else if (endpoint === 'peos') runner.getResearchPEOsApi(programmeId);
+       else if (endpoint === 'plos') runner.getResearchPLOsApi(programmeId);
+       else if (endpoint === 'references') runner.getResearchReferencesApi();
+       else if (endpoint === 'mappings') runner.getResearchMappingsApi(programmeId);
+       else if (endpoint === 'coverage') runner.getResearchCoverageApi(programmeId);
+       else if (endpoint === 'review') runner.getResearchReviewApi(programmeId);
+     },
      researchFailure: function(error) {
        this.researchError = error && error.message ? error.message : 'The research workspace request failed.';
        this.researchSaveState = 'error';
@@ -619,13 +748,8 @@ new Vue({
       this.loadResearchCoverage();
       this.loadResearchReview();
     },
-    loadResearchMappings: function() {
-      var self = this;
-      if (!this.currentProgramme) return;
-      google.script.run.withSuccessHandler(function(mappings) {
-        self.researchMappings = {};
-        (mappings || []).forEach(function(mapping) { self.$set(self.researchMappings, mapping.ploId, mapping); });
-       }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchMappingsApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode);
+     loadResearchMappings: function() {
+       this.retryResearchEndpoint('mappings');
     },
     saveResearchProfile: function() {
       var self = this; this.researchSaveState = 'saving'; this.researchError = null;
@@ -679,14 +803,103 @@ new Vue({
     researchMutationComplete: function(message) {
       this.researchDirty = false; this.dirty = false; this.researchSaveState = 'saved'; this.researchError = null; this.showToast(message); this.refreshResearchDerived();
     },
-    loadResearchCoverage: function() {
-      var self = this; if (!this.currentProgramme) return;
-       google.script.run.withSuccessHandler(function(coverage) { self.researchCoverage = coverage; }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchCoverageApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode);
-    },
-    loadResearchReview: function() {
-      var self = this; if (!this.currentProgramme) return;
-       google.script.run.withSuccessHandler(function(review) { self.researchReview = review; self.researchStatus = review.status || self.researchStatus; }).withFailureHandler(function(e) { self.researchFailure(e); }).getResearchReviewApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode);
-    },
+     loadResearchCoverage: function() {
+       this.retryResearchEndpoint('coverage');
+     },
+      loadResearchReview: function() {
+       this.retryResearchEndpoint('review');
+       },
+      loadAssessmentWorkspace: function() {
+        var self = this; if (!this.currentProgramme) return;
+        var programmeId = this.researchProgrammeIdentity(this.currentProgramme);
+        var token = {generation: this.researchLoadGeneration, programmeId: programmeId};
+        this.assessmentWorkspaceFatalError = null;
+        this.assessmentSaveState = 'loading';
+        this.assessmentEndpointNames.forEach(function(endpoint) {
+          self.$set(self.assessmentEndpointLoading, endpoint, true);
+          self.$set(self.assessmentEndpointErrors, endpoint, null);
+        });
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (!self.isCurrentResearchRead(token)) return;
+            if (!result || result.ok !== true || !result.endpoints) {
+              self.assessmentWorkspaceFatalError = 'Unable to load the assessment workspace. Please try again.';
+              self.assessmentSaveState = 'error';
+              self.assessmentEndpointNames.forEach(function(endpoint) { self.$set(self.assessmentEndpointLoading, endpoint, false); });
+              return;
+            }
+            self.assessmentEndpointNames.forEach(function(endpoint) {
+              self.applyResearchEndpointResult(endpoint, result.endpoints[endpoint], token, 'assessment');
+            });
+            self.assessmentSaveState = self.assessmentEndpointNames.some(function(endpoint) { return !!self.assessmentEndpointErrors[endpoint]; }) ? 'error' : 'clean';
+          })
+          .withFailureHandler(function(error) {
+            if (!self.isCurrentResearchRead(token)) return;
+            var message = error && error.message ? error.message : 'Unable to load the assessment workspace. Please try again.';
+            self.assessmentWorkspaceFatalError = message;
+            self.assessmentSaveState = 'error';
+            self.assessmentEndpointNames.forEach(function(endpoint) { self.$set(self.assessmentEndpointLoading, endpoint, false); });
+            if (typeof console !== 'undefined' && console.error) console.error('[ResearchWorkspaceClient] endpoint=assessment code=ASSESSMENT_WORKSPACE_FAILED message=' + message);
+          })
+          .getAssessmentWorkspaceApi(programmeId);
+      },
+      loadAssessmentMapping: function() {
+        if (!this.assessmentMapping || !this.assessmentReview) this.loadAssessmentWorkspace();
+      },
+      retryAssessmentEndpoint: function(endpoint) {
+        var self = this;
+        endpoint = String(endpoint || '').trim();
+        if (this.assessmentEndpointNames.indexOf(endpoint) === -1) {
+          var unknown = {endpoint: endpoint, code: 'CLIENT_UNKNOWN_ASSESSMENT_ENDPOINT', message: 'Unknown assessment endpoint.', retryable: false};
+          this.$set(this.assessmentEndpointErrors, endpoint, unknown);
+          if (typeof console !== 'undefined' && console.error) console.error('[ResearchWorkspaceClient] endpoint=' + endpoint + ' code=' + unknown.code + ' message=' + unknown.message);
+          return;
+        }
+        if (!this.currentProgramme) return;
+        var programmeId = this.researchProgrammeIdentity(this.currentProgramme);
+        var token = {generation: this.researchLoadGeneration, programmeId: programmeId};
+        this.$set(this.assessmentEndpointLoading, endpoint, true);
+        this.$set(this.assessmentEndpointErrors, endpoint, null);
+        var runner = google.script.run.withSuccessHandler(function(result) {
+          self.applyResearchEndpointResult(endpoint, {ok: true, data: result}, token, 'assessment');
+        }).withFailureHandler(function(error) {
+          self.applyResearchEndpointResult(endpoint, {ok: false, error: {code: error && error.code, message: error && error.message, retryable: !!(error && error.retryable)}, retryable: !!(error && error.retryable)}, token, 'assessment');
+        });
+        if (endpoint === 'mapping') runner.getAssessmentMappingApi(programmeId);
+        else if (endpoint === 'review') runner.getAssessmentReviewApi(programmeId);
+      },
+      loadAssessmentReview: function() {
+        this.retryAssessmentEndpoint('review');
+      },
+     handleAssessmentPageKeydown: function(event) {
+       var pages = ['progress', 'viva', 'thesis'];
+       var index = pages.indexOf(this.assessmentPage);
+       if (event.key === 'ArrowRight') index = (index + 1) % pages.length;
+       else if (event.key === 'ArrowLeft') index = (index + pages.length - 1) % pages.length;
+       else if (event.key === 'Home') index = 0;
+       else if (event.key === 'End') index = pages.length - 1;
+       else return;
+       event.preventDefault();
+       this.assessmentPage = pages[index];
+       this.$nextTick(function() {
+         var tab = document.getElementById('assessment-' + pages[index] + '-tab');
+         if (tab) tab.focus();
+       });
+     },
+     assessmentItems: function() {
+       return (this.assessmentMapping || []).reduce(function(items, instrument) { return items.concat(instrument.items || []); }, []);
+     },
+     saveAssessmentMapping: function() {
+       var self = this; if (!this.currentProgramme) return;
+       this.assessmentSaveState = 'saving'; this.researchError = null;
+       var payload = {items: this.assessmentItems().map(function(item) { return {itemId: item.itemId, mqfDomains: item.effective.mqfDomains, taxonomy: item.effective.taxonomy, primarySC: item.effective.primarySC, note: item.note || ''}; })};
+       google.script.run.withSuccessHandler(function(mapping) { self.assessmentMapping = mapping || []; self.assessmentDirty = false; self.researchDirty = false; self.dirty = false; self.assessmentSaveState = 'saved'; self.loadAssessmentReview(); self.showToast('Assessment alignment saved.'); }).withFailureHandler(function(e) { self.assessmentSaveState = 'error'; self.researchFailure(e); }).saveAssessmentMappingApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode, payload);
+     },
+     resetAssessmentMapping: function() {
+       var self = this; if (!this.currentProgramme || !confirm('Reset assessment alignment to PPS defaults?')) return;
+       this.assessmentSaveState = 'saving';
+       google.script.run.withSuccessHandler(function(mapping) { self.assessmentMapping = mapping || []; self.assessmentDirty = false; self.researchDirty = false; self.dirty = false; self.assessmentSaveState = 'saved'; self.loadAssessmentReview(); self.showToast('Assessment alignment reset to PPS defaults.'); }).withFailureHandler(function(e) { self.assessmentSaveState = 'error'; self.researchFailure(e); }).resetAssessmentMappingApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode, []);
+     },
      submitResearchProgramme: function() {
        var self = this;
        google.script.run.withSuccessHandler(function(result) { self.researchStatus = result.status; self.researchMutationComplete('Programme submitted for review.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).submitResearchProgrammeApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode);
@@ -695,7 +908,7 @@ new Vue({
       plo.mqfDomains = this.researchReferences.MQF.map(function(domain) { return domain.code; }); this.markResearchDirty();
     },
     handleResearchCategoryKeydown: function(event) {
-      var categories = ['information', 'mapping'];
+       var categories = ['information', 'mapping', 'assessment'];
       var currentIndex = categories.indexOf(this.researchCategory);
       var nextIndex = currentIndex;
       if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % categories.length;
@@ -755,11 +968,15 @@ new Vue({
     this.loadGovernanceItems();
   },
    watch: {
-     researchCategory: function(category) {
-       if (category === 'mapping' && this.currentProgramme) {
+      researchCategory: function(category) {
+        if (category === 'mapping' && this.currentProgramme) {
          this.loadResearchCoverage();
          this.loadResearchReview();
-       }
+        }
+         if (category === 'assessment' && this.currentProgramme && (!this.assessmentMapping || !this.assessmentReview)) {
+           if (!this.assessmentMapping && !this.assessmentReview) this.loadAssessmentMapping();
+           else if (!this.assessmentReview) this.loadAssessmentReview();
+         }
      }
   }
 });
