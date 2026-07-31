@@ -151,6 +151,7 @@ Each task was committed atomically:
 ## Issues Encountered
 
 - The shared checkout contained unrelated pre-existing modifications and planning cache/graph artifacts. They were not staged or changed by this plan.
+- `REL-02` is present in the Phase 8 plan but not declared in `.planning/REQUIREMENTS.md`; the requirements handler reported `not_found`, so no unrelated requirement record was invented.
 - No `clasp push`, `clasp deploy`, GitHub push, secret/configuration change, or package installation was performed.
 
 ## User Setup Required
