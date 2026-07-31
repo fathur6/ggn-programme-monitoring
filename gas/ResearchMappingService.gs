@@ -107,6 +107,7 @@ function researchContext_(programmeIdOrMqaCode) {
 function withPreparedResearchContext_(programmeIdOrMqaCode, reader) {
   var context = researchContext_(programmeIdOrMqaCode);
   return withResearchLockRetry_(function() {
+    RESEARCH_ROWS_CACHE_ = {};
     var sheets = ensureResearchSheetsNoLock_(getSpreadsheet());
     RESEARCH_SHEETS_CACHE_ = sheets;
     migrateLegacyResearchRowsNoLock_(context.programme, context.key, sheets);
@@ -120,6 +121,24 @@ function withPreparedResearchContext_(programmeIdOrMqaCode, reader) {
       references: references
     });
   });
+}
+
+function tryResearchReadContext_(context) {
+  var byTitle = researchSnapshotByTitle_(getSpreadsheet());
+  if (!byTitle) return null;
+  if (!researchSheetsReadyFromSnapshot_(byTitle)) return null;
+  if (researchLegacyMigrationPending_(byTitle, context.key, String(context.programme.mqaCode || '').trim())) return null;
+  var sheets = researchSheetsFromSnapshot_(byTitle);
+  var references = getResearchReferencesNoLock_(sheets);
+  RESEARCH_REFERENCES_CACHE_ = references;
+  return {programme: context.programme, key: context.key, sheets: sheets, references: references};
+}
+
+function withPreparedResearchReadContext_(programmeIdOrMqaCode, reader) {
+  var context = researchContext_(programmeIdOrMqaCode);
+  var prepared = tryResearchReadContext_(context);
+  if (prepared) return reader(prepared);
+  return withPreparedResearchContext_(programmeIdOrMqaCode, reader);
 }
 
 function migrateLegacyResearchRowsNoLock_(programme, key, sheets) {
@@ -374,7 +393,7 @@ function researchMappingsFromRows_(rows, plos, references) {
 
 function getResearchProgrammeApi_(programmeIdOrMqaCode) {
   var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'view-programme');
-  return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {
+  return withPreparedResearchReadContext_(programmeIdOrMqaCode, function(context) {
     var row = researchRows_(context.sheets.PR_ProgrammeProfile).filter(function(item) { return String(item[0]) === context.key; })[0];
     if (row) return profileFromRow_(row);
     var programme = context.programme;
@@ -428,7 +447,7 @@ function touchResearchProfile_(key, user, now, preparedSheets) {
 
 function getResearchPEOsApi_(programmeIdOrMqaCode) {
   requireProgrammeAccess_(programmeIdOrMqaCode, 'view-peos');
-  return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {
+  return withPreparedResearchReadContext_(programmeIdOrMqaCode, function(context) {
     var peos = researchRows_(context.sheets.PR_PEORecords).filter(function(row) { return String(row[1]) === context.key; }).map(peoFromRow_);
     if (peos.length) return peos;
     var legacy = readLegacyResearchDetail_(getSpreadsheet(), context.programme.mqaCode);
@@ -487,7 +506,7 @@ function saveResearchPLOsApi_(programmeIdOrMqaCode, plos) {
 
 function getResearchPLOsApi_(programmeIdOrMqaCode) {
   requireProgrammeAccess_(programmeIdOrMqaCode, 'view-plos');
-  return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {
+  return withPreparedResearchReadContext_(programmeIdOrMqaCode, function(context) {
     var plos = researchRows_(context.sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === context.key; }).map(ploFromRow_);
     if (plos.length) return plos;
     var legacy = readLegacyResearchDetail_(getSpreadsheet(), context.programme.mqaCode);
@@ -497,17 +516,15 @@ function getResearchPLOsApi_(programmeIdOrMqaCode) {
 
 function getResearchMappingsApi_(programmeIdOrMqaCode) {
   requireProgrammeAccess_(programmeIdOrMqaCode, 'view-mappings');
-  return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {
+  return withPreparedResearchReadContext_(programmeIdOrMqaCode, function(context) {
     var plos = researchRows_(context.sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === context.key; }).map(ploFromRow_);
     var references = context.references;
     if (!plos.length) {
       var legacy = readLegacyResearchDetail_(getSpreadsheet(), context.programme.mqaCode);
       return legacy ? legacyResearchMappings_(legacy, references) : [];
     }
-    var ploById = plos.reduce(function(result, plo) { result[plo.ploId] = plo; return result; }, {});
-    var allRows = researchRows_(context.sheets.PR_PLOMappings);
-    var rows = allRows.filter(function(row) { return String(row[1]) === context.key; });
-    return freshResearchMappings_(context.sheets.PR_PLOMappings, rows, ploById, references, rows.map(function(row) { return allRows.indexOf(row); }));
+    var rows = researchRows_(context.sheets.PR_PLOMappings).filter(function(row) { return String(row[1]) === context.key; });
+    return researchMappingsFromRows_(rows, plos, references);
   });
 }
 
@@ -540,7 +557,7 @@ function saveResearchPLOMappingApi_(programmeIdOrMqaCode, ploId, mapping) {
 
 function getResearchCoverageApi_(programmeIdOrMqaCode) {
   requireProgrammeAccess_(programmeIdOrMqaCode, 'view-mappings');
-  return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {
+  return withPreparedResearchReadContext_(programmeIdOrMqaCode, function(context) {
     var plos = researchRows_(context.sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === context.key; }).map(ploFromRow_);
     var peos = researchRows_(context.sheets.PR_PEORecords).filter(function(row) { return String(row[1]) === context.key; }).map(peoFromRow_);
     var references = context.references;
@@ -567,10 +584,8 @@ function getResearchCoverageApi_(programmeIdOrMqaCode) {
         };
       }
     }
-    var allMappingRows = researchRows_(context.sheets.PR_PLOMappings);
-    var mappingRows = allMappingRows.filter(function(row) { return String(row[1]) === context.key; });
-    var ploById = plos.reduce(function(result, plo) { result[plo.ploId] = plo; return result; }, {});
-    var mappings = freshResearchMappings_(context.sheets.PR_PLOMappings, mappingRows, ploById, references, mappingRows.map(function(row) { return allMappingRows.indexOf(row); }));
+    var mappingRows = researchRows_(context.sheets.PR_PLOMappings).filter(function(row) { return String(row[1]) === context.key; });
+    var mappings = researchMappingsFromRows_(mappingRows, plos, references);
     var mappingByPlo = mappings.reduce(function(result, mapping) { result[mapping.ploId] = mapping; return result; }, {});
     var mapped = plos.map(function(plo) {
       return researchMappingForPLO_(plo, mappingByPlo[plo.ploId] || {sdgIds: [], scIds: []}, references);

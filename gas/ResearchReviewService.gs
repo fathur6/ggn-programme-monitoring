@@ -249,7 +249,7 @@ function researchReviewDataFromSheets_(key, sheets, references) {
 function researchReviewData_(programmeIdOrMqaCode) {
   // The prepared boundary performs the seeded-reference equivalent of
   // getResearchReferences_() without reacquiring the script lock.
-  return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {
+  return withPreparedResearchReadContext_(programmeIdOrMqaCode, function(context) {
     return researchReviewDataFromSheets_(context.key, context.sheets, context.references);
   });
 }

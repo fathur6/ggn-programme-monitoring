@@ -56,7 +56,7 @@ function researchWorkspaceThrowSafe_(error, endpoint) {
 }
 
 function researchWorkspaceSnapshot_(programmeIdOrMqaCode) {
-  return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {
+  return withPreparedResearchReadContext_(programmeIdOrMqaCode, function(context) {
     var rows = researchWorkspaceRowsSnapshotNoLock_(context.sheets);
     var hasLegacyRows = !rows.PR_PEORecords.length || !rows.PR_PLORecords.length;
     return {

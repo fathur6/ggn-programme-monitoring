@@ -59,3 +59,70 @@ function getResearchProgrammeKey_(programme) {
   if (!key) throw new Error('Programme ID is required');
   return key;
 }
+
+/**
+ * Lock-free read snapshot support. A read-only request can be served from a
+ * single getSheetsData() capture when every owned sheet exists, is seeded, and
+ * needs no legacy migration; only then is the script lock unnecessary. The
+ * snapshot shims expose only getName()/getDataRange() so write endpoints can
+ * never be routed through them.
+ */
+function researchSnapshotByTitle_(ss) {
+  ss = ss || getSpreadsheet();
+  if (!ss || typeof ss.getSheetsData !== 'function') return null;
+  var all;
+  try { all = ss.getSheetsData(); } catch (e) { return null; }
+  var byTitle = {};
+  for (var i = 0; i < all.length; i++) {
+    if (all[i] && all[i].title) byTitle[all[i].title] = all[i].data || [];
+  }
+  return byTitle;
+}
+
+function researchSheetShim_(title, values) {
+  var rows = values || [];
+  return {
+    // getName() returns empty so the shared researchRows_/assessmentRows_
+    // row caches are never populated from a lock-free snapshot; a later
+    // locked write in the same server instance must always re-read live rows.
+    getName: function() { return ''; },
+    getDataRange: function() { return {getValues: function() { return rows.map(function(row) { return row.slice(); }); }}; }
+  };
+}
+
+function researchSheetsReadyFromSnapshot_(byTitle) {
+  var names = Object.keys(RESEARCH_SHEET_HEADERS);
+  for (var i = 0; i < names.length; i++) {
+    var data = byTitle[names[i]];
+    if (!data || !data.length) return false;
+    if (String(data[0][0] || '').trim() !== RESEARCH_SHEET_HEADERS[names[i]][0]) return false;
+  }
+  return true;
+}
+
+function researchLegacyMigrationPending_(byTitle, key, legacyKey) {
+  key = String(key || '').trim();
+  legacyKey = String(legacyKey || '').trim();
+  if (!legacyKey || legacyKey === key) return false;
+  var profile = byTitle['PR_ProgrammeProfile'] || [];
+  for (var i = 1; i < profile.length; i++) {
+    if (String(profile[i][0] || '').trim() === key) return false;
+  }
+  var names = ['PR_ProgrammeProfile', 'PR_PEORecords', 'PR_PLORecords', 'PR_PLOMappings'];
+  for (var n = 0; n < names.length; n++) {
+    var rows = byTitle[names[n]] || [];
+    var column = names[n] === 'PR_ProgrammeProfile' ? 0 : 1;
+    for (var r = 1; r < rows.length; r++) {
+      if (String(rows[r][column] || '').trim() === legacyKey) return true;
+    }
+  }
+  return false;
+}
+
+function researchSheetsFromSnapshot_(byTitle) {
+  var result = {};
+  Object.keys(RESEARCH_SHEET_HEADERS).forEach(function(name) {
+    result[name] = researchSheetShim_(name, byTitle[name] || []);
+  });
+  return result;
+}

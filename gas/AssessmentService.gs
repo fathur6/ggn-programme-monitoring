@@ -398,6 +398,7 @@ function withPreparedAssessmentContext_(programmeIdOrMqaCode, reader, requirePri
   var programme = preparedIdentity.programme || resolveProgramme_(programmeIdOrMqaCode);
   var key = preparedIdentity.key || getResearchProgrammeKey_(programme);
   var prepared = withResearchLockRetry_(function() {
+    ASSESSMENT_ROWS_CACHE_ = {};
     var ss = getSpreadsheet();
     var researchSheets = ensureResearchSheetsNoLock_(ss);
     RESEARCH_SHEETS_CACHE_ = researchSheets;
@@ -422,8 +423,66 @@ function withPreparedAssessmentContext_(programmeIdOrMqaCode, reader, requirePri
   return reader(prepared);
 }
 
+function assessmentSheetsReadyFromSnapshot_(byTitle) {
+  var names = Object.keys(ASSESSMENT_SHEET_HEADERS);
+  for (var i = 0; i < names.length; i++) {
+    var data = byTitle[names[i]];
+    if (!data || !data.length) return false;
+    if (String(data[0][0] || '').trim() !== ASSESSMENT_SHEET_HEADERS[names[i]][0]) return false;
+  }
+  var instruments = byTitle['PR_AssessmentInstruments'] || [];
+  var codes = {};
+  for (var r = 1; r < instruments.length; r++) codes[String(instruments[r][1] || '').trim()] = true;
+  return ['THESIS_MASTER', 'THESIS_PHD', 'VIVA_MASTER', 'VIVA_PHD', 'PROGRESS_MASTER', 'PROGRESS_PHD'].every(function(code) { return !!codes[code]; });
+}
+
+function assessmentSheetsFromSnapshot_(byTitle) {
+  var result = {};
+  Object.keys(ASSESSMENT_SHEET_HEADERS).forEach(function(name) {
+    result[name] = researchSheetShim_(name, byTitle[name] || []);
+  });
+  return result;
+}
+
+function tryAssessmentReadContext_(access, programme, key) {
+  var byTitle = researchSnapshotByTitle_(getSpreadsheet());
+  if (!byTitle) return null;
+  if (!researchSheetsReadyFromSnapshot_(byTitle)) return null;
+  if (researchLegacyMigrationPending_(byTitle, key, String(programme.mqaCode || '').trim())) return null;
+  if (!assessmentSheetsReadyFromSnapshot_(byTitle)) return null;
+  var researchSheets = researchSheetsFromSnapshot_(byTitle);
+  var sheets = assessmentSheetsFromSnapshot_(byTitle);
+  var references = getResearchReferencesNoLock_(researchSheets);
+  RESEARCH_REFERENCES_CACHE_ = references;
+  var definitions = assessmentDefinitionsNoLock_(sheets);
+  ASSESSMENT_DEFINITION_CACHE_ = null;
+  return {
+    access: access,
+    programme: programme,
+    key: key,
+    sheets: sheets,
+    definitions: definitions,
+    alignments: assessmentRows_(sheets.PR_AssessmentAlignments).filter(function(row) { return String(row[0]) === key; }).map(assessmentAlignmentFromRow_),
+    references: references,
+    requirePrimarySC: false
+  };
+}
+
+function withPreparedAssessmentReadContext_(programmeIdOrMqaCode, reader, requirePrimarySC, preparedIdentity) {
+  preparedIdentity = preparedIdentity || {};
+  var access = preparedIdentity.access || requireResearchProgrammeAccess_(programmeIdOrMqaCode, 'view-assessment');
+  var programme = preparedIdentity.programme || resolveProgramme_(programmeIdOrMqaCode);
+  var key = preparedIdentity.key || getResearchProgrammeKey_(programme);
+  var prepared = tryAssessmentReadContext_(access, programme, key);
+  if (prepared) {
+    prepared.requirePrimarySC = !!requirePrimarySC;
+    return reader(prepared);
+  }
+  return withPreparedAssessmentContext_(programmeIdOrMqaCode, reader, requirePrimarySC, preparedIdentity);
+}
+
 function assessmentProjectionForProgramme_(programmeIdOrMqaCode, requirePrimarySC) {
-  return withPreparedAssessmentContext_(programmeIdOrMqaCode, function(context) {
+  return withPreparedAssessmentReadContext_(programmeIdOrMqaCode, function(context) {
     return {access: context.access, programme: context.programme, key: context.key,
       projection: assessmentProjection_(context.programme, context.definitions, context.alignments, context.references, context.requirePrimarySC)};
   }, requirePrimarySC);
@@ -457,7 +516,7 @@ function getAssessmentWorkspaceApi_(programmeIdOrMqaCode) {
   try {
     var programme = resolveProgramme_(programmeIdOrMqaCode);
     var key = getResearchProgrammeKey_(programme);
-    prepared = withPreparedAssessmentContext_(programmeIdOrMqaCode, function(context) { return context; }, false, {
+    prepared = withPreparedAssessmentReadContext_(programmeIdOrMqaCode, function(context) { return context; }, false, {
       access: access,
       programme: programme,
       key: key

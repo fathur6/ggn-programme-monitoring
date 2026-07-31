@@ -47,6 +47,7 @@ function FakeSpreadsheet(existing) {
     this.sheets[name] = sheet;
     return sheet;
   };
+  this.getSheetsData = () => Object.keys(this.sheets).map(title => ({title, sheetId: title, data: this.sheets[title].getDataRange().getValues()}));
 }
 
 const researchHeaders = {
@@ -197,11 +198,21 @@ currentProgramme.mode = 'Coursework';
 assert.throws(() => callResearch(), error => error.code === 'RESEARCH_FORBIDDEN');
 currentProgramme.mode = savedMode;
 
+const warmBefore = JSON.stringify(spreadsheet.sheets);
+const warmResearch = callResearch();
+assert.strictEqual(warmResearch.ok, true, 'Warm reads must succeed without acquiring the lock');
+assert.strictEqual(lockAttempts, 1, 'Warm aggregate reads must be lock-free after cold-start setup');
+assert.strictEqual(JSON.stringify(spreadsheet.sheets), warmBefore, 'Warm reads must stay pure and lock-free');
+
 lockBusy = true;
 resetLockMetrics();
+const coldSpreadsheet = new FakeSpreadsheet({});
+const originalGetSpreadsheet = context.getSpreadsheet;
+context.getSpreadsheet = () => coldSpreadsheet;
 assert.throws(() => callResearch(), error => error.code === 'RESEARCH_LOCK_BUSY' && error.retryable === true);
-assert.strictEqual(lockAttempts, 4, 'Busy aggregate should use the bounded four-attempt policy');
+assert.strictEqual(lockAttempts, 4, 'Busy cold-start setup should use the bounded four-attempt policy');
 assert.deepStrictEqual(sleepDelays, [250, 500, 1000]);
+context.getSpreadsheet = originalGetSpreadsheet;
 lockBusy = false;
 
 if (process.argv.includes('--assessment-server')) {

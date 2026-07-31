@@ -83,8 +83,35 @@ function seedResearchReferencesNoLock_(sheets) {
   });
 }
 
+function researchReferencesReadyFromSnapshot_(byTitle) {
+  var names = Object.keys(RESEARCH_REFERENCE_SEEDS_);
+  for (var i = 0; i < names.length; i++) {
+    var data = byTitle[names[i]];
+    if (!data || !data.length) return false;
+    var codes = {};
+    for (var r = 1; r < data.length; r++) codes[String(data[r][0] || '').trim()] = true;
+    var seeds = RESEARCH_REFERENCE_SEEDS_[names[i]];
+    for (var s = 0; s < seeds.length; s++) {
+      if (!codes[String(seeds[s][0])]) return false;
+    }
+  }
+  return true;
+}
+
+function tryResearchReferencesSnapshot_() {
+  var byTitle = researchSnapshotByTitle_(getSpreadsheet());
+  if (!byTitle) return null;
+  if (!researchReferencesReadyFromSnapshot_(byTitle)) return null;
+  return getResearchReferencesNoLock_(researchSheetsFromSnapshot_(byTitle));
+}
+
 function getResearchReferences_() {
   if (RESEARCH_REFERENCES_CACHE_) return RESEARCH_REFERENCES_CACHE_;
+  var snapshot = tryResearchReferencesSnapshot_();
+  if (snapshot) {
+    RESEARCH_REFERENCES_CACHE_ = snapshot;
+    return snapshot;
+  }
   var result = withResearchLockRetry_(function() {
     var sheets = ensureResearchSheetsNoLock_(getSpreadsheet());
     seedResearchReferencesNoLock_(sheets);

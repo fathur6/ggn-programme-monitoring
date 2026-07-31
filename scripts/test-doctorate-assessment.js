@@ -40,6 +40,7 @@ function FakeSpreadsheet(existing) {
   this.sheets = existing || {};
   this.getSheetByName = name => this.sheets[name] || null;
   this.insertSheet = name => { const sheet = new FakeSheet(name, []); this.sheets[name] = sheet; return sheet; };
+  this.getSheetsData = () => Object.keys(this.sheets).map(title => ({title, sheetId: title, data: this.sheets[title].getDataRange().getValues()}));
 }
 
 const programmeRows = [
@@ -135,11 +136,20 @@ assert(lockedOut.endpoints.mapping.data[0].categories.length === 4, 'Doctorate t
 assert(lockedOut.endpoints.mapping.data.some(function(instrument) { return instrument.code === 'VIVA_PHD'; }), 'Viva PhD must be present');
 assert(lockedOut.endpoints.mapping.data.some(function(instrument) { return instrument.code === 'PROGRESS_PHD'; }), 'Progress PhD must be present');
 
+const warmBefore = JSON.stringify(spreadsheet.sheets);
+assert.strictEqual(context.getAssessmentWorkspaceApi(doctorateEnglish.programmeId).ok, true, 'Warm assessment reads must succeed without acquiring the lock');
+assert.strictEqual(lockAttempts, 1, 'Only the cold-start assessment setup should take the script lock');
+assert.strictEqual(JSON.stringify(spreadsheet.sheets), warmBefore, 'Warm assessment reads must stay pure and lock-free');
+
+const coldSpreadsheet = new FakeSpreadsheet({'Programme': new FakeSheet('Programme', programmeRows)});
+const originalGetSpreadsheet = context.getSpreadsheet;
+context.getSpreadsheet = () => coldSpreadsheet;
 lockBusy = true;
 lockAttempts = 0;
 assert.throws(function() { context.getAssessmentWorkspaceApi(doctorateEnglish.programmeId); }, function(error) { return error.code === 'RESEARCH_LOCK_BUSY' && error.retryable === true; });
-assert.strictEqual(lockAttempts, 4, 'Doctorate workspace must respect the bounded lock policy');
+assert.strictEqual(lockAttempts, 4, 'Doctorate cold-start setup must respect the bounded lock policy');
 lockBusy = false;
+context.getSpreadsheet = originalGetSpreadsheet;
 
 assert(diagnostics.every(function(entry) { return !/internal|schema/i.test(entry); }), 'Server diagnostics must stay safe');
 
