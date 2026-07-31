@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 8
 current_phase_name: Research Workspace Loading Resilience
 status: in_progress
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-07-31T03:32:39.471Z"
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-07-31T03:52:39.610Z"
 last_activity: 2026-07-31
-last_activity_desc: Phase 8 plans passed the plan-checker gate.
+last_activity_desc: Completed Phase 8 Plan 08-02 aggregate research and assessment RPCs.
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -29,19 +29,19 @@ See: .planning/PROJECT.md (updated 2026-07-30)
 ## Current Position
 
 Phase: 8 of 8 (Research Workspace Loading Resilience)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In Progress
-Last activity: 2026-07-31 — Completed Phase 8 Plan 08-01 bounded lock retry and prepared context migration.
+Last activity: 2026-07-31 — Completed Phase 8 Plan 08-02 aggregate research and assessment RPCs.
 
-Progress: [███░░░░░░░] 33%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1
-- Average duration: 25 min
-- Total execution time: 25 min
+- Total plans completed: 2
+- Average duration: 21.5 min
+- Total execution time: 43 min
 
 **By Phase:**
 
@@ -51,10 +51,11 @@ Progress: [███░░░░░░░] 33%
 
 **Recent Trend:**
 
-- Last 5 plans: None
+- Last 5 plans: 08-01, 08-02
 - Trend: Not established
 
 | Phase 08 P01 | 25 min | 2 tasks | 9 files |
+| Phase 08 P02 | 18 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Roadmap constraints curr
 - [Phase 08]: Use four finite tryLock(5000) attempts with 250/500/1000 ms backoff and no fourth-attempt sleep. — Bounded acquisition prevents fan-out amplification while preserving deterministic retry behavior.
 - [Phase 08]: Retry lock acquisition only; protected work executes once and terminal work errors propagate unchanged. — Avoids replaying ambiguous authorization, validation, or mutation work.
 - [Phase 08]: Keep withResearchLock_ as the compatibility wrapper while prepared contexts consume no-lock helpers. — Preserves brownfield callers while preventing nested lock acquisition.
+- [Phase 08]: Aggregate research reads capture once under a prepared lock and project outside it without public-endpoint fan-out or read-time repair.
+- [Phase 08]: Assessment mapping and strict Primary SC review remain independent envelopes from one lazy prepared context.
+- [Phase 08]: Endpoint diagnostics stay server-side while envelopes expose stable safe codes, messages, and retryability.
 
 ### Pending Todos
 
@@ -90,6 +94,6 @@ None yet; unresolved academic decisions are tracked as Phase 1 gates, not implem
 
 ## Session Continuity
 
-Last session: 2026-07-31T03:32:23.027Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-07-31T03:52:39.610Z
+Stopped at: Completed 08-02-PLAN.md
 Resume file: None
