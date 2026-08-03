@@ -17,53 +17,60 @@ function doGet(e) {
   var params = e && e.parameter || {};
   if (hasDisabledLegacyRoute_(params)) return disabledEndpointResponse_();
 
-  var code = params.code;
-  var state = params.state;
+  try {
+    var code = params.code;
+    var state = params.state;
 
-  var template = HtmlService.createTemplateFromFile('Index');
-  template.oauthUrl = getOAuthUrl();
-  template.oauthError = '';
-  template.sessionEmail = '';
-  template.sessionUser = '';
-  template.deploymentUrl = ScriptApp.getService().getUrl();
-  template.connectionError = '';
+    var template = HtmlService.createTemplateFromFile('Index');
+    template.oauthUrl = getOAuthUrl();
+    template.oauthError = '';
+    template.sessionEmail = '';
+    template.sessionUser = '';
+    template.deploymentUrl = ScriptApp.getService().getUrl();
+    template.connectionError = '';
 
-  if (code && state) {
-    try {
-      var result = handleOAuthCode(code, state);
-      template.sessionEmail = result.user.email;
-      template.sessionUser = JSON.stringify(result.user);
-    } catch (err) {
-      console.error('OAuth error: ' + err.message);
-      template.oauthError = err.message;
+    if (code && state) {
+      try {
+        var result = handleOAuthCode(code, state);
+        template.sessionEmail = result.user.email;
+        template.sessionUser = JSON.stringify(result.user);
+      } catch (err) {
+        console.error('OAuth error: ' + err.message);
+        template.oauthError = err.message;
+      }
+      return template.evaluate()
+        .setTitle('MQF 2.0 — Program Information')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+        .addMetaTag('viewport', 'width=device-width, initial-scale=1');
     }
+
+    try {
+      var user = getCurrentUser_();
+      if (user) {
+        template.sessionEmail = user.email;
+        template.sessionUser = JSON.stringify(user);
+      } else {
+        var email = '';
+        try { email = Session.getActiveUser().getEmail(); } catch (ex) {}
+        if (email && email.indexOf('@unisza.edu.my') !== -1) {
+          template.connectionError = 'Your account ' + email + ' could not be found in the MQF 2.0 authorised user directory. Please ask a Graduate School admin to add your email to the ADMIN or USER sheet.';
+        }
+      }
+    } catch (err) {
+      console.error('Spreadsheet access error: ' + (err.message || err));
+      template.connectionError = 'Unable to connect to the MQF 2.0 data spreadsheet. Please verify that the deployment account has access to the spreadsheet. If the issue persists, contact the Graduate School administrator.';
+    }
+
     return template.evaluate()
       .setTitle('MQF 2.0 — Program Information')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  } catch (fatalErr) {
+    console.error('Fatal doGet error: ' + (fatalErr.message || fatalErr));
+    return HtmlService.createHtmlOutput(
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MQF 2.0 — Unavailable</title></head><body style="font-family:Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;box-sizing:border-box;background:#f8f9fa"><div style="max-width:440px;background:#fff;border-radius:14px;padding:32px 28px;box-shadow:0 6px 24px rgba(0,0,0,.06);text-align:center"><h1 style="color:#1d2b4c;font-size:22px;font-weight:600;margin:0 0 10px">MQF 2.0</h1><p style="color:#4d5870;font-size:14px;line-height:1.6;margin:0">The application could not start. Please verify the deployment configuration and try again.</p><p style="color:#68738a;font-size:12px;margin-top:18px">If the issue persists, contact the Graduate School administrator.</p></div></body></html>'
+    ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
-
-  try {
-    var user = getCurrentUser_();
-    if (user) {
-      template.sessionEmail = user.email;
-      template.sessionUser = JSON.stringify(user);
-    } else {
-      var email = '';
-      try { email = Session.getActiveUser().getEmail(); } catch (ex) {}
-      if (email && email.indexOf('@unisza.edu.my') !== -1) {
-        template.connectionError = 'Your account ' + email + ' could not be found in the MQF 2.0 authorised user directory. Please ask a Graduate School admin to add your email to the ADMIN or USER sheet.';
-      }
-    }
-  } catch (err) {
-    console.error('Spreadsheet access error: ' + (err.message || err));
-    template.connectionError = 'Unable to connect to the MQF 2.0 data spreadsheet. Please verify that the deployment account has access to the spreadsheet. If the issue persists, contact the Graduate School administrator.';
-  }
-
-  return template.evaluate()
-    .setTitle('MQF 2.0 — Program Information')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 function hasDisabledLegacyRoute_(params) {
