@@ -138,7 +138,7 @@ assert(lockedOut.endpoints.mapping.data.some(function(instrument) { return instr
 
 const warmBefore = JSON.stringify(spreadsheet.sheets);
 assert.strictEqual(context.getAssessmentWorkspaceApi(doctorateEnglish.programmeId).ok, true, 'Warm assessment reads must succeed without acquiring the lock');
-assert.strictEqual(lockAttempts, 1, 'Only the cold-start assessment setup should take the script lock');
+assert.strictEqual(lockAttempts, 6, 'Warm reads must not lock; only the first-load auto-save for each programme takes the lock');
 assert.strictEqual(JSON.stringify(spreadsheet.sheets), warmBefore, 'Warm assessment reads must stay pure and lock-free');
 
 const coldSpreadsheet = new FakeSpreadsheet({'Programme': new FakeSheet('Programme', programmeRows)});

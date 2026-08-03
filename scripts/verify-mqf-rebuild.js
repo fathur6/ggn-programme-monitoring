@@ -481,9 +481,9 @@ assert(!Object.keys(researchDataApi).some(function(name) {
 }), 'Research headers must not contain course fields');
 nodeAssert.deepStrictEqual(researchReferenceApi.PR_TFReference.map(function(row) { return [row[0], JSON.parse(row[3])]; }), [
   ['TF1', ['MQF1', 'MQF4a']],
-  ['TF2', ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']],
+  ['TF2', ['MQF2', 'MQF3d', 'MQF3e']],
   ['TF3', ['MQF3a', 'MQF3b', 'MQF3c', 'MQF3f']],
-  ['TF4', ['MQF3a', 'MQF3b', 'MQF4a', 'MQF4b', 'MQF5']]
+  ['TF4', ['MQF4b', 'MQF5']]
 ], 'TF relationships are not exact');
 assertContains(researchData, /LockService\.getScriptLock\(\)/, 'Research sheet creation is not locked');
 assertContains(researchReferences, /function\s+getResearchReferencesApi\s*\(\)[\s\S]*?getCurrentUser_\(\)/, 'Research references API lacks authentication');

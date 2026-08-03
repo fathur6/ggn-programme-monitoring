@@ -145,7 +145,7 @@ assert.deepStrictEqual(spreadsheet.sheets.PR_TFReference.rows[1], ['TF1', 'Curat
 assert.deepStrictEqual(spreadsheet.sheets.PR_TFReference.rows[2], ['TFX', 'Inactive custom', 'Preserve this row', '["MQF1"]', false]);
 assert(lockCount > 0, 'First-use research sheet creation must use the script lock');
 researchSheetNames.forEach(name => assert.deepStrictEqual(spreadsheet.sheets[name].rows[0], api.RESEARCH_SHEET_HEADERS[name]));
-assert.deepStrictEqual(JSON.parse(spreadsheet.sheets.PR_TFReference.rows[3][3]), ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']);
+assert.deepStrictEqual(JSON.parse(spreadsheet.sheets.PR_TFReference.rows[3][3]), ['MQF2', 'MQF3d', 'MQF3e']);
 const unauthenticatedApi = new Function('getSpreadsheet', 'getCurrentUser_', 'LockService', 'Utilities', lockSource + '\n' + dataSource + '\n' + referenceSource + '\nreturn getResearchReferencesApi;')(
   () => spreadsheet,
   () => null,

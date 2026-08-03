@@ -409,6 +409,10 @@ function withPreparedAssessmentContext_(programmeIdOrMqaCode, reader, requirePri
     ASSESSMENT_SHEETS_CACHE_ = sheets;
     var definitions = assessmentDefinitionsNoLock_(sheets);
     var alignments = assessmentRows_(sheets.PR_AssessmentAlignments).filter(function(row) { return String(row[0]) === key; }).map(assessmentAlignmentFromRow_);
+    if (!alignments.length && definitions.length > 0) {
+      ensureAssessmentDefaultsNoLock_(key, programme, definitions, references, access, sheets);
+      alignments = assessmentRows_(sheets.PR_AssessmentAlignments).filter(function(row) { return String(row[0]) === key; }).map(assessmentAlignmentFromRow_);
+    }
     return {
       access: access,
       programme: programme,
@@ -421,6 +425,24 @@ function withPreparedAssessmentContext_(programmeIdOrMqaCode, reader, requirePri
     };
   });
   return reader(prepared);
+}
+
+function ensureAssessmentDefaultsNoLock_(key, programme, definitions, references, access, sheets) {
+  var projection = assessmentProjection_(programme, definitions, [], references, false);
+  var user = access && access.user || getCurrentUser_();
+  var now = new Date();
+  assessmentAllItems_(projection).forEach(function(item) {
+    sheets.PR_AssessmentAlignments.appendRow([
+      key, item.itemId,
+      JSON.stringify(item.effective.mqfDomains),
+      item.effective.taxonomy,
+      item.effective.primarySC,
+      'PPS default auto-applied',
+      now,
+      user.email || ''
+    ]);
+  });
+  ASSESSMENT_ROWS_CACHE_ = {};
 }
 
 function assessmentSheetsReadyFromSnapshot_(byTitle) {
@@ -456,13 +478,15 @@ function tryAssessmentReadContext_(access, programme, key) {
   RESEARCH_REFERENCES_CACHE_ = references;
   var definitions = assessmentDefinitionsNoLock_(sheets);
   ASSESSMENT_DEFINITION_CACHE_ = null;
+  var alignments = assessmentRows_(sheets.PR_AssessmentAlignments).filter(function(row) { return String(row[0]) === key; }).map(assessmentAlignmentFromRow_);
+  if (!alignments.length && definitions.length > 0) return null;
   return {
     access: access,
     programme: programme,
     key: key,
     sheets: sheets,
     definitions: definitions,
-    alignments: assessmentRows_(sheets.PR_AssessmentAlignments).filter(function(row) { return String(row[0]) === key; }).map(assessmentAlignmentFromRow_),
+    alignments: alignments,
     references: references,
     requirePrimarySC: false
   };

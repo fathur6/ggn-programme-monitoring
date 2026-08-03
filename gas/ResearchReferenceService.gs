@@ -16,9 +16,9 @@ var RESEARCH_REFERENCE_SEEDS_ = {
   ],
   PR_TFReference: [
     ['TF1', 'Knowledge and Understanding', 'Taxonomy framework grouping', JSON.stringify(['MQF1', 'MQF4a']), true],
-    ['TF2', 'Practical and Cognitive Skills', 'Taxonomy framework grouping', JSON.stringify(['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']), true],
+    ['TF2', 'Practical and Cognitive Skills', 'Taxonomy framework grouping', JSON.stringify(['MQF2', 'MQF3d', 'MQF3e']), true],
     ['TF3', 'Communication and Social Skills', 'Taxonomy framework grouping', JSON.stringify(['MQF3a', 'MQF3b', 'MQF3c', 'MQF3f']), true],
-    ['TF4', 'Professional and Ethical Practice', 'Taxonomy framework grouping', JSON.stringify(['MQF3a', 'MQF3b', 'MQF4a', 'MQF4b', 'MQF5']), true]
+    ['TF4', 'Professional and Ethical Practice', 'Taxonomy framework grouping', JSON.stringify(['MQF4b', 'MQF5']), true]
   ],
   PR_SDGReference: [
     ['SDG1', 'No Poverty', 'End poverty in all its forms everywhere.', true],

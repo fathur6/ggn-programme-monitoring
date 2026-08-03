@@ -39,9 +39,9 @@ const references = {
   ],
   TF: [
     {code: 'TF1', mqfDomains: ['MQF1', 'MQF4a']},
-    {code: 'TF2', mqfDomains: ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']},
+    {code: 'TF2', mqfDomains: ['MQF2', 'MQF3d', 'MQF3e']},
     {code: 'TF3', mqfDomains: ['MQF3a', 'MQF3b', 'MQF3c', 'MQF3f']},
-    {code: 'TF4', mqfDomains: ['MQF3a', 'MQF3b', 'MQF4a', 'MQF4b', 'MQF5']}
+    {code: 'TF4', mqfDomains: ['MQF4b', 'MQF5']}
   ],
   SC: [{code: 'SC2'}, {code: 'SC3'}, {code: 'SC4'}, {code: 'SC5'}, {code: 'SC6'}, {code: 'SC7'}, {code: 'SC8'}]
 };
