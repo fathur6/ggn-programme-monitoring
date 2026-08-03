@@ -135,6 +135,9 @@ var SC_CATEGORIES = [
 function initApp() {
   showLoadingOverlay();
 
+  var connectionErrorEl = document.getElementById('connection-error');
+  var connectionError = connectionErrorEl ? connectionErrorEl.textContent.trim() : '';
+
   var sessionEmailEl = document.getElementById('session-email');
   var sessionUserEl = document.getElementById('session-user');
   var sessionEmail = sessionEmailEl ? sessionEmailEl.textContent.trim() : '';
@@ -151,6 +154,16 @@ function initApp() {
 
   hideLoadingOverlay();
   document.getElementById('login-page').style.display = 'flex';
+
+  if (connectionError) {
+    var loginErrorEl = document.getElementById('login-error');
+    if (loginErrorEl) {
+      loginErrorEl.textContent = connectionError;
+      loginErrorEl.style.display = 'block';
+    }
+    var signInBtn = document.getElementById('sign-in-with-google');
+    if (signInBtn) signInBtn.style.display = 'none';
+  }
 }
 
 var CURRENT_USER = null;

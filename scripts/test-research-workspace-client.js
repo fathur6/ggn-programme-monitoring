@@ -329,6 +329,7 @@ function testUiContracts() {
   assert(/researchWorkspaceFatalError/.test(index) && /assessmentWorkspaceFatalError/.test(index), 'Fatal aggregate errors are not distinct');
   assert(/Pemetaan Program/.test(index) && /Pemetaan Pentaksiran/.test(index), 'Research tabs changed unexpectedly');
   assert(/researchError/.test(index), 'Mutation error presentation was removed');
+  assert(/connection-error/.test(index) && /connectionError/.test(source), 'Spreadsheet connection-error safety net is missing');
 }
 
 const mode = process.argv[2] || '--all';

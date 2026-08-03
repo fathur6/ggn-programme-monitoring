@@ -152,6 +152,7 @@ function requireResearchProgrammeAccess_(programmeIdOrMqaCode, action) {
 
 function lookupUser_(email) {
   var ss = getSpreadsheet();
+  if (!ss) return null;
   var emailStr = String(email).trim().toLowerCase();
 
   var adminSheet = ss.getSheetByName('ADMIN');

@@ -26,6 +26,7 @@ function doGet(e) {
   template.sessionEmail = '';
   template.sessionUser = '';
   template.deploymentUrl = ScriptApp.getService().getUrl();
+  template.connectionError = '';
 
   if (code && state) {
     try {
@@ -42,10 +43,21 @@ function doGet(e) {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
 
-  var user = getCurrentUser_();
-  if (user) {
-    template.sessionEmail = user.email;
-    template.sessionUser = JSON.stringify(user);
+  try {
+    var user = getCurrentUser_();
+    if (user) {
+      template.sessionEmail = user.email;
+      template.sessionUser = JSON.stringify(user);
+    } else {
+      var email = '';
+      try { email = Session.getActiveUser().getEmail(); } catch (ex) {}
+      if (email && email.indexOf('@unisza.edu.my') !== -1) {
+        template.connectionError = 'Your account ' + email + ' could not be found in the MQF 2.0 authorised user directory. Please ask a Graduate School admin to add your email to the ADMIN or USER sheet.';
+      }
+    }
+  } catch (err) {
+    console.error('Spreadsheet access error: ' + (err.message || err));
+    template.connectionError = 'Unable to connect to the MQF 2.0 data spreadsheet. Please verify that the deployment account has access to the spreadsheet. If the issue persists, contact the Graduate School administrator.';
   }
 
   return template.evaluate()
