@@ -636,9 +636,19 @@
    .descriptor-ms { color: #5f6f86 !important; font-style: italic; }
    .mark-badge { color: #23304f; background: #eef1f6; white-space: nowrap; }
    .assessment-item-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
-   .assessment-item-grid label, .derived-field, .assessment-note { display: grid; gap: 6px; color: #34415d; font-size: .8rem; font-weight: 700; }
+   .assessment-item-grid label, .assessment-picker-field, .derived-field, .assessment-note { display: grid; gap: 6px; color: #34415d; font-size: .8rem; font-weight: 700; }
    .assessment-item-grid select, .assessment-note input { width: 100%; min-width: 0; }
    .assessment-item-grid select[multiple] { min-height: 82px; }
+   .assessment-mqf-picker { position: relative; min-width: 0; }
+   .assessment-mqf-picker summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 42px; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--hairline); border-radius: 9px; background: #fff; color: #23304f; font-size: .9rem; font-weight: 400; cursor: pointer; list-style: none; }
+   .assessment-mqf-picker summary::-webkit-details-marker { display: none; }
+   .assessment-mqf-picker summary > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+   .assessment-mqf-picker[open] summary { border-color: var(--action-blue); box-shadow: 0 0 0 2px rgba(41, 105, 214, .12); }
+   .assessment-picker-chevron { flex: 0 0 auto; color: var(--slate); font-size: .75rem; }
+   .assessment-mqf-menu { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; right: 0; max-height: 250px; overflow-y: auto; padding: 6px; border: 1px solid var(--hairline); border-radius: 10px; background: #fff; box-shadow: 0 14px 30px rgba(29, 43, 76, .18); }
+   .assessment-mqf-option { display: flex !important; grid-template-columns: none !important; align-items: flex-start; gap: 8px !important; padding: 9px 8px; border-radius: 7px; color: #34415d; font-size: .82rem !important; font-weight: 500 !important; cursor: pointer; }
+   .assessment-mqf-option:hover { background: #f1f5ff; color: var(--action-blue); }
+   .assessment-mqf-option input { flex: 0 0 auto; margin-top: 2px; }
    .assessment-item-grid small { font-weight: 700; }
    .derived-field { padding: 10px; border-radius: 9px; background: #f5f1ff; }
    .derived-field strong { font-size: .9rem; color: #4b3283; }

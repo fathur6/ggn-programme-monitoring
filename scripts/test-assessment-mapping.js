@@ -158,6 +158,8 @@ assert(!/sdg/i.test(assessmentPanel), 'Assessment panel must not render SDG fiel
 assert(/Pemetaan Program/.test(index), 'Existing mapping tab must have the explicit programme label');
 assert(/Pemetaan Pentaksiran/.test(index), 'Assessment tab label is missing');
 assert(/Laporan Kemajuan/.test(index) && /Peperiksaan Lisan/.test(index) && /Pemeriksaan Tesis/.test(index), 'Assessment instrument sub-pages are missing');
+assert(/assessment-mqf-picker/.test(assessmentPanel) && /assessmentMQFLabel/.test(fs.readFileSync('gas/JavaScript.html', 'utf8')), 'MQF selection must use the popup picker');
+assert(!/multiple\s+size="3"/.test(assessmentPanel), 'Assessment MQF selection must not remain an expanded listbox');
 assert(/assessmentVisibleInstruments:\s*function/.test(fs.readFileSync('gas/JavaScript.html', 'utf8')), 'Assessment view must project one instrument sub-page at a time');
 assert(/assessment-subnav/.test(fs.readFileSync('gas/Styles.html', 'utf8')), 'Assessment sub-page navigation styling is missing');
 Object.keys(api).forEach(function() {});

@@ -393,7 +393,18 @@ new Vue({
        if (provenance.kind === 'derived') return 'provenance-derived';
        return 'provenance-default';
       },
-     formatResearchDate: function(value) {
+       assessmentMQFLabel: function(item) {
+        var selected = item && item.effective && item.effective.mqfDomains || [];
+        if (!selected.length) return 'Select MQF domains';
+        var selectedSet = selected.reduce(function(result, code) { result[String(code)] = true; return result; }, {});
+        var labels = (this.researchReferences.MQF || []).filter(function(reference) {
+          return selectedSet[String(reference.code)];
+        }).map(function(reference) {
+          return reference.code + ' — ' + reference.title;
+        });
+        return labels.length ? labels.join(', ') : selected.join(', ');
+       },
+      formatResearchDate: function(value) {
        if (!value) return '';
        var date = new Date(value);
        if (isNaN(date.getTime())) return value;
