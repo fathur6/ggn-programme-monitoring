@@ -1,0 +1,3 @@
+# Secret files — never push to Apps Script
+Config.gs
+.clasp.json
