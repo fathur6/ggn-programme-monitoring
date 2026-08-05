@@ -1006,11 +1006,11 @@ new Vue({
   },
    watch: {
       researchCategory: function(category) {
-        if (category === 'mapping' && this.currentProgramme) {
+        if (!this.researchLoading && category === 'mapping' && this.currentProgramme) {
          this.loadResearchCoverage();
          this.loadResearchReview();
         }
-         if (category === 'assessment' && this.currentProgramme && (!this.assessmentMapping || !this.assessmentReview)) {
+         if (!this.researchLoading && category === 'assessment' && this.currentProgramme && (!this.assessmentMapping || !this.assessmentReview)) {
            if (!this.assessmentMapping && !this.assessmentReview) this.loadAssessmentMapping();
            else if (!this.assessmentReview) this.loadAssessmentReview();
          }
