@@ -1,3 +1,2 @@
-# Secret files — never push to Apps Script
-Config.gs
+# Clasp config only — runtime config and source must reach the server
 .clasp.json
