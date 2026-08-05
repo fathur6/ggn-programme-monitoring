@@ -67,8 +67,9 @@ function doGet(e) {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   } catch (fatalErr) {
     console.error('Fatal doGet error: ' + (fatalErr.message || fatalErr));
+    var msg = String(fatalErr.message || fatalErr || 'Unknown error');
     return HtmlService.createHtmlOutput(
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MQF 2.0 — Unavailable</title></head><body style="font-family:Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;box-sizing:border-box;background:#f8f9fa"><div style="max-width:440px;background:#fff;border-radius:14px;padding:32px 28px;box-shadow:0 6px 24px rgba(0,0,0,.06);text-align:center"><h1 style="color:#1d2b4c;font-size:22px;font-weight:600;margin:0 0 10px">MQF 2.0</h1><p style="color:#4d5870;font-size:14px;line-height:1.6;margin:0">The application could not start. Please verify the deployment configuration and try again.</p><p style="color:#68738a;font-size:12px;margin-top:18px">If the issue persists, contact the Graduate School administrator.</p></div></body></html>'
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MQF 2.0 — Unavailable</title></head><body style="font-family:Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;box-sizing:border-box;background:#f8f9fa"><div style="max-width:440px;background:#fff;border-radius:14px;padding:32px 28px;box-shadow:0 6px 24px rgba(0,0,0,.06);text-align:center"><h1 style="color:#1d2b4c;font-size:22px;font-weight:600;margin:0 0 10px">MQF 2.0</h1><p style="color:#4d5870;font-size:14px;line-height:1.6;margin:0">The application could not start. Please verify the deployment configuration and try again.</p><p style="color:#68738a;font-size:12px;margin-top:18px;word-break:break-all">' + msg.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</p></div></body></html>'
     ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
 }
