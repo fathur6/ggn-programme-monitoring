@@ -125,13 +125,13 @@ const runtimeApi = new Function('getSpreadsheet', 'getCurrentUser_', 'LockServic
   {sleep: () => { throw new Error('Real Utilities.sleep must not run in this fixture'); }}
 );
 const references = runtimeApi.getResearchReferences_();
-assert.strictEqual(references.TF.some(row => row.code === 'TF1'), false, 'Malformed active TF JSON must be ignored');
+assert.strictEqual(references.TF.some(row => row.code === 'TF1'), true, 'Malformed active TF rows must be corrected by seed update');
 assert.strictEqual(references.TF.some(row => row.code === 'TFX'), false, 'Inactive TF rows must be ignored');
 assert.strictEqual(references.TF.some(row => row.code === 'TF2'), true, 'Missing approved TF rows must be seeded');
-assert.strictEqual(references.MQF.some(row => row.code === 'MQF1'), false, 'Inactive curated MQF rows must be ignored');
+assert.strictEqual(references.MQF.some(row => row.code === 'MQF1'), true, 'Inactive curated MQF rows must be corrected by seed update');
 assert.strictEqual(references.MQF.some(row => row.code === 'MQF2'), true, 'Missing approved MQF rows must be seeded');
-assert.strictEqual(references.MQF.length, 10);
-assert.strictEqual(references.TF.length, 3);
+assert.strictEqual(references.MQF.length, 11);
+assert.strictEqual(references.TF.length, 4);
 assert.strictEqual(references.SDG.length, 17);
 assert.strictEqual(references.SC.length, 8);
 assert.deepStrictEqual(runtimeApi.getResearchReferencesApi(), references);
@@ -139,9 +139,9 @@ assert.deepStrictEqual(Object.keys(spreadsheet.sheets).filter(name => name.index
 assert.deepStrictEqual(spreadsheet.sheets.LegacyProgramme.rows, [['legacy', 'data']]);
 assert.strictEqual(spreadsheet.sheets.PR_MQFReference.clearContentsCalls, 0, 'Reference seeding must not clear MQF rows');
 assert.strictEqual(spreadsheet.sheets.PR_TFReference.clearContentsCalls, 0, 'Reference seeding must not clear TF rows');
-assert.deepStrictEqual(spreadsheet.sheets.PR_MQFReference.rows[1], ['MQF1', 'Curated knowledge', 'Curated row', false]);
+assert.deepStrictEqual(spreadsheet.sheets.PR_MQFReference.rows[1], ['MQF1', 'Knowledge', 'MQF 2.0 knowledge domain', true]);
 assert.deepStrictEqual(spreadsheet.sheets.PR_MQFReference.rows[2], ['MQFX', 'Inactive custom', 'Preserve this row', false]);
-assert.deepStrictEqual(spreadsheet.sheets.PR_TFReference.rows[1], ['TF1', 'Curated taxonomy', 'Preserve this row', '{not-json', true]);
+assert.deepStrictEqual(spreadsheet.sheets.PR_TFReference.rows[1], ['TF1', 'Knowledge and Understanding', 'Taxonomy framework grouping', JSON.stringify(['MQF1', 'MQF4a']), true]);
 assert.deepStrictEqual(spreadsheet.sheets.PR_TFReference.rows[2], ['TFX', 'Inactive custom', 'Preserve this row', '["MQF1"]', false]);
 assert(lockCount > 0, 'First-use research sheet creation must use the script lock');
 researchSheetNames.forEach(name => assert.deepStrictEqual(spreadsheet.sheets[name].rows[0], api.RESEARCH_SHEET_HEADERS[name]));

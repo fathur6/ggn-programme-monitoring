@@ -66,18 +66,28 @@ function seedResearchReferences_(sheets) {
 function seedResearchReferencesNoLock_(sheets) {
   Object.keys(RESEARCH_REFERENCE_SEEDS_).forEach(function(name) {
     var sheet = sheets[name];
-    var rows = RESEARCH_REFERENCE_SEEDS_[name];
-    var actual = sheet.getDataRange().getValues();
-    var existingCodes = Object.create(null);
-    actual.slice(1).forEach(function(row) {
+    var seeds = RESEARCH_REFERENCE_SEEDS_[name];
+    var all = sheet.getDataRange().getValues();
+    var existingByCode = {};
+    var existingAt = {};
+    all.slice(1).forEach(function(row, index) {
       var code = String(row[0] || '').trim();
-      if (code) existingCodes[code] = true;
+      if (code) {
+        existingByCode[code] = row;
+        existingAt[code] = index + 2;
+      }
     });
-    rows.forEach(function(row) {
-      var code = String(row[0] || '').trim();
-      if (!existingCodes[code]) {
-        sheet.appendRow(row);
-        existingCodes[code] = true;
+    seeds.forEach(function(seed) {
+      var code = String(seed[0] || '').trim();
+      var existing = existingByCode[code];
+      if (!existing) {
+        sheet.appendRow(seed);
+      } else {
+        var diff = false;
+        for (var c = 0; c < seed.length; c++) {
+          if (String(seed[c]) !== String(existing[c] || '')) { diff = true; break; }
+        }
+        if (diff) sheet.getRange(existingAt[code], 1, 1, seed.length).setValues([seed]);
       }
     });
   });
