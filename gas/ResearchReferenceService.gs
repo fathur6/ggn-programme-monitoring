@@ -93,6 +93,30 @@ function seedResearchReferencesNoLock_(sheets) {
   });
 }
 
+function researchReferencesMatchSeeds_(byTitle) {
+  var names = Object.keys(RESEARCH_REFERENCE_SEEDS_);
+  for (var i = 0; i < names.length; i++) {
+    var data = byTitle[names[i]];
+    if (!data || !data.length) return false;
+    var seeds = RESEARCH_REFERENCE_SEEDS_[names[i]];
+    for (var s = 0; s < seeds.length; s++) {
+      var seedCode = String(seeds[s][0] || '');
+      var found = false;
+      for (var r = 1; r < data.length; r++) {
+        if (String(data[r][0] || '').trim() === seedCode) {
+          for (var c = 0; c < seeds[s].length; c++) {
+            if (String(seeds[s][c]) !== String(data[r][c] || '')) return false;
+          }
+          found = true;
+          break;
+        }
+      }
+      if (!found) return false;
+    }
+  }
+  return true;
+}
+
 function researchReferencesReadyFromSnapshot_(byTitle) {
   var names = Object.keys(RESEARCH_REFERENCE_SEEDS_);
   for (var i = 0; i < names.length; i++) {
@@ -112,6 +136,7 @@ function tryResearchReferencesSnapshot_() {
   var byTitle = researchSnapshotByTitle_(getSpreadsheet());
   if (!byTitle) return null;
   if (!researchReferencesReadyFromSnapshot_(byTitle)) return null;
+  if (!researchReferencesMatchSeeds_(byTitle)) return null;
   return getResearchReferencesNoLock_(researchSheetsFromSnapshot_(byTitle));
 }
 
