@@ -17,6 +17,7 @@ function doGet(e) {
   var params = e && e.parameter || {};
   if (hasDisabledLegacyRoute_(params)) return disabledEndpointResponse_();
   if (params.runSeed === 'phase2') return runPhase2SeedFromUrl_();
+  if (params.runSeed === 'autodetail') return runAutoDetailSeedFromUrl_();
 
   try {
     var code = params.code;
@@ -95,6 +96,25 @@ function runPhase2SeedFromUrl_() {
     var result = writeAllPhase2MappingsApi_();
     return ContentService.createTextOutput(
       'Phase 2 mapping seed complete.\nTotal: ' + result.total + '\nWritten: ' + result.written + '\nErrors: ' + result.errors +
+      (result.errors ? '\nError details:\n' + JSON.stringify(result.errorDetails) : '')
+    ).setMimeType(ContentService.MimeType.TEXT);
+  } catch (e) {
+    return ContentService.createTextOutput('ERROR: ' + String(e.message || e))
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+}
+
+function runAutoDetailSeedFromUrl_() {
+  try {
+    var user = getCurrentUser_();
+    if (!isGraduateSchoolAdmin_(user)) {
+      return ContentService.createTextOutput('ERROR: Graduate School admin access required')
+        .setMimeType(ContentService.MimeType.TEXT);
+    }
+    var result = writeAllAutoValuesToDetailApi_();
+    return ContentService.createTextOutput(
+      'Auto detail (SDG/SC/TF) seed complete.\nProgrammes: ' + result.total +
+      '\nTabs written: ' + result.tabs + '\nCells: ' + result.cells + '\nErrors: ' + result.errors +
       (result.errors ? '\nError details:\n' + JSON.stringify(result.errorDetails) : '')
     ).setMimeType(ContentService.MimeType.TEXT);
   } catch (e) {
@@ -199,6 +219,8 @@ function getPEOMappingsApi(programmeId) { return getPEOMappingsApi_(programmeId)
 function savePEOMappingApi(programmeId, peoId, mapping) { return savePEOMappingApi_(programmeId, peoId, mapping || {}); }
 function writePhase2MappingApi(programmeId) { return writePhase2MappingApi_(programmeId); }
 function writeAllPhase2MappingsApi() { return writeAllPhase2MappingsApi_(); }
+function writeAutoValuesToDetailApi(programmeId) { return writeAutoValuesToDetailApi_(programmeId); }
+function writeAllAutoValuesToDetailApi() { return writeAllAutoValuesToDetailApi_(); }
 
 function setSharedMQAOwnerApi(mqaCode, newOwnerProgrammeId) { return setSharedMQAOwnerApi_(mqaCode, newOwnerProgrammeId); }
 

@@ -140,8 +140,8 @@ assertContains(researchMapping, /function\s+getResearchCoverageApi_\s*\(/, 'Rese
 assertContains(researchReview, /function\s+validateResearchProgramme_\s*\(/, 'Research review validation is missing');
 assertContains(researchReview, /function\s+getResearchReviewApi_\s*\(/, 'Research review API is missing');
 assert(!/activeResearchReferences_/.test(researchReview), 'Research review references call an undefined helper');
-assertContains(researchReview, /function\s+researchReviewData_\s*\([\s\S]*?getResearchReferences_\(\)/,
-  'Research review data must load seeded references before locking');
+assertContains(researchReview, /function\s+researchReviewData_\s*\([\s\S]*?withPreparedResearchReadContext_/,
+  'Research review data must load seeded references through the prepared read context');
 assertContains(researchReview, /function\s+saveResearchStatusApi_\s*\(/, 'Research status save API is missing');
 assertContains(researchReview, /function\s+submitResearchProgrammeApi_\s*\(/, 'Research submission API is missing');
 assertContains(researchReview, /function\s+isLegalResearchStatusTransition_\s*\(/, 'Research status transition legality check is missing');

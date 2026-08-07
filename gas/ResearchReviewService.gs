@@ -232,19 +232,24 @@ function validateResearchProgramme_(input) {
   };
 }
 
-function researchReviewDataFromSheets_(key, sheets, references) {
+function researchReviewDataFromSheets_(key, sheets, references, mqaCodeForLegacy, tabValues) {
   var profile = researchRows_(sheets.PR_ProgrammeProfile).filter(function(row) { return String(row[0]) === key; })[0];
   var peos = researchRows_(sheets.PR_PEORecords).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
   var plos = researchRows_(sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
   var mappings = researchRows_(sheets.PR_PLOMappings).filter(function(row) { return String(row[1]) === key; }).map(mappingFromRow_);
   var peoSDGMappings = sheets.PR_PEOMappings ? researchRows_(sheets.PR_PEOMappings).filter(function(row) { return String(row[1]) === key; }).map(peoMappingFromRow_) : [];
-  if (!peos.length || !plos.length) {
-    var legacy = readLegacyResearchDetail_(getSpreadsheet(), String(key).split('::').pop());
+  if ((!peos.length || !plos.length) && mqaCodeForLegacy) {
+    var legacy = readLegacyResearchDetail_(getSpreadsheet(), String(mqaCodeForLegacy));
     if (legacy) {
       if (!peos.length) peos = legacy.peos;
       if (!plos.length) plos = legacy.plos;
       if (!mappings.length) mappings = legacyResearchMappings_(legacy, references);
     }
+  }
+  if (tabValues && tabValues.length) {
+    var overridden = autoDetailApplyPhase2Overrides_(peos, plos, mappings, peoSDGMappings, autoDetailReadCells_(tabValues), references);
+    mappings = overridden.mappings;
+    peoSDGMappings = overridden.peoSDGMappings;
   }
   return {
     profile: profile ? profileFromRow_(profile) : null,
@@ -257,7 +262,7 @@ function researchReviewDataFromSheets_(key, sheets, references) {
 }
 
 /** Snapshot-based review data — rows are pre-fetched once; no per-programme sheet reads. */
-function researchReviewDataFromRows_(key, rowSets, references, mqaCodeForLegacy) {
+function researchReviewDataFromRows_(key, rowSets, references, mqaCodeForLegacy, tabValues) {
   var profile = (rowSets.PR_ProgrammeProfile || []).filter(function(row) { return String(row[0]) === key; })[0];
   var peos = (rowSets.PR_PEORecords || []).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
   var plos = (rowSets.PR_PLORecords || []).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
@@ -271,6 +276,11 @@ function researchReviewDataFromRows_(key, rowSets, references, mqaCodeForLegacy)
       if (!mappings.length) mappings = legacyResearchMappings_(legacy, references);
     }
   }
+  if (tabValues && tabValues.length) {
+    var overridden = autoDetailApplyPhase2Overrides_(peos, plos, mappings, peoSDGMappings, autoDetailReadCells_(tabValues), references);
+    mappings = overridden.mappings;
+    peoSDGMappings = overridden.peoSDGMappings;
+  }
   return {
     profile: profile ? profileFromRow_(profile) : null,
     peos: peos,
@@ -282,10 +292,11 @@ function researchReviewDataFromRows_(key, rowSets, references, mqaCodeForLegacy)
 }
 
 function researchReviewData_(programmeIdOrMqaCode) {
-  // The prepared boundary performs the seeded-reference equivalent of
-  // getResearchReferences_() without reacquiring the script lock.
+  // The prepared read boundary supplies seeded references from the lock-free
+  // snapshot without reacquiring the script lock.
   return withPreparedResearchReadContext_(programmeIdOrMqaCode, function(context) {
-    return researchReviewDataFromSheets_(context.key, context.sheets, context.references);
+    var tabValues = autoDetailTabValuesFromSpreadsheet_(getSpreadsheet(), context.mqaCode);
+    return researchReviewDataFromSheets_(context.effectiveKey || context.key, context.sheets, context.references, context.mqaCode, tabValues);
   });
 }
 
@@ -338,7 +349,7 @@ function saveResearchStatusApi_(programmeIdOrMqaCode, status) {
 function submitResearchProgrammeApi_(programmeIdOrMqaCode) {
   var access = requireProgrammeAccess_(programmeIdOrMqaCode, 'submit-review');
   return withPreparedResearchContext_(programmeIdOrMqaCode, function(context) {
-    var data = researchReviewDataFromSheets_(context.key, context.sheets, context.references);
+    var data = researchReviewDataFromSheets_(context.effectiveKey || context.key, context.sheets, context.references, context.mqaCode, autoDetailTabValuesFromSpreadsheet_(getSpreadsheet(), context.mqaCode));
     var review = validateResearchProgramme_(data);
     if (review.critical.length) throw new Error('Research programme cannot be submitted: critical review issues remain');
     var rows = researchRows_(context.sheets.PR_ProgrammeProfile);

@@ -153,7 +153,8 @@ function withPreparedResearchContext_(programmeIdOrMqaCode, reader) {
     return reader({
       programme: context.programme,
       key: context.key,
-      effectiveKey: context.effectiveKey,
+      mqaCode: String(context.programme.mqaCode || '').trim(),
+      effectiveKey: effectiveKey,
       sheets: sheets,
       references: references
     });
@@ -169,7 +170,7 @@ function tryResearchReadContext_(context) {
   var effectiveKey = researchEffectiveKey_(context.key, sheets);
   var references = getResearchReferencesNoLock_(sheets);
   RESEARCH_REFERENCES_CACHE_ = references;
-  return {programme: context.programme, key: context.key, effectiveKey: effectiveKey, sheets: sheets, references: references};
+  return {programme: context.programme, key: context.key, mqaCode: String(context.programme.mqaCode || '').trim(), effectiveKey: effectiveKey, sheets: sheets, references: references};
 }
 
 function withPreparedResearchReadContext_(programmeIdOrMqaCode, reader) {
@@ -623,6 +624,8 @@ function saveResearchPLOMappingApi_(programmeIdOrMqaCode, ploId, mapping) {
     var index = rows.findIndex(function(existing) { return String(existing[0]) === String(ploId) && String(existing[1]) === context.key; });
     if (index === -1) sheet.appendRow(row); else sheet.getRange(index + 2, 1, 1, 7).setValues([row]);
     RESEARCH_ROWS_CACHE_ = {};
+    autoDetailWriteTabCell_(getSpreadsheet(), context.programme.mqaCode, String(ploRow[3] || ''), AUTO_DETAIL_COLS_.SC, scIds.join(', '));
+    autoDetailWriteTabCell_(getSpreadsheet(), context.programme.mqaCode, String(ploRow[3] || ''), AUTO_DETAIL_COLS_.TF, tfIds.join(', '));
     return mappingFromRow_(row);
   });
 }
@@ -654,6 +657,7 @@ function savePEOMappingApi_(programmeIdOrMqaCode, peoId, mapping) {
     var index = rows.findIndex(function(existing) { return String(existing[0]) === String(peoId) && String(existing[1]) === context.key; });
     if (index === -1) sheet.appendRow(row); else sheet.getRange(index + 2, 1, 1, 6).setValues([row]);
     RESEARCH_ROWS_CACHE_ = {};
+    autoDetailWriteTabCell_(getSpreadsheet(), context.programme.mqaCode, String(peoRow[2] || ''), AUTO_DETAIL_COLS_.SDG, sdgIds.join(', '));
     return peoMappingFromRow_(row);
   });
 }
