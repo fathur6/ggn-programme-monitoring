@@ -16,6 +16,7 @@ function withErrorHandling(fn) {
 function doGet(e) {
   var params = e && e.parameter || {};
   if (hasDisabledLegacyRoute_(params)) return disabledEndpointResponse_();
+  if (params.runSeed === 'phase2') return runPhase2SeedFromUrl_();
 
   try {
     var code = params.code;
@@ -82,6 +83,24 @@ function hasDisabledLegacyRoute_(params) {
 function disabledEndpointResponse_() {
   return ContentService.createTextOutput('Endpoint disabled')
     .setMimeType(ContentService.MimeType.TEXT);
+}
+
+function runPhase2SeedFromUrl_() {
+  try {
+    var user = getCurrentUser_();
+    if (!isGraduateSchoolAdmin_(user)) {
+      return ContentService.createTextOutput('ERROR: Graduate School admin access required')
+        .setMimeType(ContentService.MimeType.TEXT);
+    }
+    var result = writeAllPhase2MappingsApi_();
+    return ContentService.createTextOutput(
+      'Phase 2 mapping seed complete.\nTotal: ' + result.total + '\nWritten: ' + result.written + '\nErrors: ' + result.errors +
+      (result.errors ? '\nError details:\n' + JSON.stringify(result.errorDetails) : '')
+    ).setMimeType(ContentService.MimeType.TEXT);
+  } catch (e) {
+    return ContentService.createTextOutput('ERROR: ' + String(e.message || e))
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
 }
 
 function include(file) {
