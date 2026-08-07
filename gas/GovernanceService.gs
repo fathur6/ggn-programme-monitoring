@@ -121,9 +121,18 @@ function getFastUniversityDashboardApi_() {
   var byFaculty = {};
   var totals = createEmptyStatusTotals_();
 
+  // Build effectiveKey map: programmeId -> SharedFromProgrammeId (owner) or itself
+  var effectiveKeyMap = {};
+  (rowSets.PR_ProgrammeProfile || []).forEach(function(row) {
+    var pid = String(row[0] || '').trim();
+    var sharedFrom = String(row[12] || '').trim();
+    if (pid) effectiveKeyMap[pid] = sharedFrom || pid;
+  });
+
   programmes.forEach(function(programme) {
     var key = getResearchProgrammeKey_(programme);
-    var reviewData = researchReviewDataFromRows_(key, rowSets, references);
+    var effectiveKey = effectiveKeyMap[key] || key;
+    var reviewData = researchReviewDataFromRows_(effectiveKey, rowSets, references, programme.mqaCode);
     var review = validateResearchProgramme_(reviewData);
     var metrics = review.metrics || {};
     var status = researchStatusFromMetrics_(metrics);

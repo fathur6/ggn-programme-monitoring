@@ -448,4 +448,23 @@ var emptyProgramme = reviewHelperApi.validateResearchProgramme_({
 assert.strictEqual(emptyProgramme.critical.length, 0, 'Empty programme has unexpected critical issues');
 assert.strictEqual(emptyProgramme.status, 'Ready for review', 'Empty programme should be Ready for review');
 
+// Regression: shared-MQA inheritor must read rows under the owner's effectiveKey
+var ownerKey = 'FUHA::PS6001::MQA/FA10523';
+var inheritorKey = 'FSSG::PS6001::MQA/FA10523';
+var rowSets = {
+  PR_ProgrammeProfile: [
+    [ownerKey, 'MQA/FA10523', 'FUHA', 'D', 'Doctorate', 'Research', '', '', '', '', 'Draft', '[]', '', '', '', ''],
+    [inheritorKey, 'MQA/FA10523', 'FSSG', 'D', 'Doctorate', 'Research', '', '', '', '', 'Draft', '[]', ownerKey, '', '', '']
+  ],
+  PR_PEORecords: [[ownerKey + '::P1', ownerKey, 'PEO1', 'objective', 0, '', '']],
+  PR_PLORecords: [[ownerKey + '::L1', ownerKey, 'PEO1', 'PLO1', 'statement', '["MQF2"]', 'C5', '', 'Draft', '', '']]
+};
+function rowsFor(key, name) {
+  return (rowSets[name] || []).filter(function(row) { return String(row[1]) === key; });
+}
+assert.strictEqual(rowsFor(inheritorKey, 'PR_PEORecords').length, 0, 'Inheritor own-key must not find owner rows');
+assert.strictEqual(rowsFor(ownerKey, 'PR_PEORecords').length, 1, 'Owner key must find rows for shared MQA');
+var sharedFrom = rowSets.PR_ProgrammeProfile.filter(function(r) { return String(r[0]) === inheritorKey; })[0][12];
+assert.strictEqual(sharedFrom, ownerKey, 'Profile must record SharedFromProgrammeId for the inheritor');
+
 console.log('Research mapping tests passed.');

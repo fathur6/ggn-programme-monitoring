@@ -257,12 +257,20 @@ function researchReviewDataFromSheets_(key, sheets, references) {
 }
 
 /** Snapshot-based review data — rows are pre-fetched once; no per-programme sheet reads. */
-function researchReviewDataFromRows_(key, rowSets, references) {
+function researchReviewDataFromRows_(key, rowSets, references, mqaCodeForLegacy) {
   var profile = (rowSets.PR_ProgrammeProfile || []).filter(function(row) { return String(row[0]) === key; })[0];
   var peos = (rowSets.PR_PEORecords || []).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
   var plos = (rowSets.PR_PLORecords || []).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
   var mappings = (rowSets.PR_PLOMappings || []).filter(function(row) { return String(row[1]) === key; }).map(mappingFromRow_);
   var peoSDGMappings = (rowSets.PR_PEOMappings || []).filter(function(row) { return String(row[1]) === key; }).map(peoMappingFromRow_);
+  if ((!peos.length || !plos.length) && mqaCodeForLegacy) {
+    var legacy = readLegacyResearchDetail_(getSpreadsheet(), String(mqaCodeForLegacy));
+    if (legacy) {
+      if (!peos.length) peos = legacy.peos;
+      if (!plos.length) plos = legacy.plos;
+      if (!mappings.length) mappings = legacyResearchMappings_(legacy, references);
+    }
+  }
   return {
     profile: profile ? profileFromRow_(profile) : null,
     peos: peos,
