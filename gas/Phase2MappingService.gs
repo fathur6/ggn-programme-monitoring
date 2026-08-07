@@ -96,7 +96,12 @@ function writePhase2BlockToSheet_(sheet, output) {
   }
 
   var outputRange = sheet.getRange(startRow, 1, output.length, 5);
-  outputRange.setValues(output);
+  var padded = output.map(function(row) {
+    var r = row.slice();
+    while (r.length < 5) r.push('');
+    return r.slice(0, 5);
+  });
+  outputRange.setValues(padded);
   try { sheet.autoResizeColumns(1, 5); } catch (e) {}
   return {startRow: startRow, rowsWritten: output.length};
 }
