@@ -136,7 +136,7 @@ const mappingSave = methodSource('saveResearchPLOMapping');
 assert(/saveResearchPLOsApi/.test(mappingSave), 'Mapping save does not persist PLO fields first');
 assert(/ploId/.test(mappingSave), 'Mapping save does not use a persisted PLO id');
 assert(/saveResearchPLOMappingApi/.test(mappingSave), 'Mapping save API is missing');
-assert(/sdgIds/.test(mappingSave) && /scIds/.test(mappingSave), 'Explicit SDG and SC selections are not persisted');
+assert(/scIds/.test(mappingSave) && /tfIds/.test(mappingSave), 'SC and TF selections are not persisted');
 assert(/parentPEO/.test(mappingSave) && /statement/.test(mappingSave), 'PLO parent or statement is not included in save flow');
 assert(/mqfDomains/.test(mappingSave) && /taxonomy/.test(mappingSave) && !/rationale/.test(mappingSave), 'PLO save flow includes an obsolete rationale field');
 assert(/savedPLO/.test(mappingSave), 'Mapping save does not resolve the server-returned PLO');

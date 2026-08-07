@@ -4,6 +4,7 @@ const fs = require('fs');
 const source = fs.readFileSync('gas/ResearchLockService.gs', 'utf8');
 const dataSource = fs.readFileSync('gas/ResearchDataService.gs', 'utf8');
 const referenceSource = fs.readFileSync('gas/ResearchReferenceService.gs', 'utf8');
+const programmeSDGSource = fs.readFileSync('gas/ProgrammeSDGService.gs', 'utf8');
 const mappingSource = fs.readFileSync('gas/ResearchMappingService.gs', 'utf8');
 const api = new Function(
   'LockService',
@@ -153,7 +154,7 @@ const preparedSpreadsheet = {
 };
 const preparedApi = new Function(
   'LockService', 'Utilities', 'getSpreadsheet', 'resolveProgramme_', 'isResearchProgramme_',
-  source + '\n' + dataSource + '\n' + referenceSource + '\n' + mappingSource +
+  source + '\n' + dataSource + '\n' + referenceSource + '\n' + programmeSDGSource + '\n' + mappingSource +
     '\nreturn withPreparedResearchContext_;'
 )(preparedLockService, {sleep: () => { throw new Error('Prepared context must not sleep'); }},
   () => preparedSpreadsheet,

@@ -293,10 +293,10 @@ function saveResearchStatusApi_(programmeIdOrMqaCode, status) {
     }
     var now = new Date();
     row[10] = status;
-    row[12] = now;
-    row[13] = (access.user && access.user.email) || '';
-    sheet.getRange(index + 2, 1, 1, 14).setValues([row]);
-    return {status: status, updatedAt: serializeResearchDate_(now), updatedBy: row[13]};
+    row[13] = now;
+    row[14] = (access.user && access.user.email) || '';
+    sheet.getRange(index + 2, 1, 1, 15).setValues([row]);
+    return {status: status, updatedAt: serializeResearchDate_(now), updatedBy: row[14]};
   });
 }
 
@@ -315,9 +315,9 @@ function submitResearchProgrammeApi_(programmeIdOrMqaCode) {
     }
     var now = new Date();
     row[10] = 'Submitted';
-    row[12] = now;
-    row[13] = (access.user && access.user.email) || '';
-    context.sheets.PR_ProgrammeProfile.getRange(index + 2, 1, 1, 14).setValues([row]);
-    return {status: 'Submitted', updatedAt: serializeResearchDate_(now), updatedBy: row[13]};
+    row[13] = now;
+    row[14] = (access.user && access.user.email) || '';
+    context.sheets.PR_ProgrammeProfile.getRange(index + 2, 1, 1, 15).setValues([row]);
+    return {status: 'Submitted', updatedAt: serializeResearchDate_(now), updatedBy: row[14]};
   });
 }

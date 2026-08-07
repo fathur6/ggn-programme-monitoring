@@ -507,6 +507,14 @@
     padding: 16px 20px; margin-bottom: 8px;
   }
 
+  .heal-badge {
+    display: inline-block; margin-left: 6px; font-size: 14px;
+    color: var(--amber, #b45309); cursor: help;
+  }
+  .heal-badge.heal-ok {
+    color: var(--deep-green, #0d9488);
+  }
+
   .mqf-select {
     font-family: 'Inter', 'Arial', 'ui-sans-serif', system-ui, sans-serif;
     font-size: 14px; padding: 8px 10px; border: 1px solid var(--hairline);
@@ -656,6 +664,27 @@
    .assessment-note input { font-weight: 400; }
    .assessment-item-error { margin-top: 10px; color: #9b2c2c; font-size: .82rem; font-weight: 700; }
    .empty-state { padding: 22px; border: 1px dashed #cbd3df; border-radius: 12px; color: #68738a; text-align: center; }
+   .peo-sdg-section { margin-bottom: 24px; }
+   .section-subtitle { margin: 0; color: #34415d; font-size: 1rem; font-weight: 600; }
+   .peo-sdg-list { display: grid; gap: 12px; }
+   .peo-sdg-card { padding: 16px; border: 1px solid var(--hairline); border-radius: 14px; background: #fff; box-shadow: 0 2px 8px rgba(29,43,76,.04); }
+   .peo-sdg-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+   .peo-sdg-card-heading strong { color: #23304f; }
+   .peo-sdg-card-heading p { margin: 4px 0 0; max-width: 420px; }
+   .peo-sdg-count { flex: 0 0 auto; padding: 4px 10px; border-radius: 99px; background: #eef1f6; color: #34415d; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+   .peo-sdg-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+   .sdg-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 99px; background: #e7f0ff; color: #1556a6; font-size: .78rem; font-weight: 600; cursor: pointer; user-select: none; }
+   .sdg-chip:hover { background: #d4e4ff; }
+   .sdg-chip small { color: #4d80c4; font-weight: 400; }
+   .sdg-chip span { margin-left: 2px; color: #7a9ccb; font-weight: 700; }
+   .sdg-add-btn { padding: 5px 12px; border: 1px dashed #c4c7cf; border-radius: 99px; background: transparent; color: #68738a; font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; }
+   .sdg-add-btn:hover { border-color: var(--action-blue); color: var(--action-blue); }
+   .sdg-popover { margin-top: 10px; padding: 12px; border: 1px solid var(--hairline); border-radius: 12px; background: #fff; box-shadow: 0 12px 28px rgba(29,43,76,.12); }
+   .sdg-popover-list { display: grid; gap: 4px; max-height: 280px; overflow-y: auto; margin-bottom: 10px; }
+   .sdg-popover-option { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 7px; font-size: .82rem; cursor: pointer; }
+   .sdg-popover-option:hover { background: #f1f5ff; }
+   .sdg-popover-option input { flex: 0 0 auto; }
+   .sdg-popover .btn { margin-top: 4px; }
    .assessment-loading-panel { display: grid; gap: 18px; padding: 24px; border: 1px solid var(--hairline); border-radius: 14px; background: var(--canvas-muted); }
    .assessment-loading-heading { display: flex; align-items: flex-start; gap: 12px; color: var(--ink); }
    .assessment-loading-heading strong { display: block; font-size: 1rem; }

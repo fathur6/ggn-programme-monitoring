@@ -6,6 +6,7 @@ const gasSources = [
   'gas/ResearchLockService.gs',
   'gas/ResearchDataService.gs',
   'gas/ResearchReferenceService.gs',
+  'gas/ProgrammeSDGService.gs',
   'gas/ResearchMappingService.gs',
   'gas/ResearchReviewService.gs',
   'gas/AssessmentService.gs',

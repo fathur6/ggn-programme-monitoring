@@ -80,7 +80,7 @@ function researchWorkspaceProfileFromSnapshot_(snapshot, access) {
     programmeName: programme.name || '',
     studyLevel: programme.level || '',
     studyMode: 'Postgraduate by Research',
-    studyField: '', session: '', documentVersion: '', dataOwner: '', mappingStatus: 'Draft',
+    studyField: '', session: '', documentVersion: '', dataOwner: '', mappingStatus: 'Draft', defaultSDGIds: [],
     createdAt: '', updatedAt: '', updatedBy: researchUser_(access).email || ''
   };
 }

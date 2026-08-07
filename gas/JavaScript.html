@@ -222,8 +222,10 @@ new Vue({
      ,researchProfile: null
      ,researchPEOs: []
      ,researchPLOs: []
-     ,researchMappings: {}
-     ,researchReferences: {MQF: [], TF: [], SDG: [], SC: []}
+      ,researchMappings: {}
+      ,peoSDGMappings: {}
+      ,sdgPopoverPEO: null
+      ,researchReferences: {MQF: [], TF: [], SDG: [], SC: []}
      ,researchCoverage: null
       ,researchReview: null
       ,assessmentMapping: null
@@ -249,6 +251,7 @@ new Vue({
        ,dirty: false
     ,accessRequest: { targetFaculty: '', mqaCode: '', reason: '', scope: 'programme' }
     ,myAccessRequests: []
+    ,healStatus: {}
     ,accessRequests: []
      ,governanceItems: []
      ,facultyUserDirectory: []
@@ -436,7 +439,7 @@ new Vue({
     },
      researchMapping: function(plo) {
        var id = plo.ploId || plo.code;
-       if (!this.researchMappings[id]) this.$set(this.researchMappings, id, {ploId: plo.ploId, sdgIds: [], scIds: [], tfIds: [], derivedTFIds: [], mappingNote: ''});
+       if (!this.researchMappings[id]) this.$set(this.researchMappings, id, {ploId: plo.ploId, scIds: [], tfIds: [], derivedTFIds: [], mappingNote: ''});
        var mapping = this.researchMappings[id];
        var compatible = this.researchTFOptions(plo).filter(function(reference) { return this.isResearchTFCompatible(plo, reference); }.bind(this));
        var selected = (mapping.tfIds || [])[0];
@@ -490,6 +493,19 @@ new Vue({
           self.loading = false;
         })
         .getProgrammesApi();
+    },
+    loadHealReport: function() {
+      var self = this;
+      google.script.run
+        .withSuccessHandler(function(result) {
+          var status = {};
+          (result && result.programmes || []).forEach(function(p) {
+            status[p.mqaCode] = p.status;
+          });
+          self.healStatus = status;
+        })
+        .withFailureHandler(function() { /* non-blocking */ })
+        .getResearchHealReportApi();
     },
      loadDashboard: function() {
        var self = this;
@@ -602,6 +618,8 @@ new Vue({
         this.researchPEOs = [];
         this.researchPLOs = [];
         this.researchMappings = {};
+        this.peoSDGMappings = {};
+        this.sdgPopoverPEO = null;
         this.researchReferences = {MQF: [], TF: [], SDG: [], SC: []};
         this.researchCoverage = null;
         this.researchReview = null;
@@ -636,7 +654,7 @@ new Vue({
       this.researchDirty = false;
       this.dirty = false;
       if (view === 'dashboard') this.loadDashboard();
-      if (view === 'programmes') this.loadProgrammes();
+      if (view === 'programmes') { this.loadProgrammes(); this.loadHealReport(); }
     },
      researchProgrammeIdentity: function(programme) {
        return String(programme && (programme.programmeId || programme.mqaCode) || '').trim();
@@ -826,7 +844,6 @@ new Vue({
           return;
         }
          var mappingPayload = {
-           sdgIds: mapping.sdgIds || [],
            scIds: mapping.scIds || [],
            tfIds: mapping.tfIds || [],
            mappingNote: mapping.mappingNote || ''
@@ -840,6 +857,32 @@ new Vue({
     researchMutationComplete: function(message) {
       this.researchDirty = false; this.dirty = false; this.researchSaveState = 'saved'; this.researchError = null; this.showToast(message); this.refreshResearchDerived();
     },
+     loadPEOMappings: function() {
+       var self = this; if (!this.currentProgramme) return;
+       google.script.run.withSuccessHandler(function(mappings) {
+         var result = {};
+         (mappings || []).forEach(function(m) { result[m.peoId] = {sdgIds: m.sdgIds || [], note: m.mappingNote || ''}; });
+         self.peoSDGMappings = result;
+       }).getPEOMappingsApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode);
+     },
+     toggleSDGOnPEO: function(peoId, sdgId) {
+       var mapping = this.peoSDGMappings[peoId];
+       if (!mapping) {
+         mapping = {sdgIds: [], note: ''};
+         this.$set(this.peoSDGMappings, peoId, mapping);
+       }
+       var index = mapping.sdgIds.indexOf(sdgId);
+       if (index === -1) mapping.sdgIds.push(sdgId);
+       else mapping.sdgIds.splice(index, 1);
+       this.savePEOSDGMapping(peoId);
+     },
+     savePEOSDGMapping: function(peoId) {
+       var self = this; if (!this.currentProgramme) return;
+       var mapping = this.peoSDGMappings[peoId] || {sdgIds: [], note: ''};
+       google.script.run.withSuccessHandler(function(result) {
+         self.$set(self.peoSDGMappings, peoId, {sdgIds: result.sdgIds || [], note: result.mappingNote || ''});
+       }).savePEOMappingApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode, peoId, {sdgIds: mapping.sdgIds, mappingNote: mapping.note});
+     },
      loadResearchCoverage: function() {
        this.retryResearchEndpoint('coverage');
      },
@@ -1007,6 +1050,7 @@ new Vue({
    watch: {
       researchCategory: function(category) {
         if (!this.researchLoading && category === 'mapping' && this.currentProgramme) {
+         this.loadPEOMappings();
          this.loadResearchCoverage();
          this.loadResearchReview();
         }

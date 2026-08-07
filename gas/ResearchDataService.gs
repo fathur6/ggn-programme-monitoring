@@ -1,10 +1,11 @@
 /** ResearchDataService.gs — Additive postgraduate research data boundaries. */
 
 var RESEARCH_SHEET_HEADERS = {
-  PR_ProgrammeProfile: ['ProgrammeId', 'MQACode', 'FacultyOrCentre', 'ProgrammeName', 'StudyLevel', 'StudyMode', 'StudyField', 'Session', 'DocumentVersion', 'DataOwner', 'MappingStatus', 'CreatedAt', 'UpdatedAt', 'UpdatedBy'],
+  PR_ProgrammeProfile: ['ProgrammeId', 'MQACode', 'FacultyOrCentre', 'ProgrammeName', 'StudyLevel', 'StudyMode', 'StudyField', 'Session', 'DocumentVersion', 'DataOwner', 'MappingStatus', 'DefaultSDGIdsJson', 'SharedFromProgrammeId', 'CreatedAt', 'UpdatedAt', 'UpdatedBy'],
   PR_PEORecords: ['PeoId', 'ProgrammeId', 'Code', 'Statement', 'SortOrder', 'UpdatedAt', 'UpdatedBy'],
   PR_PLORecords: ['PloId', 'ProgrammeId', 'ParentPEO', 'Code', 'Statement', 'MQFDomainsJson', 'Taxonomy', 'Rationale', 'Status', 'UpdatedAt', 'UpdatedBy'],
-  PR_PLOMappings: ['PloId', 'ProgrammeId', 'SDGIdsJson', 'SCIdsJson', 'DerivedTFIdsJson', 'MappingNote', 'UpdatedAt', 'UpdatedBy'],
+  PR_PLOMappings: ['PloId', 'ProgrammeId', 'SCIdsJson', 'DerivedTFIdsJson', 'MappingNote', 'UpdatedAt', 'UpdatedBy'],
+  PR_PEOMappings: ['PeoId', 'ProgrammeId', 'SDGIdsJson', 'MappingNote', 'UpdatedAt', 'UpdatedBy'],
   PR_MQFReference: ['Code', 'Title', 'Description', 'Active'],
   PR_TFReference: ['Code', 'Title', 'Description', 'MQFDomainsJson', 'Active'],
   PR_SDGReference: ['Code', 'Title', 'Description', 'Active'],
@@ -14,7 +15,7 @@ var RESEARCH_SHEET_HEADERS = {
 var RESEARCH_SHEETS_CACHE_ = null;
 
 var RESEARCH_WORKSPACE_DATA_SHEETS = [
-  'PR_ProgrammeProfile', 'PR_PEORecords', 'PR_PLORecords', 'PR_PLOMappings'
+  'PR_ProgrammeProfile', 'PR_PEORecords', 'PR_PLORecords', 'PR_PLOMappings', 'PR_PEOMappings'
 ];
 
 function ensureResearchSheets_() {

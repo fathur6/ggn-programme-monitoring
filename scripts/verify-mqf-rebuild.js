@@ -463,14 +463,16 @@ assertContains(javascript, /loadGovernanceItems:\s*function\s*\(/, 'Governance q
 
 const researchSheetNames = [
   'PR_ProgrammeProfile', 'PR_PEORecords', 'PR_PLORecords', 'PR_PLOMappings',
+  'PR_PEOMappings',
   'PR_MQFReference', 'PR_TFReference', 'PR_SDGReference', 'PR_SCReference'
 ];
 nodeAssert.deepStrictEqual(Object.keys(researchDataApi), researchSheetNames, 'Research sheet names are not exact');
 nodeAssert.deepStrictEqual(researchDataApi, {
-  PR_ProgrammeProfile: ['ProgrammeId', 'MQACode', 'FacultyOrCentre', 'ProgrammeName', 'StudyLevel', 'StudyMode', 'StudyField', 'Session', 'DocumentVersion', 'DataOwner', 'MappingStatus', 'CreatedAt', 'UpdatedAt', 'UpdatedBy'],
+  PR_ProgrammeProfile: ['ProgrammeId', 'MQACode', 'FacultyOrCentre', 'ProgrammeName', 'StudyLevel', 'StudyMode', 'StudyField', 'Session', 'DocumentVersion', 'DataOwner', 'MappingStatus', 'DefaultSDGIdsJson', 'SharedFromProgrammeId', 'CreatedAt', 'UpdatedAt', 'UpdatedBy'],
   PR_PEORecords: ['PeoId', 'ProgrammeId', 'Code', 'Statement', 'SortOrder', 'UpdatedAt', 'UpdatedBy'],
   PR_PLORecords: ['PloId', 'ProgrammeId', 'ParentPEO', 'Code', 'Statement', 'MQFDomainsJson', 'Taxonomy', 'Rationale', 'Status', 'UpdatedAt', 'UpdatedBy'],
-  PR_PLOMappings: ['PloId', 'ProgrammeId', 'SDGIdsJson', 'SCIdsJson', 'DerivedTFIdsJson', 'MappingNote', 'UpdatedAt', 'UpdatedBy'],
+  PR_PLOMappings: ['PloId', 'ProgrammeId', 'SCIdsJson', 'DerivedTFIdsJson', 'MappingNote', 'UpdatedAt', 'UpdatedBy'],
+  PR_PEOMappings: ['PeoId', 'ProgrammeId', 'SDGIdsJson', 'MappingNote', 'UpdatedAt', 'UpdatedBy'],
   PR_MQFReference: ['Code', 'Title', 'Description', 'Active'],
   PR_TFReference: ['Code', 'Title', 'Description', 'MQFDomainsJson', 'Active'],
   PR_SDGReference: ['Code', 'Title', 'Description', 'Active'],
@@ -495,5 +497,11 @@ assertContains(researchReferences, /function\s+getResearchReferenceList_\s*\(/, 
 assertContains(email, /function\s+sendAnnouncement\s*\(fac\)[\s\S]*?getFacultyRecipientData_\(fac\)[\s\S]*?getFacultyRecipients_\(fac\)/,
   'Announcement sending must retain private recipient resolution');
 assertContains(plo, /function\s+getNextPLOCode_\s*\(/, 'Private PLO code helper is missing');
+
+var programmeSDG = read('gas/ProgrammeSDGService.gs');
+assert(/PROGRAMME_SDG_DEFAULTS_/.test(programmeSDG), 'Programme SDG seed data is missing');
+assert(/function\s+ensureProgrammeSDGDefaults_/.test(programmeSDG), 'SDG defaults ensure helper is missing');
+assert(/function\s+getProgrammeSDGDefaultsApi_/.test(programmeSDG), 'SDG defaults API is missing');
+assertContains(code, /function\s+getProgrammeSDGDefaultsApi\s*\(/, 'SDG defaults API is not exposed in Code.gs');
 
 console.log('MQF rebuild static checks passed.');

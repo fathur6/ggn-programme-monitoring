@@ -67,6 +67,7 @@ assert.deepStrictEqual(researchSheetNames, [
   'PR_PEORecords',
   'PR_PLORecords',
   'PR_PLOMappings',
+  'PR_PEOMappings',
   'PR_MQFReference',
   'PR_TFReference',
   'PR_SDGReference',
@@ -245,10 +246,11 @@ assert.strictEqual(legacyDetail.plos[0].taxonomy, 'C4', 'Legacy PLO taxonomy was
 var legacyMQF = new Function(extractFunction('normalizeLegacyMQF_', mappingSource) + '\nreturn normalizeLegacyMQF_;')();
 assert.strictEqual(legacyMQF('MQF 3A'), 'MQF3a', 'Alphabetic legacy MQF code casing was not canonicalized');
 
-var migrationSource = extractFunction('researchRows_', mappingSource) + '\n' +
+var migrationSource = extractFunction('sharedMQAOwnerKey_', mappingSource) + '\n' +
+  extractFunction('researchRows_', mappingSource) + '\n' +
   extractFunction('migrateLegacyResearchRowsNoLock_', mappingSource) + '\n' +
   extractFunction('migrateLegacyResearchRows_', mappingSource);
-var migrationApi = new Function('RESEARCH_ROWS_CACHE_', migrationSource + '\nreturn {migrateLegacyResearchRows_: migrateLegacyResearchRows_};')({});
+var migrationApi = new Function('SHARED_MQA_OWNERS_', 'RESEARCH_ROWS_CACHE_', migrationSource + '\nreturn {migrateLegacyResearchRows_: migrateLegacyResearchRows_};')({}, {});
 function MigrationSheet(name, rows) {
   this.name = name;
   this.rows = rows;

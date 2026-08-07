@@ -175,6 +175,16 @@ function saveAssessmentMappingApi(programmeId, payload) { return saveAssessmentM
 function resetAssessmentMappingApi(programmeId, itemIds) { return resetAssessmentMappingApi_(programmeId, itemIds || []); }
 function getAssessmentReviewApi(programmeId) { return getAssessmentReviewApi_(programmeId); }
 
+function getProgrammeSDGDefaultsApi(mqaCode) { return getProgrammeSDGDefaultsApi_(mqaCode); }
+function getPEOMappingsApi(programmeId) { return getPEOMappingsApi_(programmeId); }
+function savePEOMappingApi(programmeId, peoId, mapping) { return savePEOMappingApi_(programmeId, peoId, mapping || {}); }
+
+function setSharedMQAOwnerApi(mqaCode, newOwnerProgrammeId) { return setSharedMQAOwnerApi_(mqaCode, newOwnerProgrammeId); }
+
+function getResearchHealReportApi() { return getResearchHealReportApi_(); }
+function getResearchHealDetailApi(programmeId) { return getResearchHealDetailApi_(programmeId); }
+function healResearchAssignmentsApi(programmeId, assignments) { return healResearchAssignmentsApi_(programmeId, assignments || []); }
+
 function approveDeleteFileApi(requestId) {
   var user = getCurrentUser_();
   if (!isGraduateSchoolAdmin_(user)) throw new Error('Graduate School admin only');
