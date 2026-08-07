@@ -53,6 +53,22 @@ var RESEARCH_REFERENCE_SEEDS_ = {
 
 var RESEARCH_REFERENCES_CACHE_ = null;
 
+/** Pure in-memory references from the code seeds — no sheet reads, no lock. */
+function researchReferencesFromSeeds_() {
+  var result = {MQF: [], TF: [], SDG: [], SC: []};
+  Object.keys(RESEARCH_REFERENCE_SEEDS_).forEach(function(name) {
+    var key = name.replace('PR_', '').replace('Reference', '');
+    result[key] = RESEARCH_REFERENCE_SEEDS_[name].map(function(row) {
+      var entry = {code: String(row[0]).trim(), title: String(row[1] || '').trim(), description: String(row[2] || '').trim()};
+      if (name === 'PR_TFReference') {
+        try { entry.mqfDomains = JSON.parse(row[3] || '[]'); } catch (e) { entry.mqfDomains = []; }
+      }
+      return entry;
+    });
+  });
+  return result;
+}
+
 function isActiveReference_(value) {
   return value === true || String(value).toLowerCase() === 'true' || String(value).toLowerCase() === 'active';
 }

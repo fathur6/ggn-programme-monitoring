@@ -102,7 +102,7 @@ function getFastUniversityDashboardApi_() {
   var admin = isGraduateSchoolAdmin_(user);
   var programmes = getProgrammes_(null).filter(isResearchProgramme_);
 
-  var references = getResearchReferences_();
+  var references = researchReferencesFromSeeds_();
   var byTitle = researchSnapshotByTitle_(getSpreadsheet());
   var rowSets = {};
   if (byTitle) {
@@ -111,7 +111,12 @@ function getFastUniversityDashboardApi_() {
       rowSets[name] = data.length > 1 ? data.slice(1) : [];
     });
   } else {
-    rowSets = researchWorkspaceRowsSnapshotNoLock_(ensureResearchSheets_());
+    var ss = getSpreadsheet();
+    ['PR_ProgrammeProfile', 'PR_PEORecords', 'PR_PLORecords', 'PR_PLOMappings', 'PR_PEOMappings'].forEach(function(name) {
+      var sheet = ss.getSheetByName(name);
+      var data = sheet ? sheet.getDataRange().getValues() : [];
+      rowSets[name] = data.length > 1 ? data.slice(1) : [];
+    });
   }
   var byFaculty = {};
   var totals = createEmptyStatusTotals_();
