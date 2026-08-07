@@ -132,9 +132,20 @@ function withPreparedResearchContext_(programmeIdOrMqaCode, reader) {
     RESEARCH_ROWS_CACHE_ = {};
     var sheets = ensureResearchSheetsNoLock_(getSpreadsheet());
     RESEARCH_SHEETS_CACHE_ = sheets;
-    migrateLegacyResearchRowsNoLock_(context.programme, context.key, sheets);
-    seedResearchReferencesNoLock_(sheets);
-    ensureProgrammeSDGDefaults_(context.key, context.programme, sheets);
+
+    var profileRows = researchRows_(sheets.PR_ProgrammeProfile);
+    var profileExists = profileRows.some(function(row) { return String(row[0]).trim() === context.key; });
+    var hasPEOs = researchRows_(sheets.PR_PEORecords).some(function(row) { return String(row[1]).trim() === context.key; });
+    var hasPLOs = researchRows_(sheets.PR_PLORecords).some(function(row) { return String(row[1]).trim() === context.key; });
+    var isFullySeeded = profileExists && hasPEOs && hasPLOs;
+
+    if (isFullySeeded) {
+      seedResearchReferencesNoLock_(sheets);
+    } else {
+      migrateLegacyResearchRowsNoLock_(context.programme, context.key, sheets);
+      seedResearchReferencesNoLock_(sheets);
+      ensureProgrammeSDGDefaults_(context.key, context.programme, sheets);
+    }
     var effectiveKey = researchEffectiveKey_(context.key, sheets);
     migratePLOSDGToPEO_({programme: context.programme, key: context.key, effectiveKey: effectiveKey, sheets: sheets, access: {}});
     var references = getResearchReferencesNoLock_(sheets);
@@ -649,13 +660,12 @@ function savePEOMappingApi_(programmeIdOrMqaCode, peoId, mapping) {
 }
 
 function migratePLOSDGToPEO_(context) {
-  var ploRows = researchRows_(context.sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === context.effectiveKey; });
-  var hasPlos = ploRows.length > 0;
-  var ploMappings = researchRows_(context.sheets.PR_PLOMappings).filter(function(row) { return String(row[1]) === context.effectiveKey; });
-  var peoMappings = researchRows_(context.sheets.PR_PEOMappings).filter(function(row) { return String(row[1]) === context.effectiveKey; });
-  var hasPEOsWithExisting = peoMappings.length > 0;
-  var ploMappingsStillHaveSDG = ploMappings.length > 0 && ploMappings.some(function(row) { return String(row[2] || '').trim(); });
-  if (hasPEOsWithExisting && !ploMappingsStillHaveSDG) return false;
+  var peoMappings = researchRows_(context.sheets.PR_PEOMappings).filter(function(row) { return String(row[1]) === (context.effectiveKey || context.key); });
+  if (peoMappings.length > 0) return true;
+  var ploRows = researchRows_(context.sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === (context.effectiveKey || context.key); });
+  if (!ploRows.length) return false;
+  var ploMappings = researchRows_(context.sheets.PR_PLOMappings).filter(function(row) { return String(row[1]) === (context.effectiveKey || context.key); });
+  if (!ploMappings.length) return false;
 
   var peoSDGs = {};
   ploRows.forEach(function(plo) {
@@ -665,17 +675,14 @@ function migratePLOSDGToPEO_(context) {
   });
 
   ploMappings.forEach(function(mapping) {
-    var ploId = String(mapping[0]);
-    var plo = ploRows.filter(function(r) { return String(r[0]) === ploId; })[0];
+    var plo = ploRows.filter(function(r) { return String(r[0]) === String(mapping[0]); })[0];
     if (!plo) return;
     var peoCode = String(plo[2] || '').trim();
     if (!peoCode || !peoSDGs[peoCode]) return;
     var sdgs;
-    try { sdgs = JSON.parse(mapping[2] || '[]'); } catch (e) { sdgs = []; }
+    try { sdgs = JSON.parse(mapping[2] || '[]'); } catch (e) { return; }
     if (!Array.isArray(sdgs)) return;
-    sdgs.forEach(function(sdg) {
-      if (sdg) peoSDGs[peoCode].sdgs[String(sdg)] = true;
-    });
+    sdgs.forEach(function(sdg) { if (sdg) peoSDGs[peoCode].sdgs[String(sdg)] = true; });
   });
 
   var now = new Date();
@@ -684,25 +691,17 @@ function migratePLOSDGToPEO_(context) {
     var entry = peoSDGs[peoCode];
     var sdgList = Object.keys(entry.sdgs).sort();
     if (!sdgList.length) return;
-    var existing = peoMappings.filter(function(r) { return String(r[0]) === entry.peoId; })[0];
-    if (existing) {
-      context.sheets.PR_PEOMappings.getRange(peoMappings.indexOf(existing) + 2, 3, 1, 1).setValues([[JSON.stringify(sdgList)]]);
-    } else {
+    peoMappings.filter(function(r) { return String(r[0]) === entry.peoId; })[0] ||
       context.sheets.PR_PEOMappings.appendRow([entry.peoId, context.key, JSON.stringify(sdgList), 'Migrated from PLO SDGs', now, user.email || '']);
-    }
   });
 
-  if (ploMappingsStillHaveSDG) {
-    var ploRows = researchRows_(context.sheets.PR_PLOMappings);
-    ploMappings.forEach(function(mapping) {
-      var index = ploRows.indexOf(mapping);
-      if (index !== -1 && String(mapping[2] || '').trim()) {
-        mapping[2] = '';
-        context.sheets.PR_PLOMappings.getRange(index + 2, 3, 1, 1).setValues([['']]);
-      }
-    });
-  }
-
+  var allPLOMappings = researchRows_(context.sheets.PR_PLOMappings);
+  ploMappings.forEach(function(mapping) {
+    if (String(mapping[2] || '').trim()) {
+      var index = allPLOMappings.indexOf(mapping);
+      if (index !== -1) context.sheets.PR_PLOMappings.getRange(index + 2, 3, 1, 1).setValues([['']]);
+    }
+  });
   RESEARCH_ROWS_CACHE_ = {};
   return true;
 }
