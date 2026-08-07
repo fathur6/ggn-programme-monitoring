@@ -78,9 +78,23 @@ function writePhase2MappingApi_(programmeIdOrMqaCode) {
     var ploScs = readPhase2PLOSCs_(key, researchSheets);
     var ploTfs = readPhase2PLOTFs_(plos, references);
 
-    // Find starting row — after existing content or at row 1 if empty
-    var lastRow = sheet.getLastRow();
-    var startRow = Math.max(lastRow + 2, 1);
+    // Find existing PHASE 2 block (if any) to overwrite in place
+    var blockStart = 0, blockEnd = 0;
+    var allValues = sheet.getDataRange().getValues();
+    for (var r = 0; r < allValues.length; r++) {
+      var cell = String(allValues[r][0] || '').trim();
+      if (!blockStart && cell.indexOf('### PHASE 2') !== -1) blockStart = r + 1;
+      if (blockStart && cell.indexOf('### END PHASE 2 MAPPING') !== -1) { blockEnd = r + 1; break; }
+    }
+
+    // Compute where to write
+    var startRow;
+    if (blockStart > 0) {
+      startRow = blockStart; // overwrite at the previous block's start
+    } else {
+      var lastRow = sheet.getLastRow();
+      startRow = Math.max(lastRow + 2, 1); // append after existing content
+    }
 
     var output = [];
     output.push(['']);
@@ -140,6 +154,13 @@ function writePhase2MappingApi_(programmeIdOrMqaCode) {
     });
     output.push(['']);
     output.push(['### END PHASE 2 MAPPING — ' + new Date().toISOString() + ' ###']);
+
+    // Remove any existing PHASE 2 block so the new one replaces it in place
+    if (blockStart > 0 && blockEnd >= blockStart) {
+      try { sheet.deleteRows(blockStart, blockEnd - blockStart + 1); } catch (e) {}
+      var lastRowAfterDelete = sheet.getLastRow();
+      startRow = Math.max(lastRowAfterDelete + 2, 1);
+    }
 
     // Write output starting at startRow
     var outputRange = sheet.getRange(startRow, 1, output.length, 5);
