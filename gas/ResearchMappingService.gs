@@ -164,7 +164,6 @@ function tryResearchReadContext_(context) {
   var byTitle = researchSnapshotByTitle_(getSpreadsheet());
   if (!byTitle) return null;
   if (!researchSheetsReadyFromSnapshot_(byTitle)) return null;
-  if (!researchReferencesMatchSeeds_(byTitle)) return null;
   if (researchLegacyMigrationPending_(byTitle, context.key, String(context.programme.mqaCode || '').trim())) return null;
   var sheets = researchSheetsFromSnapshot_(byTitle);
   var effectiveKey = researchEffectiveKey_(context.key, sheets);

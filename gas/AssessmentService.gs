@@ -470,7 +470,6 @@ function tryAssessmentReadContext_(access, programme, key) {
   var byTitle = researchSnapshotByTitle_(getSpreadsheet());
   if (!byTitle) return null;
   if (!researchSheetsReadyFromSnapshot_(byTitle)) return null;
-  if (!researchReferencesMatchSeeds_(byTitle)) return null;
   if (researchLegacyMigrationPending_(byTitle, key, String(programme.mqaCode || '').trim())) return null;
   if (!assessmentSheetsReadyFromSnapshot_(byTitle)) return null;
   var researchSheets = researchSheetsFromSnapshot_(byTitle);
