@@ -134,9 +134,9 @@ Seed the MQF and TF relationships from the approved reference data, including:
 
 ```js
 TF1: ['MQF1', 'MQF4a']
-TF2: ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']
+TF2: ['MQF2', 'MQF3d', 'MQF3e']
 TF3: ['MQF3a', 'MQF3b', 'MQF3c', 'MQF3f']
-TF4: ['MQF3a', 'MQF3b', 'MQF4a', 'MQF4b', 'MQF5']
+TF4: ['MQF4b', 'MQF5']
 ```
 
 Expose only active references to clients. `validateReferenceIds_(ids, allowedIds)` must trim, deduplicate, reject unknown values, and return canonical IDs. `getResearchReferencesApi()` must require an authenticated user but may return only non-sensitive reference rows.

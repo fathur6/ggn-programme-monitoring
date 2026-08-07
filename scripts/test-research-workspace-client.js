@@ -31,6 +31,7 @@ const methods = [
   'applyResearchEndpointResult',
   'loadResearchWorkspace',
   'retryResearchEndpoint',
+  'loadLazyResearchEndpoints',
   'isResearchProgramme',
   'openProgramme',
   'loadAssessmentWorkspace',
@@ -65,7 +66,8 @@ function makeFakeRunner() {
         'getResearchReferencesApi', 'getResearchMappingsApi', 'getResearchCoverageApi',
         'getResearchReviewApi', 'getAssessmentMappingApi', 'getAssessmentReviewApi',
         'saveResearchProfileApi', 'saveResearchPEOsApi', 'saveResearchPLOsApi',
-        'saveResearchPLOMappingApi', 'saveAssessmentMappingApi', 'resetAssessmentMappingApi'
+        'saveResearchPLOMappingApi', 'saveAssessmentMappingApi', 'resetAssessmentMappingApi',
+        'getPEOMappingsApi'
       ].forEach((method) => {
         runner[method] = (...args) => {
           const call = {method, args, success: runner.success, failure: runner.failure};
@@ -96,7 +98,9 @@ function makeState(fake, programme) {
     researchReferences: {MQF: [], TF: [], SDG: [], SC: []},
     researchCoverage: null,
     researchReview: null,
-    researchEndpointNames: ['profile', 'peos', 'plos', 'references', 'mappings', 'coverage', 'review'],
+    researchEndpointNames: ['profile', 'peos', 'plos', 'references'],
+    researchLazyEndpoints: ['mappings', 'coverage', 'review'],
+    researchPEOSDGMappings: {},
     researchEndpointErrors: {profile: null, peos: null, plos: null, references: null, mappings: null, coverage: null, review: null},
     researchEndpointLoading: {profile: false, peos: false, plos: false, references: false, mappings: false, coverage: false, review: false},
     assessmentMapping: null,

@@ -92,7 +92,7 @@ assert.deepStrictEqual(matrixProjection({
   {code: 'TF1', mqfDomains: ['MQF1']},
   {code: 'TF2', mqfDomains: ['MQF2', 'MQF3a', 'MQF3d']}
 ]), {
-  code: 'PLO-unmapped', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sdg: [], sc: []
+  code: 'PLO-unmapped', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sc: []
 }, 'An unmapped PLO must derive TF coverage from loaded reference data');
 const mappingMatrixRows = new Function(
   source.slice(source.indexOf('function projectMappingMatrixRow_'), source.indexOf('\nfunction initVueApp')) +
@@ -106,7 +106,7 @@ assert.deepStrictEqual(mappingMatrixRows.call({
     {code: 'TF2', mqfDomains: ['MQF2', 'MQF3a', 'MQF3d']}
   ]}
 }), [{
-  code: 'PLO-unmapped', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sdg: [], sc: []
+  code: 'PLO-unmapped', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sc: []
 }], 'The matrix runtime must derive TF coverage for a PLO without a mapping row');
 ['MQF', 'SDG'].forEach(function(referenceType) {
   assert(new RegExp('researchReferences\\.' + referenceType).test(index), 'Research editor does not consume the ' + referenceType + ' API reference key');
@@ -119,7 +119,7 @@ assert(/scope="col">\{\{ domain \}\}<\/th>/.test(index), 'Matrix MQF columns nee
 assert(/scope="row">\{\{ row\.code \}\}<\/th>/.test(index), 'Matrix PLO rows need row headers');
 assert(/Explicit PLO mapping to/.test(index) && /not checked/.test(index), 'Matrix checks need accessible checked and not-checked labels');
 assert(/Explicit PLO mapping/.test(index) && /TF derived from MQF mapping/.test(index), 'Matrix legend does not distinguish explicit and derived mappings');
-assert(/SDG coverage/.test(index) && /SC coverage/.test(index), 'Matrix needs distinct SDG and SC coverage columns');
+assert(/SC coverage/.test(index), 'Matrix needs distinct SC coverage column');
 assert(/\.mapping-matrix-wrap \{ max-width: 100%; overflow-x: auto; \}/.test(styles), 'Matrix scrolling is not contained');
 assert(/mapping-matrix-wrap"\s+role="region"\s+tabindex="0"/.test(index), 'Scrollable mapping matrix must be keyboard focusable');
 assert(/mapping-matrix-wrap"\s+role="region"\s+tabindex="0"\s+aria-label="PLO mapping matrix scrolling region"/.test(index), 'Scrollable mapping matrix needs an accessible name');

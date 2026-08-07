@@ -735,8 +735,21 @@
    .matrix-indicator { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; text-align: center; font-size: 0; }
    .matrix-indicator::before { content: ''; display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border: 2px solid #c4c7cf; border-radius: 3px; box-sizing: border-box; color: transparent; }
    .matrix-indicator[aria-label*=': checked']::before { content: '✓'; border-color: #16a34a; background: #16a34a; color: #fff; font-size: 11px; line-height: 1; font-weight: 700; }
-  .review-status { font-size: 12px; font-weight: 600; }
+   .review-status { font-size: 12px; font-weight: 600; }
   .issue-warning { padding: 8px 10px; margin-bottom: 6px; border-left: 3px solid var(--action-amber); background: #fff8e8; color: var(--action-amber); font-size: 12px; }
+  /* Compact PLO → SC + TF rows */
+  .plo-sc-section { margin: 24px 0; }
+  .plo-sc-row { padding: 12px 16px; margin-bottom: 8px; border: 1px solid var(--hairline); border-radius: 12px; background: #fff; }
+  .plo-sc-row-main { display: flex; align-items: center; gap: 16px; }
+  .plo-sc-row-left { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; }
+  .plo-sc-row-left strong { flex: 0 0 auto; padding-top: 8px; color: var(--ink); }
+  .plo-sc-statement { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; color: var(--slate); font-size: 14px; line-height: 1.5; }
+  .plo-sc-row-right { flex: 0 0 auto; display: flex; gap: 16px; align-items: center; }
+  .plo-sc-field { display: flex; flex-direction: column; gap: 3px; }
+  .plo-sc-field-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .plo-sc-select { min-width: 220px; padding: 7px 10px; font-size: 13px; }
+  .tf-badge { display: inline-flex; align-items: center; padding: 7px 14px; border-radius: 99px; background: var(--canvas-muted); color: var(--slate); font-size: 13px; font-weight: 600; cursor: help; }
+  .plo-sc-parent { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-light); }
   @media (max-width: 760px) {
     .app-header { flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
     .brand-lockup { min-width: 0; flex: 1; }

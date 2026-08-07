@@ -167,12 +167,12 @@ var matrixHelpers = new Function(
 )();
 
 assert.deepStrictEqual(matrixHelpers.projectMappingMatrixRow_({
-  code: 'PLO1', mqfDomains: ['MQF2', 'MQF3d'], derivedTFIds: ['TF2'], sdgIds: ['SDG4'], scIds: ['SC2']
+  code: 'PLO1', mqfDomains: ['MQF2', 'MQF3d'], derivedTFIds: ['TF2'], scIds: ['SC2']
 }, [
   {code: 'TF1', mqfDomains: ['MQF1', 'MQF4a']},
   {code: 'TF2', mqfDomains: ['MQF2', 'MQF3a', 'MQF3d', 'MQF3e']}
 ]), {
-  code: 'PLO1', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sdg: ['SDG4'], sc: ['SC2']
+  code: 'PLO1', mqf: {MQF2: true, MQF3d: true}, tf: ['TF2'], sc: ['SC2']
 });
 
 assert.deepStrictEqual(task3Helpers.deriveTFIds_(['MQF2', 'MQF3d'], {
@@ -182,10 +182,10 @@ assert.deepStrictEqual(task3Helpers.deriveTFIds_(['MQF2', 'MQF3d'], {
 assert.deepStrictEqual(task3Helpers.deriveTFIds_([], {TF1: ['MQF1']}), []);
 assert.deepStrictEqual(task3Helpers.deriveTFIds_(['MQF1', 'MQF999'], {TF1: ['MQF1']}), ['TF1']);
 assert.deepStrictEqual(task3Helpers.calculatePEOCoverage_([
-  {parentPEO: 'PEO1', derivedTFIds: ['TF1'], sdgIds: ['SDG4'], scIds: ['SC2']},
-  {parentPEO: 'PEO1', derivedTFIds: ['TF2'], sdgIds: ['SDG4'], scIds: ['SC3']}
+  {parentPEO: 'PEO1', derivedTFIds: ['TF1'], scIds: ['SC2']},
+  {parentPEO: 'PEO1', derivedTFIds: ['TF2'], scIds: ['SC3']}
 ], 'PEO1'), {
-  tfIds: ['TF1', 'TF2'], sdgIds: ['SDG4'], scIds: ['SC2', 'SC3'], childCount: 2,
+  tfIds: ['TF1', 'TF2'], sdgIds: [], scIds: ['SC2', 'SC3'], childCount: 2,
   derivedLabel: 'Derived from PLO mappings'
 });
 assert.throws(function() { task3Helpers.calculatePEOCoverage_([], 'PEO-EMPTY'); }, /no child plo mappings/i);
@@ -306,13 +306,16 @@ var peoWithoutChild = reviewHelperApi.validateResearchProgramme_({
 assert(peoWithoutChild.critical.some(function(i) { return i.code === 'PEO_CHILD_REQUIRED'; }), 'PEO without child not detected');
 
 var ready = reviewHelperApi.validateResearchProgramme_({
-  peos: [{code: 'PEO1', statement: 'Objective'}],
+  peos: [{peoId: 'P1', code: 'PEO1', statement: 'Objective'}],
   plos: [{code: 'PLO1', statement: 'Demonstrate critical evaluation skills',
     parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
-  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  mappings: [{ploId: 'P1', scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  peoSDGMappings: [{peoId: 'P1', sdgIds: ['SDG4']}],
   references: {
     mqf: [{code: 'MQF2', title: 'Knowledge'}],
-    tf: [{code: 'TF2', title: 'Critical thinking', mqfDomains: ['MQF2']}]
+    tf: [{code: 'TF2', title: 'Critical thinking', mqfDomains: ['MQF2']}],
+    sdg: [{code: 'SDG4', title: 'Quality Education'}],
+    sc: [{code: 'SC2', title: 'Critical Thinking', description: 'Ways of Thinking'}]
   }
 });
 assert.strictEqual(ready.critical.length, 0, 'Ready programme has critical issues: ' + JSON.stringify(ready.critical));
@@ -320,13 +323,14 @@ assert.strictEqual(ready.warnings.some(function(w) { return w.code === 'PLO_STAT
 assert.strictEqual(ready.status, 'Ready for review');
 
 var duplicatePlo = reviewHelperApi.validateResearchProgramme_({
-  peos: [{code: 'PEO1', statement: 'Objective'}],
+  peos: [{peoId: 'P1', code: 'PEO1', statement: 'Objective'}],
   plos: [
     {code: 'PLO1', statement: 'Analyse', parentPEO: 'PEO1', mqfDomains: ['MQF1'], taxonomy: 'C4'},
     {code: 'PLO1', statement: 'Evaluate', parentPEO: 'PEO1', mqfDomains: ['MQF1'], taxonomy: 'C4'}
   ],
-  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF1']}],
-  references: {mqf: [{code: 'MQF1'}], tf: [{code: 'TF1', mqfDomains: ['MQF1']}]}
+  mappings: [{ploId: 'P1', scIds: ['SC2'], derivedTFIds: ['TF1']}],
+  peoSDGMappings: [{peoId: 'P1', sdgIds: ['SDG4']}],
+  references: {mqf: [{code: 'MQF1'}], tf: [{code: 'TF1', mqfDomains: ['MQF1']}], sdg: [{code: 'SDG4', title: 'Quality Education'}], sc: [{code: 'SC2', title: 'Critical Thinking', description: 'Ways of Thinking'}]}
 });
 assert(duplicatePlo.critical.some(function(i) { return i.code === 'PLO_CODE_DUPLICATE'; }), 'Duplicate PLO code not detected');
 
@@ -355,53 +359,61 @@ var invalidTaxonomy = reviewHelperApi.validateResearchProgramme_({
 assert(invalidTaxonomy.critical.some(function(i) { return i.code === 'PLO_TAXONOMY_INVALID'; }), 'Invalid taxonomy not detected');
 
 var broadWarning = reviewHelperApi.validateResearchProgramme_({
-  peos: [{code: 'PEO1', statement: 'Objective'}],
+  peos: [{peoId: 'P1', code: 'PEO1', statement: 'Objective'}],
   plos: [{code: 'PLO1', statement: 'Short', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
-  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}],
-  references: {mqf: [{code: 'MQF2'}], tf: [{code: 'TF2', mqfDomains: ['MQF2']}]}
+  mappings: [{ploId: 'P1', scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  peoSDGMappings: [{peoId: 'P1', sdgIds: ['SDG4']}],
+  references: {mqf: [{code: 'MQF2'}], tf: [{code: 'TF2', mqfDomains: ['MQF2']}], sdg: [{code: 'SDG4', title: 'Quality Education'}], sc: [{code: 'SC2', title: 'Critical Thinking', description: 'Ways of Thinking'}]}
 });
 assert(broadWarning.warnings.some(function(w) { return w.code === 'PLO_STATEMENT_BROAD'; }), 'Short statement broad warning not detected');
 
 var missingSdgWarning = reviewHelperApi.validateResearchProgramme_({
   peos: [{code: 'PEO1', statement: 'Objective'}],
   plos: [{code: 'PLO1', statement: 'Analyse critically', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
-  mappings: [{ploId: 'P1', sdgIds: [], scIds: ['SC2'], derivedTFIds: ['TF2']}],
-  references: {mqf: [{code: 'MQF2'}], tf: [{code: 'TF2', mqfDomains: ['MQF2']}]}
+  mappings: [{ploId: 'P1', scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  peoSDGMappings: [],
+  references: {mqf: [{code: 'MQF2'}], tf: [{code: 'TF2', mqfDomains: ['MQF2']}], sdg: [], sc: [{code: 'SC2', title: 'Critical Thinking', description: 'Ways of Thinking'}]}
 });
-assert(missingSdgWarning.warnings.some(function(w) { return w.code === 'PLO_SDG_MISSING'; }), 'Missing SDG warning not detected');
+assert(missingSdgWarning.warnings.some(function(w) { return w.code === 'PEO_SDG_MISSING'; }), 'Missing PEO SDG warning not detected');
 
 var policySdgCritical = reviewHelperApi.validateResearchProgramme_({
   peos: [{code: 'PEO1', statement: 'Objective'}],
   plos: [{code: 'PLO1', statement: 'Analyse critically', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
-  mappings: [{ploId: 'P1', sdgIds: [], scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  mappings: [{ploId: 'P1', scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  peoSDGMappings: [],
   references: {mqf: [{code: 'MQF2'}], tf: [{code: 'TF2', mqfDomains: ['MQF2']}]},
   policy: {sdg: true}
 });
 assert(policySdgCritical.critical.some(function(i) { return i.code === 'SDG_REQUIRED'; }), 'SDG policy critical not triggered');
 
 var concentrationWarning = reviewHelperApi.validateResearchProgramme_({
-  peos: [{code: 'PEO1', statement: 'Objective'}],
+  peos: [{peoId: 'P1', code: 'PEO1', statement: 'Objective'}],
   plos: [
     {code: 'PLO1', statement: 'Analyse critically', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'},
     {code: 'PLO2', statement: 'Evaluate critically', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C5'}
   ],
-  mappings: [{ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF2']}],
-  references: {mqf: [{code: 'MQF2'}], tf: [{code: 'TF2', mqfDomains: ['MQF2']}]}
+  mappings: [{ploId: 'P1', scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  peoSDGMappings: [{peoId: 'P1', sdgIds: ['SDG4']}],
+  references: {mqf: [{code: 'MQF2'}], tf: [{code: 'TF2', mqfDomains: ['MQF2']}], sdg: [{code: 'SDG4', title: 'Quality Education'}], sc: [{code: 'SC2', title: 'Critical Thinking', description: 'Ways of Thinking'}]}
 });
 assert(concentrationWarning.warnings.some(function(w) { return w.code === 'MQF_DOMAIN_CONCENTRATION'; }), 'MQF concentration warning not detected');
 
 var metrics = reviewHelperApi.validateResearchProgramme_({
   peos: [
-    {code: 'PEO1', statement: 'Objective 1'},
-    {code: 'PEO2', statement: 'Objective 2'}
+    {peoId: 'P1', code: 'PEO1', statement: 'Objective 1'},
+    {peoId: 'P2', code: 'PEO2', statement: 'Objective 2'}
   ],
   plos: [
     {code: 'PLO1', statement: 'Analyse critically', parentPEO: 'PEO1', mqfDomains: ['MQF1', 'MQF2'], taxonomy: 'C4'},
     {code: 'PLO2', statement: 'Evaluate systematically', parentPEO: 'PEO2', mqfDomains: ['MQF3'], taxonomy: 'C5'}
   ],
   mappings: [
-    {ploId: 'P1', sdgIds: ['SDG4'], scIds: ['SC2'], derivedTFIds: ['TF1', 'TF2']},
-    {ploId: 'P2', sdgIds: ['SDG4', 'SDG13'], scIds: ['SC2', 'SC3'], derivedTFIds: ['TF3']}
+    {ploId: 'P1', scIds: ['SC2'], derivedTFIds: ['TF1']},
+    {ploId: 'P2', scIds: ['SC3'], derivedTFIds: ['TF3']}
+  ],
+  peoSDGMappings: [
+    {peoId: 'P1', sdgIds: ['SDG4']},
+    {peoId: 'P2', sdgIds: ['SDG4', 'SDG13']}
   ],
   references: {
     mqf: [{code: 'MQF1'}, {code: 'MQF2'}, {code: 'MQF3'}],
@@ -409,7 +421,9 @@ var metrics = reviewHelperApi.validateResearchProgramme_({
       {code: 'TF1', mqfDomains: ['MQF1']},
       {code: 'TF2', mqfDomains: ['MQF2']},
       {code: 'TF3', mqfDomains: ['MQF3']}
-    ]
+    ],
+    sdg: [{code: 'SDG4', title: 'Quality Education'}, {code: 'SDG13', title: 'Climate Action'}],
+    sc: [{code: 'SC2', title: 'Critical Thinking', description: 'Ways of Thinking'}, {code: 'SC3', title: 'Systems Thinking', description: 'Ways of Thinking'}]
   }
 });
 assert.strictEqual(metrics.metrics.ploTotal, 2, 'ploTotal mismatch');
@@ -417,7 +431,7 @@ assert.strictEqual(metrics.metrics.ploStatementsComplete, 2, 'ploStatementsCompl
 assert.strictEqual(metrics.metrics.ploWithMQF, 2, 'ploWithMQF mismatch');
 assert.strictEqual(metrics.metrics.ploWithValidTaxonomy, 2, 'ploWithValidTaxonomy mismatch');
 assert.strictEqual(metrics.metrics.ploWithValidTF, 2, 'ploWithValidTF mismatch');
-assert.strictEqual(metrics.metrics.ploWithSDG, 2, 'ploWithSDG mismatch');
+assert.strictEqual(metrics.metrics.peoWithSDG, 2, 'peoWithSDG mismatch');
 assert.strictEqual(metrics.metrics.ploWithSC, 2, 'ploWithSC mismatch');
 assert.strictEqual(metrics.metrics.mqfDomainCoverage, 3, 'mqfDomainCoverage mismatch');
 assert.strictEqual(metrics.metrics.tfCoverage, 2, 'tfCoverage mismatch');

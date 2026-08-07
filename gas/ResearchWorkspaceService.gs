@@ -1,6 +1,6 @@
 /** ResearchWorkspaceService.gs — aggregate, read-only research workspace RPC. */
 
-var RESEARCH_WORKSPACE_ENDPOINTS = ['profile', 'peos', 'plos', 'references', 'mappings', 'coverage', 'review'];
+var RESEARCH_WORKSPACE_ENDPOINTS = ['profile', 'peos', 'plos', 'references'];
 
 function researchWorkspaceStableErrorCode_(error, endpoint, namespace) {
   var explicit = String(error && error.code || '').trim();
@@ -113,8 +113,15 @@ function researchWorkspaceCoverageFromSnapshot_(snapshot, peos, plos, mappings) 
   var mapped = effectivePlos.map(function(plo) {
     return researchMappingForPLO_(plo, effectiveMappings.filter(function(mapping) {
       return mapping.ploId === plo.ploId;
-    })[0] || {sdgIds: [], scIds: [], derivedTFIds: []}, snapshot.references);
+    })[0] || {scIds: [], derivedTFIds: []}, snapshot.references);
   });
+  // Read SDG from PEO mappings (programme-level) instead of PLO mappings
+  var peoMappingRows = snapshot.rows.PR_PEOMappings || [];
+  var peoSdgIds = peoMappingRows.filter(function(row) { return String(row[1]) === snapshot.key; }).reduce(function(all, row) {
+    var sdgs; try { sdgs = JSON.parse(row[2] || '[]'); } catch (e) { sdgs = []; }
+    if (Array.isArray(sdgs)) return all.concat(sdgs);
+    return all;
+  }, []);
   return {
     peoCoverage: effectivePeos.map(function(peo) {
       try { return {peoId: peo.peoId, code: peo.code, coverage: calculatePEOCoverage_(mapped, peo.code)}; }
@@ -123,7 +130,7 @@ function researchWorkspaceCoverageFromSnapshot_(snapshot, peos, plos, mappings) 
     globalCoverage: {
       mqfIds: uniqueTrimmed_(effectivePlos.reduce(function(all, plo) { return all.concat(plo.mqfDomains); }, [])).sort(),
       tfIds: uniqueTrimmed_(mapped.reduce(function(all, mapping) { return all.concat(mapping.derivedTFIds || []); }, [])).sort(),
-      sdgIds: uniqueTrimmed_(mapped.reduce(function(all, mapping) { return all.concat(mapping.sdgIds || []); }, [])).sort(),
+      sdgIds: uniqueTrimmed_(peoSdgIds).sort(),
       scIds: uniqueTrimmed_(mapped.reduce(function(all, mapping) { return all.concat(mapping.scIds || []); }, [])).sort()
     },
     ploReadiness: effectivePlos.map(function(plo) {
@@ -133,12 +140,13 @@ function researchWorkspaceCoverageFromSnapshot_(snapshot, peos, plos, mappings) 
   };
 }
 
-function researchWorkspaceReviewFromSnapshot_(snapshot, profile, peos, plos, mappings) {
+function researchWorkspaceReviewFromSnapshot_(snapshot, profile, peos, plos, mappings, peoSDGMappings) {
   return researchReviewResultFromData_({
     profile: profile,
     peos: peos,
     plos: plos,
     mappings: mappings,
+    peoSDGMappings: peoSDGMappings,
     references: snapshot.references
   });
 }
@@ -168,7 +176,8 @@ function getResearchWorkspaceApi_(programmeIdOrMqaCode) {
         var peos = researchWorkspacePEOsFromSnapshot_(snapshot);
         var plos = researchWorkspacePLOsFromSnapshot_(snapshot);
         var mappings = researchWorkspaceMappingsFromSnapshot_(snapshot, plos);
-        return researchWorkspaceReviewFromSnapshot_(snapshot, profile, peos, plos, mappings);
+        var peoSDGMappings = (snapshot.rows.PR_PEOMappings || []).filter(function(row) { return String(row[1]) === snapshot.key; }).map(peoMappingFromRow_);
+        return researchWorkspaceReviewFromSnapshot_(snapshot, profile, peos, plos, mappings, peoSDGMappings);
       }
     };
     var endpoints = RESEARCH_WORKSPACE_ENDPOINTS.reduce(function(result, endpoint) {

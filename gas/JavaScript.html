@@ -181,7 +181,6 @@ function projectMappingMatrixRow_(plo, tfReferences) {
     code: plo.code,
     mqf: mqf,
     tf: tf,
-    sdg: Array.isArray(plo.sdgIds) ? plo.sdgIds : [],
     sc: Array.isArray(plo.scIds) ? plo.scIds : []
   };
 }
@@ -241,7 +240,8 @@ new Vue({
        ,researchWorkspaceFatalError: null
        ,researchLoadGeneration: 0
        ,researchLoadProgrammeId: ''
-       ,researchEndpointNames: ['profile', 'peos', 'plos', 'references', 'mappings', 'coverage', 'review']
+       ,researchEndpointNames: ['profile', 'peos', 'plos', 'references']
+       ,researchLazyEndpoints: ['mappings', 'coverage', 'review']
        ,researchEndpointErrors: {profile: null, peos: null, plos: null, references: null, mappings: null, coverage: null, review: null}
        ,researchEndpointLoading: {profile: false, peos: false, plos: false, references: false, mappings: false, coverage: false, review: false}
        ,assessmentWorkspaceFatalError: null
@@ -346,7 +346,6 @@ new Vue({
              code: plo.code,
               mqfDomains: plo.mqfDomains,
               tfIds: mapping.tfIds || mapping.derivedTFIds,
-              sdgIds: mapping.sdgIds,
              scIds: mapping.scIds
            }, self.researchReferences.TF);
          });
@@ -751,6 +750,7 @@ new Vue({
              self.applyResearchEndpointResult(endpoint, result.endpoints[endpoint], token, 'research');
            });
            self.researchSaveState = self.researchEndpointNames.some(function(endpoint) { return !!self.researchEndpointErrors[endpoint]; }) ? 'error' : 'clean';
+           if (self.researchSaveState === 'clean') self.loadLazyResearchEndpoints();
          })
          .withFailureHandler(function(error) {
            if (!self.isCurrentResearchRead(token)) return;
@@ -767,7 +767,7 @@ new Vue({
      retryResearchEndpoint: function(endpoint) {
        var self = this;
        endpoint = String(endpoint || '').trim();
-       if (this.researchEndpointNames.indexOf(endpoint) === -1) {
+       if (this.researchEndpointNames.indexOf(endpoint) === -1 && this.researchLazyEndpoints.indexOf(endpoint) === -1) {
          var unknown = {endpoint: endpoint, code: 'CLIENT_UNKNOWN_RESEARCH_ENDPOINT', message: 'Unknown research endpoint.', retryable: false};
          this.$set(this.researchEndpointErrors, endpoint, unknown);
          if (typeof console !== 'undefined' && console.error) console.error('[ResearchWorkspaceClient] endpoint=' + endpoint + ' code=' + unknown.code + ' message=' + unknown.message);
@@ -803,10 +803,53 @@ new Vue({
       this.loadResearchCoverage();
       this.loadResearchReview();
     },
-     loadResearchMappings: function() {
-       this.retryResearchEndpoint('mappings');
-    },
-    saveResearchProfile: function() {
+     loadLazyResearchEndpoints: function() {
+       var self = this;
+       if (!this.currentProgramme) return;
+       var programmeId = this.researchProgrammeIdentity(this.currentProgramme);
+       var token = {generation: this.researchLoadGeneration, programmeId: programmeId};
+       this.researchLazyEndpoints.forEach(function(endpoint) {
+         self.$set(self.researchEndpointLoading, endpoint, true);
+         self.$set(self.researchEndpointErrors, endpoint, null);
+       });
+       // Fire all lazy endpoints in parallel
+       var runners = {
+         mappings: function(cb) {
+           google.script.run.withSuccessHandler(function(r) { cb(null, {ok: true, data: r}); })
+             .withFailureHandler(function(e) { cb({code: e && e.code, message: e && e.message, retryable: !!(e && e.retryable)}); })
+             .getResearchMappingsApi(programmeId);
+         },
+         coverage: function(cb) {
+           google.script.run.withSuccessHandler(function(r) { cb(null, {ok: true, data: r}); })
+             .withFailureHandler(function(e) { cb({code: e && e.code, message: e && e.message, retryable: !!(e && e.retryable)}); })
+             .getResearchCoverageApi(programmeId);
+         },
+         review: function(cb) {
+           google.script.run.withSuccessHandler(function(r) { cb(null, {ok: true, data: r}); })
+             .withFailureHandler(function(e) { cb({code: e && e.code, message: e && e.message, retryable: !!(e && e.retryable)}); })
+             .getResearchReviewApi(programmeId);
+         }
+       };
+       Object.keys(runners).forEach(function(endpoint) {
+         runners[endpoint](function(err, result) {
+           if (!self.isCurrentResearchRead(token)) return;
+           if (err) {
+             self.applyResearchEndpointResult(endpoint, {ok: false, error: err, retryable: err.retryable}, token, 'research');
+           } else {
+             self.applyResearchEndpointResult(endpoint, result, token, 'research');
+           }
+         });
+       });
+       // Also load PEO SDG mappings
+       google.script.run.withSuccessHandler(function(r) {
+         if (!self.isCurrentResearchRead(token)) return;
+         self.researchPEOSDGMappings = (r || []).reduce(function(m, item) {
+           m[item.peoId] = item.sdgIds || [];
+           return m;
+         }, {});
+       }).withFailureHandler(function() {}).getPEOMappingsApi(programmeId);
+       },
+       saveResearchProfile: function() {
       var self = this; this.researchSaveState = 'saving'; this.researchError = null;
        google.script.run.withSuccessHandler(function(profile) { self.researchProfile = profile; self.researchMutationComplete('Programme profile saved.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchProfileApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode, this.researchProfile);
     },
@@ -1009,6 +1052,11 @@ new Vue({
        var mapping = this.researchMapping(plo);
        this.$set(mapping, key, code ? [code] : []);
        if (key === 'tfIds') this.$set(mapping, 'derivedTFIds', code ? [code] : []);
+       this.markResearchDirty();
+     },
+     selectSCForPLO: function(plo, scId) {
+       var mapping = this.researchMapping(plo);
+       this.$set(mapping, 'scIds', scId ? [scId] : []);
        this.markResearchDirty();
      },
     leaveResearchWorkspace: function() { this.setView('programmes'); },
