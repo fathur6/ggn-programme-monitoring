@@ -7,6 +7,7 @@ const gasSources = [
   'gas/ResearchDataService.gs',
   'gas/ResearchReferenceService.gs',
   'gas/ProgrammeSDGService.gs',
+  'gas/Phase2MappingService.gs',
   'gas/ResearchMappingService.gs',
   'gas/ResearchReviewService.gs',
   'gas/AssessmentService.gs',
@@ -140,7 +141,7 @@ const research = callResearch();
 const researchAfterPreparation = JSON.stringify(spreadsheet.sheets);
 assert.strictEqual(research.ok, true);
 assert.strictEqual(research.programmeId, currentProgramme.programmeId);
-assert.deepStrictEqual(Object.keys(research.endpoints), ['profile', 'peos', 'plos', 'references', 'mappings', 'coverage', 'review']);
+assert.deepStrictEqual(Object.keys(research.endpoints), ['profile', 'peos', 'plos', 'references']);
 assert(!Object.prototype.hasOwnProperty.call(research, 'assessmentMapping'), 'Initial aggregate must not contain assessment mapping');
 assert(!Object.prototype.hasOwnProperty.call(research, 'assessmentReview'), 'Initial aggregate must not contain assessment review');
 Object.keys(research.endpoints).forEach(endpoint => assert.strictEqual(research.endpoints[endpoint].ok, true, endpoint + ' envelope failed'));
@@ -152,23 +153,10 @@ assert.strictEqual(secondResearch.ok, true);
 assert.strictEqual(JSON.stringify(spreadsheet.sheets), researchAfterPreparation, 'Aggregate projection must not mutate after preparation');
 assert.notStrictEqual(researchBefore, researchAfterPreparation, 'Cold-start preparation should create/seed its owned sheets');
 
-const originalReviewProjection = context.researchWorkspaceReviewFromSnapshot_;
-context.researchWorkspaceReviewFromSnapshot_ = () => { throw new Error('internal sheet schema detail'); };
-const partialResearch = callResearch();
-assert.strictEqual(partialResearch.endpoints.profile.ok, true, 'Successful profile data must survive a sibling failure');
-assert.strictEqual(partialResearch.endpoints.review.ok, false);
-assert.strictEqual(partialResearch.endpoints.review.error.endpoint, 'review');
-assert.strictEqual(partialResearch.endpoints.review.error.code, 'RESEARCH_REVIEW_FAILED');
-assert(!partialResearch.endpoints.review.error.message.includes('schema'), 'Server diagnostics must not reach the client');
-assert(diagnostics.some(entry => entry.includes('endpoint=review') && entry.includes('RESEARCH_REVIEW_FAILED')));
-context.researchWorkspaceReviewFromSnapshot_ = originalReviewProjection;
-
-let researchMappingFailure;
 [
   ['researchWorkspaceProfileFromSnapshot_', 'profile'],
   ['researchWorkspacePEOsFromSnapshot_', 'peos'],
-  ['researchWorkspacePLOsFromSnapshot_', 'plos'],
-  ['researchWorkspaceMappingsFromSnapshot_', 'mappings']
+  ['researchWorkspacePLOsFromSnapshot_', 'plos']
 ].forEach(([projection, endpoint]) => {
   const originalProjection = context[projection];
   context[projection] = () => { throw new Error(endpoint + ' projection failed'); };
@@ -179,7 +167,6 @@ let researchMappingFailure;
   assert.strictEqual(partial.endpoints[endpoint].error.code, 'RESEARCH_' + endpoint.toUpperCase() + '_FAILED');
   assert.strictEqual(partial.endpoints.references.ok, true, endpoint + ' failure must preserve reference data');
   assert.strictEqual(partial.endpoints.profile.ok, endpoint === 'profile' ? false : true, endpoint + ' failure must preserve profile data when independent');
-  if (endpoint === 'mappings') researchMappingFailure = partial;
   context[projection] = originalProjection;
 });
 

@@ -178,8 +178,14 @@ function getAssessmentReviewApi(programmeId) { return getAssessmentReviewApi_(pr
 function getProgrammeSDGDefaultsApi(mqaCode) { return getProgrammeSDGDefaultsApi_(mqaCode); }
 function getPEOMappingsApi(programmeId) { return getPEOMappingsApi_(programmeId); }
 function savePEOMappingApi(programmeId, peoId, mapping) { return savePEOMappingApi_(programmeId, peoId, mapping || {}); }
+function writePhase2MappingApi(programmeId) { return writePhase2MappingApi_(programmeId); }
+function writeAllPhase2MappingsApi() { return writeAllPhase2MappingsApi_(); }
 
 function setSharedMQAOwnerApi(mqaCode, newOwnerProgrammeId) { return setSharedMQAOwnerApi_(mqaCode, newOwnerProgrammeId); }
+
+function seedAllPEOSDGDefaultsApi() { return seedAllPEOSDGDefaultsApi_(); }
+
+function seedAllPLOSCDefaultsApi() { return seedAllPLOSCDefaultsApi_(); }
 
 function getResearchHealReportApi() { return getResearchHealReportApi_(); }
 function getResearchHealDetailApi(programmeId) { return getResearchHealDetailApi_(programmeId); }

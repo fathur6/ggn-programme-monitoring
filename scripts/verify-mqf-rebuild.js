@@ -407,7 +407,7 @@ assertContains(researchDetailSource, /Explicit PLO mapping to/, 'PLO matrix chec
 assertContains(researchDetailSource, /not checked/, 'PLO matrix must expose unchecked cells');
 assertContains(researchDetailSource, /Explicit PLO mapping/, 'PLO matrix legend must explain explicit mappings');
 assertContains(researchDetailSource, /TF derived from MQF mapping/, 'PLO matrix legend must explain derived TF mappings');
-assertContains(researchDetailSource, /SDG coverage/, 'PLO matrix needs a distinct SDG coverage column');
+assertContains(index, /peo-sdg-section/, 'PEO→SDG mapping section is missing from the mapping panel');
 assertContains(researchDetailSource, /SC coverage/, 'PLO matrix needs a distinct SC coverage column');
 assertContains(javascript, /function\s+projectMappingMatrixRow_\s*\(/, 'Pure PLO matrix projection is missing');
 assertContains(javascript, /mappingMatrixRows:\s*function/, 'PLO matrix does not project current mappings');
@@ -503,5 +503,7 @@ assert(/PROGRAMME_SDG_DEFAULTS_/.test(programmeSDG), 'Programme SDG seed data is
 assert(/function\s+ensureProgrammeSDGDefaults_/.test(programmeSDG), 'SDG defaults ensure helper is missing');
 assert(/function\s+getProgrammeSDGDefaultsApi_/.test(programmeSDG), 'SDG defaults API is missing');
 assertContains(code, /function\s+getProgrammeSDGDefaultsApi\s*\(/, 'SDG defaults API is not exposed in Code.gs');
+assertContains(code, /function\s+writePhase2MappingApi\s*\(/, 'Phase 2 mapping write API is not exposed in Code.gs');
+assertContains(code, /function\s+writeAllPhase2MappingsApi\s*\(/, 'Batch Phase 2 mapping API is not exposed in Code.gs');
 
 console.log('MQF rebuild static checks passed.');
