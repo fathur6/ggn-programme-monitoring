@@ -103,7 +103,16 @@ function getFastUniversityDashboardApi_() {
   var programmes = getProgrammes_(null).filter(isResearchProgramme_);
 
   var references = getResearchReferences_();
-  var rowSets = researchWorkspaceRowsSnapshotNoLock_(ensureResearchSheets_());
+  var byTitle = researchSnapshotByTitle_(getSpreadsheet());
+  var rowSets = {};
+  if (byTitle) {
+    ['PR_ProgrammeProfile', 'PR_PEORecords', 'PR_PLORecords', 'PR_PLOMappings', 'PR_PEOMappings'].forEach(function(name) {
+      var data = byTitle[name] || [];
+      rowSets[name] = data.length > 1 ? data.slice(1) : [];
+    });
+  } else {
+    rowSets = researchWorkspaceRowsSnapshotNoLock_(ensureResearchSheets_());
+  }
   var byFaculty = {};
   var totals = createEmptyStatusTotals_();
 
