@@ -132,7 +132,7 @@ function getProgrammesApi() {
 }
 
 function getUniversityDashboardApi() {
-  return getUniversityDashboardApi_();
+  return getFastUniversityDashboardApi_();
 }
 
 function getFacultyReportApi(faculty) {

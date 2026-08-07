@@ -95,6 +95,7 @@ function validateResearchProgramme_(input) {
   var peos = Array.isArray(input.peos) ? input.peos : [];
   var plos = Array.isArray(input.plos) ? input.plos : [];
   var mappings = Array.isArray(input.mappings) ? input.mappings : [];
+  var peoSDGMappings = Array.isArray(input.peoSDGMappings) ? input.peoSDGMappings : [];
   var references = researchReviewReferences_(input.references);
   var policy = input.policy || {};
   var critical = [];
@@ -118,12 +119,23 @@ function validateResearchProgramme_(input) {
   var peoChildren = {};
   var peoStatementsComplete = 0;
 
+  // Build PEO SDG lookup by peoId for PEO-level SDG validation
+  var peoSdgById = {};
+  peoSDGMappings.forEach(function(mapping) {
+    if (mapping && mapping.peoId) peoSdgById[String(mapping.peoId)] = uniqueTrimmed_(mapping.sdgIds || []);
+  });
+
   peos.forEach(function(peo) {
     var code = String(peo && peo.code || '').trim();
     var statement = String(peo && peo.statement || '').trim();
     if (code) peoCodes[code] = true;
     if (code && statement) peoStatementsComplete++;
     if (!statement) critical.push(reviewIssue_('PEO_STATEMENT_REQUIRED', 'PEO statement is required', '', code));
+    // PEO-level SDG check
+    var peoSDGs = peoSdgById[peo.peoId] || (peo.peoId ? [] : []);
+    if (peoSDGs.length) withSDG++;
+    else if (code) warnings.push(reviewWarning_('PEO_SDG_MISSING', 'PEO has no SDG mapped — please add at least one SDG', '', code));
+    allSDG = allSDG.concat(peoSDGs);
   });
 
   plos.forEach(function(plo, index) {
@@ -133,7 +145,6 @@ function validateResearchProgramme_(input) {
     var domains = uniqueTrimmed_(plo && plo.mqfDomains || []);
     var taxonomy = canonicalResearchTaxonomy_(plo && plo.taxonomy);
     var mapping = reviewMappingForPLO_(plo, index, mappings);
-    var sdgIds = uniqueTrimmed_(mapping && mapping.sdgIds || []);
     var scIds = uniqueTrimmed_(mapping && mapping.scIds || []);
     scIds.forEach(function(scId) {
       var reference = references.sc.filter(function(item) { return String(item.code || '').trim() === scId; })[0];
@@ -166,8 +177,6 @@ function validateResearchProgramme_(input) {
     else if (taxonomyCodes.indexOf(taxonomy) === -1) critical.push(reviewIssue_('PLO_TAXONOMY_INVALID', 'Invalid Taxonomy: ' + taxonomy, code));
     else withValidTaxonomy++;
     if (statement && statement.length < 20) warnings.push(reviewWarning_('PLO_STATEMENT_BROAD', 'PLO statement may be too broad', code));
-    if (sdgIds.length) withSDG++;
-    else warnings.push(reviewWarning_('PLO_SDG_MISSING', 'PLO should map to at least one SDG', code));
     if (scIds.length) withSC++;
     else warnings.push(reviewWarning_('PLO_SC_MISSING', 'PLO should map to at least one sustainability competency', code));
     if (hasValidMQF && (actualTF.length !== 1 || actualTF.some(function(tfId) { return expectedTF.indexOf(tfId) === -1; }))) {
@@ -178,7 +187,6 @@ function validateResearchProgramme_(input) {
       withValidTF++;
     }
     allTF = allTF.concat(actualTF);
-    allSDG = allSDG.concat(sdgIds);
     allSC = allSC.concat(scIds);
   });
 
@@ -188,7 +196,7 @@ function validateResearchProgramme_(input) {
     if (!peoChildren[code]) critical.push(reviewIssue_('PEO_CHILD_REQUIRED', 'PEO must have at least one child PLO', '', code));
   });
   if (plos.length && uniqueTrimmed_(allMQF).length === 1) warnings.push(reviewWarning_('MQF_DOMAIN_CONCENTRATION', 'PLOs are concentrated in one MQF domain'));
-  if (reviewPolicyRequires_(policy, 'sdg') && withSDG < plos.length) critical.push(reviewIssue_('SDG_REQUIRED', 'SDG mapping is required by policy'));
+  if (reviewPolicyRequires_(policy, 'sdg') && withSDG < peos.filter(function(peo) { return peo.code; }).length) critical.push(reviewIssue_('SDG_REQUIRED', 'SDG mapping is required by policy'));
   if (reviewPolicyRequires_(policy, 'sc') && withSC < plos.length) critical.push(reviewIssue_('SC_REQUIRED', 'Sustainability competency mapping is required by policy'));
   if (reviewPolicyRequires_(policy, 'broadStatements') && warnings.some(function(issue) { return issue.code === 'PLO_STATEMENT_BROAD'; })) {
     critical.push(reviewIssue_('BROAD_STATEMENT_REQUIRED', 'Broad PLO statements are not allowed by policy'));
@@ -201,12 +209,12 @@ function validateResearchProgramme_(input) {
     metrics: {
       peosTotal: peos.length,
       peoStatementsComplete: peoStatementsComplete,
+      peoWithSDG: withSDG,
       ploTotal: plos.length,
       ploStatementsComplete: statementsComplete,
       ploWithMQF: withMQF,
       ploWithValidTaxonomy: withValidTaxonomy,
       ploWithValidTF: withValidTF,
-      ploWithSDG: withSDG,
       ploWithSC: withSC,
       mqfDomainCoverage: uniqueTrimmed_(allMQF).sort().length,
       tfCoverage: uniqueTrimmed_(allTF).sort().length,
@@ -229,6 +237,7 @@ function researchReviewDataFromSheets_(key, sheets, references) {
   var peos = researchRows_(sheets.PR_PEORecords).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
   var plos = researchRows_(sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
   var mappings = researchRows_(sheets.PR_PLOMappings).filter(function(row) { return String(row[1]) === key; }).map(mappingFromRow_);
+  var peoSDGMappings = sheets.PR_PEOMappings ? researchRows_(sheets.PR_PEOMappings).filter(function(row) { return String(row[1]) === key; }).map(peoMappingFromRow_) : [];
   if (!peos.length || !plos.length) {
     var legacy = readLegacyResearchDetail_(getSpreadsheet(), String(key).split('::').pop());
     if (legacy) {
@@ -242,6 +251,24 @@ function researchReviewDataFromSheets_(key, sheets, references) {
     peos: peos,
     plos: plos,
     mappings: mappings,
+    peoSDGMappings: peoSDGMappings,
+    references: references || {mqf: [], tf: [], sdg: [], sc: []}
+  };
+}
+
+/** Snapshot-based review data — rows are pre-fetched once; no per-programme sheet reads. */
+function researchReviewDataFromRows_(key, rowSets, references) {
+  var profile = (rowSets.PR_ProgrammeProfile || []).filter(function(row) { return String(row[0]) === key; })[0];
+  var peos = (rowSets.PR_PEORecords || []).filter(function(row) { return String(row[1]) === key; }).map(peoFromRow_);
+  var plos = (rowSets.PR_PLORecords || []).filter(function(row) { return String(row[1]) === key; }).map(ploFromRow_);
+  var mappings = (rowSets.PR_PLOMappings || []).filter(function(row) { return String(row[1]) === key; }).map(mappingFromRow_);
+  var peoSDGMappings = (rowSets.PR_PEOMappings || []).filter(function(row) { return String(row[1]) === key; }).map(peoMappingFromRow_);
+  return {
+    profile: profile ? profileFromRow_(profile) : null,
+    peos: peos,
+    plos: plos,
+    mappings: mappings,
+    peoSDGMappings: peoSDGMappings,
     references: references || {mqf: [], tf: [], sdg: [], sc: []}
   };
 }

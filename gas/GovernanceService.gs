@@ -90,6 +90,109 @@ function getUniversityDashboardApi_() {
   };
 }
 
+/**
+ * Lightweight dashboard: reads every PR_ sheet once (one getSheetsData snapshot),
+ * then computes all programme statuses in memory. Avoids the per-programme
+ * prepared-context reads that made the previous dashboard take minutes.
+ */
+function getFastUniversityDashboardApi_() {
+  var user = getCurrentUser_();
+  if (!user) throw new Error('Unauthorized');
+
+  var admin = isGraduateSchoolAdmin_(user);
+  var programmes = getProgrammes_(null).filter(isResearchProgramme_);
+
+  var references = getResearchReferences_();
+  var rowSets = researchWorkspaceRowsSnapshotNoLock_(ensureResearchSheets_());
+  var byFaculty = {};
+  var totals = createEmptyStatusTotals_();
+
+  programmes.forEach(function(programme) {
+    var key = getResearchProgrammeKey_(programme);
+    var reviewData = researchReviewDataFromRows_(key, rowSets, references);
+    var review = validateResearchProgramme_(reviewData);
+    var metrics = review.metrics || {};
+    var status = researchStatusFromMetrics_(metrics);
+    var faculty = programme.faculty || 'Unknown';
+    if (!byFaculty[faculty]) {
+      byFaculty[faculty] = {
+        faculty: faculty,
+        facultyFull: programme.facultyFull || faculty,
+        programmeCount: 0,
+        completeCount: 0,
+        needsAttentionCount: 0,
+        mqfDomainCompleteCount: 0,
+        taxonomyCompleteCount: 0,
+        mappingCompleteCount: 0,
+        documentReadyCount: 0,
+        reviewCount: 0,
+        submissionCount: 0,
+        overdueCount: 0,
+        phase1CompleteCount: 0,
+        phase2CompleteCount: 0,
+        phase2CompletedItems: 0,
+        phase2TotalItems: 0
+      };
+    }
+    addStatusToTotals_(byFaculty[faculty], status);
+    addStatusToTotals_(totals, status);
+  });
+
+  var faculties = Object.keys(byFaculty).sort().map(function(key) { return byFaculty[key]; });
+  return {
+    generatedAt: new Date().toISOString(),
+    reportingPeriod: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM'),
+    facultyCount: faculties.length,
+    programmeCount: programmes.length,
+    totals: totals,
+    faculties: faculties,
+    canDrillDown: admin,
+    academicDeadline: ACADEMIC_DEADLINE_LABEL
+  };
+}
+
+function researchStatusFromMetrics_(metrics) {
+  metrics = metrics || {};
+  var peoOk = (metrics.peosTotal || 0) > 0 && (metrics.peoStatementsComplete || 0) === (metrics.peosTotal || 0);
+  var ploOk = (metrics.ploTotal || 0) > 0 && (metrics.ploStatementsComplete || 0) === (metrics.ploTotal || 0);
+  var mqfOk = (metrics.ploWithMQF || 0) === (metrics.ploTotal || 0) && (metrics.ploTotal || 0) > 0;
+  var taxonomyOk = (metrics.ploWithValidTaxonomy || 0) === (metrics.ploTotal || 0) && (metrics.ploTotal || 0) > 0;
+  var phase1Complete = peoOk && ploOk && mqfOk && taxonomyOk;
+  var phase2SDGCount = Math.min(metrics.phase2SDGCount || 0, 3);
+  var phase2SCCategoryCount = Math.min(metrics.phase2SCCategoryCount || 0, 3);
+  var phase2CompletedItems = phase2SDGCount + phase2SCCategoryCount;
+  var phase2Complete = phase2CompletedItems === 6;
+  var phase2Percent = Math.round((phase2CompletedItems / 6) * 100);
+  return {
+    completionState: phase1Complete ? 'Complete' : 'Needs attention',
+    peoState: peoOk ? 'Complete' : 'Needs attention',
+    ploState: ploOk ? 'Complete' : 'Needs attention',
+    mqfDomainState: mqfOk ? 'Complete' : 'Needs attention',
+    taxonomyState: taxonomyOk ? 'Complete' : 'Needs attention',
+    phase1Complete: phase1Complete,
+    phase2Complete: phase2Complete,
+    phase2Percent: phase2Percent,
+    phase2CompletedItems: phase2CompletedItems,
+    phase2TotalItems: 6,
+    mappingState: 'Not required',
+    documentState: 'Not required',
+    reviewState: phase1Complete ? 'Ready' : 'Blocked',
+    submissionState: phase1Complete ? 'Ready' : 'Needs attention',
+    overdue: isProgrammeOverdue_({completionState: phase1Complete ? 'Complete' : 'Needs attention'}),
+    counts: {
+      peos: metrics.peosTotal || 0,
+      peoComplete: metrics.peoStatementsComplete || 0,
+      plos: metrics.ploTotal || 0,
+      ploComplete: metrics.ploStatementsComplete || 0,
+      mqfDomainComplete: metrics.ploWithMQF || 0,
+      taxonomyComplete: metrics.ploWithValidTaxonomy || 0,
+      phase2SDGCount: phase2SDGCount,
+      phase2SCCategoryCount: phase2SCCategoryCount,
+      mappingComplete: 0
+    }
+  };
+}
+
 function getFacultyReportApi_(faculty) {
   var user = getCurrentUser_();
   if (!user) throw new Error('Unauthorized');
