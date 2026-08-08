@@ -32,6 +32,25 @@ var task2HelpersSource = [
   'validateDuplicateCodes_', 'validatePLOParents_'
 ].map(function(name) { return extractFunction(name, mappingSource); }).join('\n');
 var task2Helpers = new Function(task2HelpersSource + '\nreturn { uniqueTrimmed_: uniqueTrimmed_, canonicalResearchTaxonomy_: canonicalResearchTaxonomy_, normalizeResearchPEO_: normalizeResearchPEO_, normalizeResearchPLO_: normalizeResearchPLO_, validateDuplicateCodes_: validateDuplicateCodes_, validatePLOParents_: validatePLOParents_ };')();
+
+// Snapshot fallback: researchSnapshotByTitle_ must build title->values from
+// getSheets() when getSheetsData() is unavailable (real Apps Script runtime).
+var snapshotFn = new Function(
+  extractFunction('researchSnapshotByTitle_', dataSource) + '\nreturn researchSnapshotByTitle_;'
+)();
+assert.strictEqual(snapshotFn({}), null, 'Snapshot must fail closed without sheets access');
+var getSheetsFake = {
+  getSheets: function() {
+    return [
+      {getSheetName: function() { return 'PR_PEORecords'; }, getDataRange: function() { return {getValues: function() { return [['PeoId', 'ProgrammeId'], ['p1', 'PR']]; }}; }},
+      {getSheetName: function() { return 'MQA/FA5581'; }, getDataRange: function() { return {getValues: function() { return [['PEO'], ['PEO1', 'Objective']]; }}; }}
+    ];
+  }
+};
+var getSheetsSnap = snapshotFn(getSheetsFake);
+assert.deepStrictEqual(getSheetsSnap['PR_PEORecords'][1], ['p1', 'PR'], 'Snapshot must capture PR_ sheet rows via getSheets');
+assert.deepStrictEqual(getSheetsSnap['MQA/FA5581'][0], ['PEO'], 'Snapshot must capture programme tab cells via getSheets');
+
 const serverResearchPredicate = new Function(
   extractFunction('isResearchProgramme_', programmeSource) + '\nreturn isResearchProgramme_;'
 )();

@@ -132,7 +132,7 @@ function getFastUniversityDashboardApi_() {
   programmes.forEach(function(programme) {
     var key = getResearchProgrammeKey_(programme);
     var effectiveKey = effectiveKeyMap[key] || key;
-    var reviewData = researchReviewDataFromRows_(effectiveKey, rowSets, references, programme.mqaCode, byTitle[programme.mqaCode]);
+    var reviewData = researchReviewDataFromRows_(effectiveKey, rowSets, references, programme.mqaCode, (byTitle || {})[programme.mqaCode]);
     var review = validateResearchProgramme_(reviewData);
     var metrics = review.metrics || {};
     var status = researchStatusFromMetrics_(metrics);

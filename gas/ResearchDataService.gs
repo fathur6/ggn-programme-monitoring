@@ -63,21 +63,45 @@ function getResearchProgrammeKey_(programme) {
 
 /**
  * Lock-free read snapshot support. A read-only request can be served from a
- * single getSheetsData() capture when every owned sheet exists, is seeded, and
+ * single capture of all sheets when every owned sheet exists, is seeded, and
  * needs no legacy migration; only then is the script lock unnecessary. The
  * snapshot shims expose only getName()/getDataRange() so write endpoints can
  * never be routed through them.
  */
 function researchSnapshotByTitle_(ss) {
   ss = ss || getSpreadsheet();
-  if (!ss || typeof ss.getSheetsData !== 'function') return null;
-  var all;
-  try { all = ss.getSheetsData(); } catch (e) { return null; }
+  if (!ss) return null;
   var byTitle = {};
-  for (var i = 0; i < all.length; i++) {
-    if (all[i] && all[i].title) byTitle[all[i].title] = all[i].data || [];
+  // Prefer the single-call getSheetsData() capture when the runtime exposes it.
+  if (typeof ss.getSheetsData === 'function') {
+    var all;
+    try { all = ss.getSheetsData(); } catch (e) { all = null; }
+    if (all && all.length) {
+      for (var i = 0; i < all.length; i++) {
+        if (all[i] && all[i].title) byTitle[all[i].title] = all[i].data || [];
+      }
+      return byTitle;
+    }
   }
-  return byTitle;
+  // Fallback: build the same title->values map from getSheets() so the
+  // snapshot (and therefore the tab-cell phase-2 reads) works in every
+  // runtime. This is still a single lock-free pass.
+  if (typeof ss.getSheets === 'function') {
+    try {
+      var sheets = ss.getSheets();
+      for (var j = 0; j < sheets.length; j++) {
+        var sheet = sheets[j];
+        if (!sheet || typeof sheet.getSheetName !== 'function') continue;
+        var title = sheet.getSheetName();
+        if (!title || typeof sheet.getDataRange !== 'function') continue;
+        var data;
+        try { data = sheet.getDataRange().getValues(); } catch (e2) { continue; }
+        byTitle[title] = data;
+      }
+      return byTitle;
+    } catch (e) { return null; }
+  }
+  return null;
 }
 
 function researchSheetShim_(title, values) {
