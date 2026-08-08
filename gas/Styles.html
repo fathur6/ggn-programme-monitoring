@@ -671,20 +671,21 @@
    .peo-sdg-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
    .peo-sdg-card-heading strong { color: #23304f; }
    .peo-sdg-card-heading p { margin: 4px 0 0; max-width: 420px; }
-   .peo-sdg-count { flex: 0 0 auto; padding: 4px 10px; border-radius: 99px; background: #eef1f6; color: #34415d; font-size: .75rem; font-weight: 700; white-space: nowrap; }
-   .peo-sdg-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-   .sdg-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 99px; background: #e7f0ff; color: #1556a6; font-size: .78rem; font-weight: 600; cursor: pointer; user-select: none; }
-   .sdg-chip:hover { background: #d4e4ff; }
-   .sdg-chip small { color: #4d80c4; font-weight: 400; }
-   .sdg-chip span { margin-left: 2px; color: #7a9ccb; font-weight: 700; }
-   .sdg-add-btn { padding: 5px 12px; border: 1px dashed #c4c7cf; border-radius: 99px; background: transparent; color: #68738a; font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; }
-   .sdg-add-btn:hover { border-color: var(--action-blue); color: var(--action-blue); }
-   .sdg-popover { margin-top: 10px; padding: 12px; border: 1px solid var(--hairline); border-radius: 12px; background: #fff; box-shadow: 0 12px 28px rgba(29,43,76,.12); }
-   .sdg-popover-list { display: grid; gap: 4px; max-height: 280px; overflow-y: auto; margin-bottom: 10px; }
-   .sdg-popover-option { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 7px; font-size: .82rem; cursor: pointer; }
-   .sdg-popover-option:hover { background: #f1f5ff; }
-   .sdg-popover-option input { flex: 0 0 auto; }
-   .sdg-popover .btn { margin-top: 4px; }
+  .peo-sdg-loading { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 99px; background: #eef1f6; color: #34415d; font-size: .78rem; font-weight: 600; white-space: nowrap; }
+  .peo-sdg-spinner { width: 13px; height: 13px; border: 2px solid #c4c7cf; border-top-color: var(--action-blue); border-radius: 50%; animation: peo-sdg-spin .7s linear infinite; }
+  @keyframes peo-sdg-spin { to { transform: rotate(360deg); } }
+  .peo-sdg-card.sdg-default { border-color: #cfe8d8; background: #f3fbf6; }
+  .peo-sdg-card.sdg-faculty { border-color: #bcd4f2; background: #f2f7ff; }
+  .peo-sdg-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .peo-sdg-card-heading strong { color: #23304f; }
+  .peo-sdg-card-heading p { margin: 4px 0 0; max-width: 420px; }
+  .sdg-badge { flex: 0 0 auto; padding: 4px 10px; border-radius: 99px; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+  .sdg-badge-default { background: #dcf0e4; color: #1f7a41; }
+  .sdg-badge-faculty { background: #d9e8ff; color: #1556a6; }
+  .peo-sdg-select-row { display: flex; align-items: center; gap: 8px; }
+  .peo-sdg-select { flex: 1 1 auto; max-width: 460px; padding: 8px 10px; border: 1px solid var(--hairline); border-radius: 10px; background: #fff; color: #23304f; font: inherit; font-size: .85rem; }
+  .peo-sdg-select:focus { outline: none; border-color: var(--action-blue); box-shadow: 0 0 0 3px rgba(21,86,166,.12); }
+  .peo-sdg-select:disabled { opacity: .6; cursor: wait; }
    .assessment-loading-panel { display: grid; gap: 18px; padding: 24px; border: 1px solid var(--hairline); border-radius: 14px; background: var(--canvas-muted); }
    .assessment-loading-heading { display: flex; align-items: flex-start; gap: 12px; color: var(--ink); }
    .assessment-loading-heading strong { display: block; font-size: 1rem; }

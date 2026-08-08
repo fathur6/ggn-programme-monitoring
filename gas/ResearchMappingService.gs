@@ -634,7 +634,14 @@ function getPEOMappingsApi_(programmeIdOrMqaCode) {
   requireProgrammeAccess_(programmeIdOrMqaCode, 'view-mappings');
   return withPreparedResearchReadContext_(programmeIdOrMqaCode, function(context) {
     var rows = researchRows_(context.sheets.PR_PEOMappings).filter(function(row) { return String(row[1]) === context.effectiveKey || String(row[1]) === context.key; });
-    return rows.map(peoMappingFromRow_);
+    var peos = researchRows_(context.sheets.PR_PEORecords).filter(function(row) { return String(row[1]) === context.effectiveKey; });
+    var defaultsByPeoId = ppsDefaultSdgByPeo_(context.programme, peos);
+    return rows.map(function(row) {
+      var mapping = peoMappingFromRow_(row);
+      mapping.defaultSdgId = defaultsByPeoId[String(mapping.peoId)] || '';
+      mapping.isFacultyAlignment = !!(mapping.sdgIds && mapping.sdgIds.length) && String(mapping.sdgIds[0]) !== mapping.defaultSdgId;
+      return mapping;
+    });
   });
 }
 

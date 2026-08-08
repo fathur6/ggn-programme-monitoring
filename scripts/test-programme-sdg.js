@@ -70,4 +70,22 @@ assert(/if\s*\(!getCurrentUser_\(\)\)/.test(source), 'API must check auth');
 assert(/ensureProgrammeSDGDefaults_/.test(source), 'Ensure helper is missing');
 assert(/getProgrammeSDGKey_/.test(source), 'Key helper is missing');
 
+// ppsDefaultSdgByPeo_ assigns the PPS defaults (one SDG per PEO) to the last 3 PEOs
+var programme = {faculty: 'FBK', mqaCode: 'MQA/FA5571'}; // defaults SDG4, SDG10, SDG17
+var peoRows = [
+  ['peo-1', 'key', 'PEO1', 'Statement one'],
+  ['peo-2', 'key', 'PEO2', 'Statement two'],
+  ['peo-3', 'key', 'PEO3', 'Statement three'],
+  ['peo-4', 'key', 'PEO4', 'Statement four']
+];
+var pps = ctx.ppsDefaultSdgByPeo_(programme, peoRows);
+assert.deepStrictEqual(Object.keys(pps).sort(), ['peo-2', 'peo-3', 'peo-4'], 'Only the last 3 PEOs receive a PPS default');
+assert.strictEqual(pps['peo-1'], undefined, 'PEO1 must not receive a default');
+['peo-2', 'peo-3', 'peo-4'].forEach(function(peoId) {
+  assert(/^SDG\d{1,2}$/.test(pps[peoId]), peoId + ' has an invalid default SDG: ' + pps[peoId]);
+});
+assert.deepStrictEqual(Object.keys(pps).length, 3, 'One SDG per PEO for the last 3 PEOs');
+assert.strictEqual(Object.keys(ctx.ppsDefaultSdgByPeo_({faculty: 'ZZZ'}, peoRows)).length, 0, 'Unknown programme must have no defaults');
+assert.strictEqual(Object.keys(ctx.ppsDefaultSdgByPeo_(programme, [])).length, 0, 'No PEOs must yield no defaults');
+
 console.log('Programme SDG tests passed.');

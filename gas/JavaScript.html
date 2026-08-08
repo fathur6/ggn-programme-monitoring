@@ -223,7 +223,7 @@ new Vue({
      ,researchPLOs: []
       ,researchMappings: {}
       ,peoSDGMappings: {}
-      ,sdgPopoverPEO: null
+      ,peoSdgLoading: false
       ,researchReferences: {MQF: [], TF: [], SDG: [], SC: []}
      ,researchCoverage: null
       ,researchReview: null
@@ -618,7 +618,7 @@ new Vue({
         this.researchPLOs = [];
         this.researchMappings = {};
         this.peoSDGMappings = {};
-        this.sdgPopoverPEO = null;
+        this.peoSdgLoading = false;
         this.researchReferences = {MQF: [], TF: [], SDG: [], SC: []};
         this.researchCoverage = null;
         this.researchReview = null;
@@ -902,28 +902,50 @@ new Vue({
     },
      loadPEOMappings: function() {
        var self = this; if (!this.currentProgramme) return;
+       this.peoSdgLoading = true;
        google.script.run.withSuccessHandler(function(mappings) {
          var result = {};
-         (mappings || []).forEach(function(m) { result[m.peoId] = {sdgIds: m.sdgIds || [], note: m.mappingNote || ''}; });
+         (mappings || []).forEach(function(m) {
+           result[m.peoId] = {sdgIds: m.sdgIds || [], note: m.mappingNote || '', defaultSdgId: m.defaultSdgId || '', isFacultyAlignment: !!(m.isFacultyAlignment)};
+         });
          self.peoSDGMappings = result;
+         self.peoSdgLoading = false;
+       }).withFailureHandler(function() {
+         self.peoSdgLoading = false;
+         if (typeof console !== 'undefined' && console.error) console.error('[PEO SDG] load failed');
        }).getPEOMappingsApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode);
      },
-     toggleSDGOnPEO: function(peoId, sdgId) {
+     peoSdgCurrent: function(peoId) {
+       var mapping = this.peoSDGMappings[peoId];
+       return mapping && mapping.sdgIds && mapping.sdgIds.length ? mapping.sdgIds[0] : '';
+     },
+     peoSdgClass: function(peoId) {
+       var mapping = this.peoSDGMappings[peoId];
+       if (mapping && mapping.isFacultyAlignment) return 'sdg-faculty';
+       if (mapping && mapping.defaultSdgId && mapping.sdgIds && mapping.sdgIds.length) return 'sdg-default';
+       return '';
+     },
+     setSDGOnPEO: function(peoId, sdgId) {
        var mapping = this.peoSDGMappings[peoId];
        if (!mapping) {
-         mapping = {sdgIds: [], note: ''};
+         mapping = {sdgIds: [], note: '', defaultSdgId: ''};
          this.$set(this.peoSDGMappings, peoId, mapping);
        }
-       var index = mapping.sdgIds.indexOf(sdgId);
-       if (index === -1) mapping.sdgIds.push(sdgId);
-       else mapping.sdgIds.splice(index, 1);
+       mapping.sdgIds = sdgId ? [sdgId] : [];
+       mapping.isFacultyAlignment = !!sdgId && sdgId !== mapping.defaultSdgId;
        this.savePEOSDGMapping(peoId);
      },
      savePEOSDGMapping: function(peoId) {
        var self = this; if (!this.currentProgramme) return;
        var mapping = this.peoSDGMappings[peoId] || {sdgIds: [], note: ''};
        google.script.run.withSuccessHandler(function(result) {
-         self.$set(self.peoSDGMappings, peoId, {sdgIds: result.sdgIds || [], note: result.mappingNote || ''});
+         var sdgIds = result.sdgIds || [];
+         self.$set(self.peoSDGMappings, peoId, {
+           sdgIds: sdgIds,
+           note: result.mappingNote || '',
+           defaultSdgId: (self.peoSDGMappings[peoId] && self.peoSDGMappings[peoId].defaultSdgId) || '',
+           isFacultyAlignment: !!(sdgIds.length && sdgIds[0] !== ((self.peoSDGMappings[peoId] && self.peoSDGMappings[peoId].defaultSdgId) || ''))
+         });
        }).savePEOMappingApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode, peoId, {sdgIds: mapping.sdgIds, mappingNote: mapping.note});
      },
      loadResearchCoverage: function() {

@@ -83,6 +83,24 @@ function getProgrammeSDGDefaults_(programme, mqaCode) {
   return Array.isArray(defaults) ? defaults.slice() : [];
 }
 
+/**
+ * PPS-default SDG per PEO, derived exactly as the seeder does: the programme's
+ * PPS defaults are matched (one SDG per PEO) onto the last three PEOs.
+ * Returns a map peoId -> defaultSdgId for the PEOs that receive a default.
+ */
+function ppsDefaultSdgByPeo_(programme, peoRows) {
+  var result = {};
+  var defaults = getProgrammeSDGDefaults_(programme);
+  if (!defaults.length || !peoRows || !peoRows.length) return result;
+  var last3 = peoRows.slice(-3);
+  var assignments = matchSDGsToPEOs_(last3, defaults);
+  for (var i = 0; i < assignments.length; i++) {
+    var assignment = assignments[i] || {};
+    if (assignment.sdgId) result[String(last3[i][0])] = assignment.sdgId;
+  }
+  return result;
+}
+
 function ensureProgrammeSDGDefaults_(key, programme, sheets) {
   var profileRows = researchRows_(sheets.PR_ProgrammeProfile);
   var index = profileRows.findIndex(function(row) { return String(row[0]) === key; });
