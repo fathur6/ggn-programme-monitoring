@@ -251,15 +251,17 @@
                    <span class="plo-sc-statement" :title="plo.statement">{{ plo.statement }}</span>
                  </div>
                  <div class="plo-sc-row-right">
-                   <div class="plo-sc-field">
-                     <span class="plo-sc-field-label">SC</span>
-                     <select class="plo-sc-select" :value="(researchMapping(plo).scIds || [])[0] || ''" @change="selectSCForPLO(plo, $event.target.value)">
-                       <option value="">Select SC</option>
-                       <optgroup v-for="category in scCategories" :key="category.name" :label="category.name">
-                         <option v-for="reference in researchSCOptions(category)" :key="reference.code" :value="reference.code">{{ reference.code }} — {{ reference.title }}</option>
-                       </optgroup>
-                     </select>
-                   </div>
+                    <div class="plo-sc-field" :class="ploScClass(plo)">
+                      <span class="plo-sc-field-label">SC<span v-if="researchEndpointLoading && researchEndpointLoading.mappings" class="plo-sc-spinner" role="status" aria-live="polite"></span></span>
+                      <select class="plo-sc-select" :disabled="researchEndpointLoading && researchEndpointLoading.mappings" :value="ploScCurrent(plo)" @change="selectSCForPLO(plo, $event.target.value)">
+                        <option value="">Select SC</option>
+                        <optgroup v-for="category in scCategories" :key="category.name" :label="category.name">
+                          <option v-for="reference in researchSCOptions(category)" :key="reference.code" :value="reference.code">{{ reference.code }} — {{ reference.title }}</option>
+                        </optgroup>
+                      </select>
+                      <span v-if="ploScClass(plo) === 'plo-sc-faculty'" class="plo-sc-badge plo-sc-badge-faculty">Faculty Alignment</span>
+                      <span v-else-if="ploScClass(plo) === 'plo-sc-default'" class="plo-sc-badge plo-sc-badge-default">PPS default</span>
+                    </div>
                    <div class="plo-sc-field">
                      <span class="plo-sc-field-label">TF</span>
                      <span class="tf-badge" :title="'Derived from MQF domains'">{{ (researchMapping(plo).derivedTFIds || [])[0] || '—' }}</span>

@@ -51,6 +51,31 @@ var getSheetsSnap = snapshotFn(getSheetsFake);
 assert.deepStrictEqual(getSheetsSnap['PR_PEORecords'][1], ['p1', 'PR'], 'Snapshot must capture PR_ sheet rows via getSheets');
 assert.deepStrictEqual(getSheetsSnap['MQA/FA5581'][0], ['PEO'], 'Snapshot must capture programme tab cells via getSheets');
 
+// SC PPS default + faculty-alignment annotation on PLO mappings
+var sdgSource = fs.readFileSync('gas/ProgrammeSDGService.gs', 'utf8');
+var annotateSC = new Function(
+  'PLO_MQF_TO_SC_', 'PLO_SC_KEYWORD_MAP_',
+  extractFunction('matchPLOToSC_', sdgSource) + '\n' +
+  extractFunction('annotatePLOSCDefaults_', mappingSource) + '\nreturn annotatePLOSCDefaults_;'
+)({MQF1: 'SC1', MQF2: 'SC3', MQF3a: 'SC5'}, {});
+var scPlos = [
+  {ploId: 'l1', programmeId: 'P', mqfDomains: ['MQF2'], statement: 'Generic outcome one'},
+  {ploId: 'l2', programmeId: 'P', mqfDomains: ['MQF3a'], statement: 'Generic outcome two'},
+  {ploId: 'l3', programmeId: 'P', mqfDomains: ['MQF1'], statement: 'Generic outcome three'}
+];
+var scMappings = [
+  {ploId: 'l1', scIds: ['SC3'], tfIds: ['TF2'], derivedTFIds: ['TF2']},
+  {ploId: 'l2', scIds: ['SC1'], tfIds: ['TF3'], derivedTFIds: ['TF3']}
+];
+var annotated = annotateSC(scPlos, scMappings);
+assert.strictEqual(annotated[0].defaultScId, 'SC3', 'PLO1 default SC (MQF2) mismatch');
+assert.strictEqual(annotated[0].isFacultyAlignment, false, 'PLO1 SC matches default');
+assert.strictEqual(annotated[1].defaultScId, 'SC5', 'PLO2 default SC (MQF3a) mismatch');
+assert.strictEqual(annotated[1].isFacultyAlignment, true, 'PLO2 SC SC1 differs from default SC5');
+assert.strictEqual(annotated[2].defaultScId, 'SC1', 'PLO3 default SC (MQF1) mismatch');
+assert.strictEqual(annotated[2].isFacultyAlignment, false, 'PLO3 has no saved SC');
+assert.strictEqual(annotated.length, 3, 'One annotated mapping per PLO');
+
 const serverResearchPredicate = new Function(
   extractFunction('isResearchProgramme_', programmeSource) + '\nreturn isResearchProgramme_;'
 )();

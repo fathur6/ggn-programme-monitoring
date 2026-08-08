@@ -891,10 +891,14 @@ new Vue({
            tfIds: mapping.tfIds || [],
            mappingNote: mapping.mappingNote || ''
         };
-        google.script.run.withSuccessHandler(function(saved) {
-          self.$set(self.researchMappings, savedPLO.ploId, saved);
-          self.researchMutationComplete('PLO fields and mapping saved.');
-         }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOMappingApi(self.currentProgramme.programmeId || self.currentProgramme.mqaCode, savedPLO.ploId, mappingPayload);
+         google.script.run.withSuccessHandler(function(saved) {
+           var previous = self.researchMappings[savedPLO.ploId] || {};
+           var defaultScId = previous.defaultScId || '';
+           saved.defaultScId = defaultScId;
+           saved.isFacultyAlignment = !!(saved.scIds && saved.scIds.length) && String(saved.scIds[0]) !== defaultScId;
+           self.$set(self.researchMappings, savedPLO.ploId, saved);
+           self.researchMutationComplete('PLO fields and mapping saved.');
+          }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOMappingApi(self.currentProgramme.programmeId || self.currentProgramme.mqaCode, savedPLO.ploId, mappingPayload);
        }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchPLOsApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode, ploPayload);
     },
     researchMutationComplete: function(message) {
@@ -1076,11 +1080,21 @@ new Vue({
        if (key === 'tfIds') this.$set(mapping, 'derivedTFIds', code ? [code] : []);
        this.markResearchDirty();
      },
-     selectSCForPLO: function(plo, scId) {
-       var mapping = this.researchMapping(plo);
-       this.$set(mapping, 'scIds', scId ? [scId] : []);
-       this.markResearchDirty();
-     },
+      selectSCForPLO: function(plo, scId) {
+        var mapping = this.researchMapping(plo);
+        this.$set(mapping, 'scIds', scId ? [scId] : []);
+        this.$set(mapping, 'isFacultyAlignment', !!scId && scId !== (mapping.defaultScId || ''));
+        this.markResearchDirty();
+      },
+      ploScCurrent: function(plo) {
+        return (this.researchMapping(plo).scIds || [])[0] || '';
+      },
+      ploScClass: function(plo) {
+        var mapping = this.researchMapping(plo);
+        if (mapping.isFacultyAlignment) return 'plo-sc-faculty';
+        if (mapping.defaultScId && mapping.scIds && mapping.scIds.length) return 'plo-sc-default';
+        return '';
+      },
     leaveResearchWorkspace: function() { this.setView('programmes'); },
     loadPendingDeletions: function() {
       var self = this;

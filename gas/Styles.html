@@ -747,8 +747,15 @@
   .plo-sc-statement { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; color: var(--slate); font-size: 14px; line-height: 1.5; }
   .plo-sc-row-right { flex: 0 0 auto; display: flex; gap: 16px; align-items: center; }
   .plo-sc-field { display: flex; flex-direction: column; gap: 3px; }
-  .plo-sc-field-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .plo-sc-field-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; display: inline-flex; align-items: center; gap: 6px; }
   .plo-sc-select { min-width: 220px; padding: 7px 10px; font-size: 13px; }
+  .plo-sc-select:disabled { opacity: .6; cursor: wait; }
+  .plo-sc-spinner { width: 11px; height: 11px; border: 2px solid #c4c7cf; border-top-color: var(--action-blue); border-radius: 50%; animation: peo-sdg-spin .7s linear infinite; }
+  .plo-sc-field.plo-sc-default { padding: 8px 10px; border: 1px solid #cfe8d8; border-radius: 12px; background: #f3fbf6; }
+  .plo-sc-field.plo-sc-faculty { padding: 8px 10px; border: 1px solid #bcd4f2; border-radius: 12px; background: #f2f7ff; }
+  .plo-sc-badge { margin-top: 2px; align-self: flex-start; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .plo-sc-badge-default { background: #dcf0e4; color: #1f7a41; }
+  .plo-sc-badge-faculty { background: #d9e8ff; color: #1556a6; }
   .tf-badge { display: inline-flex; align-items: center; padding: 7px 14px; border-radius: 99px; background: var(--canvas-muted); color: var(--slate); font-size: 13px; font-weight: 600; cursor: help; }
   .plo-sc-parent { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-light); }
   @media (max-width: 760px) {

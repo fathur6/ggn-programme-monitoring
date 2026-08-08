@@ -587,17 +587,38 @@ function getResearchPLOsApi_(programmeIdOrMqaCode) {
   });
 }
 
+/** Adds the PPS-default SC (matchPLOToSC_) and faculty-alignment flag to each PLO mapping. */
+function annotatePLOSCDefaults_(plos, mappings) {
+  var mappedByPloId = {};
+  (mappings || []).forEach(function(m) { mappedByPloId[String(m.ploId)] = m; });
+  return (plos || []).map(function(plo) {
+    var mapping = mappedByPloId[String(plo.ploId)] || {
+      ploId: plo.ploId, programmeId: plo.programmeId, scIds: [], tfIds: [], derivedTFIds: [], derivedLabel: '', mappingNote: '', updatedAt: '', updatedBy: ''
+    };
+    mapping.defaultScId = matchPLOToSC_({mqfDomains: plo.mqfDomains || [], statement: plo.statement || ''});
+    mapping.isFacultyAlignment = !!(mapping.scIds && mapping.scIds.length) && String(mapping.scIds[0]) !== mapping.defaultScId;
+    return mapping;
+  });
+}
+
 function getResearchMappingsApi_(programmeIdOrMqaCode) {
   requireProgrammeAccess_(programmeIdOrMqaCode, 'view-mappings');
   return withPreparedResearchReadContext_(programmeIdOrMqaCode, function(context) {
     var plos = researchRows_(context.sheets.PR_PLORecords).filter(function(row) { return String(row[1]) === context.effectiveKey; }).map(ploFromRow_);
     var references = context.references;
+    var legacy;
     if (!plos.length) {
-      var legacy = readLegacyResearchDetail_(getSpreadsheet(), context.programme.mqaCode);
-      return legacy ? legacyResearchMappings_(legacy, references) : [];
+      legacy = readLegacyResearchDetail_(getSpreadsheet(), context.programme.mqaCode);
+      if (!legacy) return [];
+      plos = legacy.plos;
     }
     var rows = researchRows_(context.sheets.PR_PLOMappings).filter(function(row) { return String(row[1]) === context.effectiveKey; });
-    return researchMappingsFromRows_(rows, plos, references);
+    var mapped = legacy
+      ? legacyResearchMappings_(legacy, references)
+      : researchMappingsFromRows_(rows, plos, references);
+    // One mapping per PLO (mapped or not) so the UI can show the PPS-default
+    // SC and distinguish faculty alignment for every learning outcome.
+    return annotatePLOSCDefaults_(plos, mapped);
   });
 }
 
