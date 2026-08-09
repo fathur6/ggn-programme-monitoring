@@ -147,4 +147,34 @@ assert(/parentPEO/.test(ploSave) && /statement/.test(ploSave) && /mqfDomains/.te
 assert(/taxonomy/.test(ploSave) && !/rationale/.test(ploSave), 'PLO API payload includes an obsolete rationale field');
 assert(/researchMutationComplete/.test(ploSave) && /refreshResearchDerived/.test(methodSource('researchMutationComplete')), 'PLO save does not refresh server-derived state');
 
+// Lazy endpoints (mappings/coverage/review) must be accepted by
+// applyResearchEndpointResult so their data applies and loading clears
+// (regression: SC spinner spun forever + SC never loaded).
+const applyResult = new Function('return ' + propertyFunctionSource('applyResearchEndpointResult'))();
+const lazyState = {
+  researchLoadGeneration: 1,
+  researchLoadProgrammeId: 'P',
+  researchEndpointNames: ['profile', 'peos', 'plos', 'references'],
+  researchLazyEndpoints: ['mappings', 'coverage', 'review'],
+  researchEndpointLoading: {profile: false, peos: false, plos: false, references: false, mappings: true, coverage: true, review: true},
+  researchEndpointErrors: {profile: null, peos: null, plos: null, references: null, mappings: null, coverage: null, review: null},
+  researchMappings: {},
+  researchPEOSDGMappings: {},
+  assessmentEndpointNames: [],
+  assessmentEndpointLoading: {},
+  assessmentEndpointErrors: {},
+  isCurrentResearchRead: function(token) {
+    return token && token.programmeId === this.researchLoadProgrammeId && token.generation === this.researchLoadGeneration;
+  },
+  $set: function(obj, key, value) { obj[key] = value; }
+};
+const applied = applyResult.call(lazyState, 'mappings', {
+  ok: true,
+  data: [{ploId: 'l1', scIds: ['SC3'], tfIds: ['TF2'], defaultScId: 'SC3', isFacultyAlignment: false}]
+}, {generation: 1, programmeId: 'P'}, 'research');
+assert.strictEqual(applied, true, 'Lazy mappings result must be accepted');
+assert.deepStrictEqual(lazyState.researchMappings['l1'].scIds, ['SC3'], 'SC mapping must populate');
+assert.strictEqual(lazyState.researchMappings['l1'].defaultScId, 'SC3', 'defaultScId must be retained');
+assert.strictEqual(lazyState.researchEndpointLoading.mappings, false, 'Mappings loading flag must clear so the spinner stops');
+
 console.log('Research mapping client regression checks passed.');

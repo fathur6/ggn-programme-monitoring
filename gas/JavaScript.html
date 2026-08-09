@@ -669,8 +669,8 @@ new Vue({
      applyResearchEndpointResult: function(endpoint, envelope, token, kind) {
        if (!this.isCurrentResearchRead(token)) return false;
        var assessment = kind === 'assessment';
-       var names = assessment ? this.assessmentEndpointNames : this.researchEndpointNames;
-       if (names.indexOf(endpoint) === -1) return false;
+        var names = assessment ? this.assessmentEndpointNames : this.researchEndpointNames.concat(this.researchLazyEndpoints || []);
+        if (names.indexOf(endpoint) === -1) return false;
        var errors = assessment ? this.assessmentEndpointErrors : this.researchEndpointErrors;
        var loading = assessment ? this.assessmentEndpointLoading : this.researchEndpointLoading;
        if (envelope && envelope.ok) {
