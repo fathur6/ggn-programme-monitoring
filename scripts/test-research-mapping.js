@@ -511,4 +511,22 @@ assert.strictEqual(rowsFor(ownerKey, 'PR_PEORecords').length, 1, 'Owner key must
 var sharedFrom = rowSets.PR_ProgrammeProfile.filter(function(r) { return String(r[0]) === inheritorKey; })[0][12];
 assert.strictEqual(sharedFrom, ownerKey, 'Profile must record SharedFromProgrammeId for the inheritor');
 
+// Programme PDF HTML builder covers profile, PEO(+SDG), PLO(+MQF/taxonomy/SC/TF)
+var pdfServiceSource = fs.readFileSync('gas/ProgrammePdfService.gs', 'utf8');
+var buildPdfHtml = new Function(extractFunction('buildProgrammePdfHtml_', pdfServiceSource) + '\nreturn buildProgrammePdfHtml_;')();
+var pdfHtml = buildPdfHtml({name: 'Doctor of Philosophy', mqaCode: 'MQA/FA7492', progCode: 'PE5002', level: 'Doctorate'}, {
+  peos: [{peoId: 'p1', code: 'PEO1', statement: 'Objective one'}],
+  plos: [{ploId: 'l1', code: 'PLO1', statement: 'Outcome one', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
+  peoSDGMappings: [{peoId: 'p1', sdgIds: ['SDG13']}],
+  mappings: [{ploId: 'l1', scIds: ['SC3'], tfIds: ['TF2'], derivedTFIds: ['TF2']}]
+});
+assert(pdfHtml.indexOf('Doctor of Philosophy') !== -1, 'PDF HTML missing programme name');
+assert(pdfHtml.indexOf('MQA/FA7492') !== -1, 'PDF HTML missing MQA code');
+assert(pdfHtml.indexOf('PEO1') !== -1 && pdfHtml.indexOf('Objective one') !== -1, 'PDF HTML missing PEO');
+assert(pdfHtml.indexOf('SDG13') !== -1, 'PDF HTML missing SDG');
+assert(pdfHtml.indexOf('PLO1') !== -1 && pdfHtml.indexOf('Outcome one') !== -1, 'PDF HTML missing PLO');
+assert(pdfHtml.indexOf('MQF2') !== -1 && pdfHtml.indexOf('C4') !== -1, 'PDF HTML missing MQF/taxonomy');
+assert(pdfHtml.indexOf('SC3') !== -1 && pdfHtml.indexOf('TF2') !== -1, 'PDF HTML missing SC/TF');
+assert(pdfHtml.indexOf('<table>') !== -1, 'PDF HTML must contain tables');
+
 console.log('Research mapping tests passed.');

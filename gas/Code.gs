@@ -221,6 +221,7 @@ function writePhase2MappingApi(programmeId) { return writePhase2MappingApi_(prog
 function writeAllPhase2MappingsApi() { return writeAllPhase2MappingsApi_(); }
 function writeAutoValuesToDetailApi(programmeId) { return writeAutoValuesToDetailApi_(programmeId); }
 function writeAllAutoValuesToDetailApi() { return writeAllAutoValuesToDetailApi_(); }
+function generateProgrammePdfApi(programmeId) { return generateProgrammePdfApi_(programmeId); }
 
 function setSharedMQAOwnerApi(mqaCode, newOwnerProgrammeId) { return setSharedMQAOwnerApi_(mqaCode, newOwnerProgrammeId); }
 

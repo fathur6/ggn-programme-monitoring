@@ -224,6 +224,7 @@ new Vue({
       ,researchMappings: {}
       ,peoSDGMappings: {}
       ,peoSdgLoading: false
+      ,pdfGenerating: false
       ,researchReferences: {MQF: [], TF: [], SDG: [], SC: []}
      ,researchCoverage: null
       ,researchReview: null
@@ -849,9 +850,25 @@ new Vue({
          }, {});
        }).withFailureHandler(function() {}).getPEOMappingsApi(programmeId);
        },
-       saveResearchProfile: function() {
-      var self = this; this.researchSaveState = 'saving'; this.researchError = null;
+    saveResearchProfile: function() {
+       var self = this; this.researchSaveState = 'saving'; this.researchError = null;
        google.script.run.withSuccessHandler(function(profile) { self.researchProfile = profile; self.researchMutationComplete('Programme profile saved.'); }).withFailureHandler(function(e) { self.researchFailure(e); }).saveResearchProfileApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode, this.researchProfile);
+    },
+    downloadProgrammePdf: function() {
+      var self = this; if (!this.currentProgramme) return;
+      this.pdfGenerating = true;
+      google.script.run.withSuccessHandler(function(result) {
+        self.pdfGenerating = false;
+        if (result && result.downloadUrl) {
+          if (typeof window !== 'undefined' && window.open) window.open(result.downloadUrl, '_blank');
+          self.showToast('PDF program telah dijana dan disimpan ke folder.');
+        } else {
+          self.showToast('PDF tidak dapat dijana.');
+        }
+      }).withFailureHandler(function(e) {
+        self.pdfGenerating = false;
+        self.researchFailure(e);
+      }).generateProgrammePdfApi(this.currentProgramme.programmeId || this.currentProgramme.mqaCode);
     },
     saveResearchPEOs: function() {
       var self = this; this.researchSaveState = 'saving'; this.researchError = null;
