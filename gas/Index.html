@@ -1,291 +1,907 @@
 <!DOCTYPE html>
-<html>
+<html lang="ms">
 <head>
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-  <?!= include('Styles'); ?>
+  <style>
+    :root {
+      --primary: #17171c;
+      --ink: #212121;
+      --canvas: #ffffff;
+      --soft-stone: #eeece7;
+      --deep-green: #004d40;
+      --coral: #ff7759;
+      --action-blue: #1863dc;
+      --muted: #93939f;
+      --slate: #75758a;
+      --hairline: #d9d9dd;
+      --border-light: #e5e7eb;
+      --body-muted: #616161;
+      --error: #b30000;
+      --canvas-muted: #f3f5f6;
+      --action-green: #177245;
+      --action-amber: #a56700;
+      --action-red: #b23b3b;
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 22px;
+      --radius-pill: 32px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Arial', 'ui-sans-serif', system-ui, sans-serif;
+      font-size: 16px; line-height: 1.5; color: var(--ink); background: var(--canvas); margin: 0;
+      overflow-x: hidden;
+    }
+    .min-h-screen { min-height: 100vh; background: var(--soft-stone); }
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 24px 48px; }
+
+    /* Header */
+    .header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 20px; background: var(--canvas);
+      border-bottom: 1px solid var(--border-light);
+      position: sticky; top: 0; z-index: 20;
+    }
+    .brand-lockup { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+    .brand-logo { width: 44px; height: 44px; border-radius: var(--radius-sm); object-fit: cover; }
+    .header-title { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 18px; font-weight: 500; margin: 0; line-height: 1.2; }
+    .header-subtitle { font-size: 12px; color: var(--muted); margin-top: -2px; }
+
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 1.6px; color: var(--action-blue); text-transform: uppercase; margin: 0 0 4px; }
+    .page-title { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 30px; font-weight: 600; letter-spacing: -0.4px; margin: 0; }
+    .page-lede { color: var(--body-muted); font-size: 14px; margin: 6px 0 0; max-width: 640px; }
+    .page-intro { padding: 26px 0 18px; }
+    .compact-intro { padding-top: 18px; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; line-height: 1.71;
+      border: none; cursor: pointer; text-decoration: none; transition: opacity 0.15s ease;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: var(--primary); color: var(--canvas); border-radius: var(--radius-pill); padding: 10px 20px; }
+    .btn-outline {
+      background: transparent; color: var(--primary); border: 1px solid var(--hairline);
+      border-radius: var(--radius-pill); padding: 10px 20px;
+    }
+    .btn-sm { padding: 6px 14px; font-size: 13px; }
+
+    .search-input {
+      width: 100%; padding: 14px 22px; font-size: 15px; margin: 14px 0 8px;
+      border: 1px solid var(--hairline); border-radius: 9999px;
+      background: var(--canvas); color: var(--ink);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .search-input:focus { outline: 2px solid var(--action-blue); outline-offset: 1px; }
+
+    /* Grouping */
+    .level-header {
+      display: flex; align-items: baseline; gap: 12px;
+      padding: 34px 0 16px;
+    }
+    .level-header h2 { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 24px; font-weight: 700; margin: 0; color: var(--ink); }
+    .level-header .level-count { font-size: 14px; color: var(--muted); }
+
+    .faculty-accordion {
+      display: flex; align-items: center; gap: 14px; width: 100%; min-height: 54px;
+      padding: 0 16px; margin: 10px 0 0; cursor: pointer;
+      background: var(--canvas); border: 1px solid var(--border-light); border-radius: 12px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .faculty-accordion:hover { border-color: var(--action-blue); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); }
+    .faculty-label {
+      display: inline-block; width: fit-content; max-width: 100%;
+      color: var(--canvas); background: var(--deep-green); border-radius: 9999px;
+      padding: 6px 20px; font-size: 13px; font-weight: 600; letter-spacing: 0.2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .faculty-accordion-count { color: var(--muted); font-size: 13px; white-space: nowrap; }
+    .faculty-chevron { margin-left: auto; color: var(--muted); font-size: 13px; }
+    .faculty-programmes { padding: 10px 0 0 16px; margin: 0 0 4px 8px; border-left: 2px solid var(--border-light); }
+
+    .card-soft {
+      background: var(--canvas); border: 1px solid var(--border-light);
+      border-radius: var(--radius-md); padding: 16px 20px;
+    }
+
+    .programme-card { padding: 16px 20px; margin-bottom: 8px; transition: box-shadow 0.15s ease, border-color 0.15s ease; }
+    .programme-card:hover { border-color: var(--action-blue); box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
+    .cursor-pointer { cursor: pointer; }
+    .font-medium { font-weight: 500; }
+    .text-sm { font-size: 13px; }
+    .text-muted { color: var(--muted); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .mt-1 { margin-top: 4px; }
+    .mb-2 { margin-bottom: 8px; }
+    .mb-4 { margin-bottom: 16px; }
+    .mb-6 { margin-bottom: 24px; }
+    .flex { display: flex; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .flex-1 { flex: 1; }
+    .gap-3 { gap: 12px; }
+
+    .alert { padding: 12px 16px; border-radius: var(--radius-sm); font-size: 14px; margin: 12px 0; }
+    .alert-error { background: #fdecea; color: var(--error); border: 1px solid #f5c6c2; }
+
+    .loading-panel { text-align: center; padding: 60px 20px; color: var(--slate); font-size: 14px; }
+
+    /* Detail view */
+    .detail-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 20px 0 16px; flex-wrap: wrap;
+    }
+    .detail-title { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 26px; font-weight: 500; margin: 0; }
+    .detail-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .detail-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .detail-meta .code-cell {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--slate);
+      background: var(--canvas-muted); border: 1px solid var(--border-light);
+      border-radius: var(--radius-pill); padding: 3px 10px;
+    }
+
+    .section-card {
+      background: var(--canvas); border: 1px solid var(--border-light); border-radius: var(--radius-md);
+      padding: 20px; margin-bottom: 20px;
+    }
+    .section-heading {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px;
+    }
+    .section-heading h3 { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 18px; font-weight: 500; margin: 0; }
+    .section-heading .count { font-size: 12px; color: var(--muted); }
+    .section-heading-actions { display: flex; align-items: center; gap: 12px; }
+
+    .table-wrap { overflow-x: auto; }
+    table.detail-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    table.detail-table th, table.detail-table td {
+      text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-light); vertical-align: top;
+    }
+    table.detail-table th {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase;
+      color: var(--slate); background: var(--canvas-muted);
+    }
+    table.detail-table th:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+    table.detail-table th:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+    table.detail-table td code {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--primary);
+    }
+    .mqf-list { display: flex; flex-wrap: wrap; gap: 5px; }
+    .action-cell { width: 48px; text-align: right !important; white-space: nowrap; }
+    .icon-button {
+      display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+      border: 1px solid var(--hairline); border-radius: 50%; background: var(--canvas); color: var(--slate);
+      cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .icon-button:hover { color: var(--action-blue); border-color: var(--action-blue); background: #f4f7ff; }
+    .icon-button:focus-visible, .modal-close:focus-visible { outline: 2px solid var(--action-blue); outline-offset: 2px; }
+    .icon-button svg { width: 16px; height: 16px; }
+    .empty-note { color: var(--muted); font-size: 14px; padding: 12px 0; text-align: center; }
+
+    .state-chip {
+      display: inline-block; font-size: 12px; font-weight: 500; padding: 3px 10px;
+      border-radius: var(--radius-pill); background: var(--canvas-muted); color: var(--slate);
+      border: 1px solid var(--border-light); white-space: nowrap;
+    }
+    .alert-success { background: #edf8f1; color: var(--action-green); border: 1px solid #bce2c9; }
+
+    /* Edit modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+      padding: 20px; background: rgba(23, 23, 28, 0.48);
+    }
+    .modal {
+      width: min(680px, 100%); max-height: calc(100vh - 40px); overflow: auto;
+      background: var(--canvas); border-radius: var(--radius-lg); box-shadow: 0 24px 64px rgba(0, 0, 0, 0.24);
+    }
+    .modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 22px 24px 12px; }
+    .modal-title { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 21px; font-weight: 500; margin: 0; }
+    .modal-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .modal-close { border: none; background: transparent; color: var(--slate); font-size: 24px; line-height: 1; cursor: pointer; padding: 2px 5px; }
+    .modal-body { padding: 8px 24px 24px; }
+    .form-field { display: grid; gap: 6px; margin-top: 16px; }
+    .form-field label { font-size: 12px; font-weight: 600; letter-spacing: 0.7px; color: var(--slate); text-transform: uppercase; }
+    .form-field textarea, .form-field select, .form-field input {
+      width: 100%; font: inherit; color: var(--ink); background: var(--canvas); border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm); padding: 10px 12px;
+    }
+    .form-field input { font-size: 16px; }
+    .form-field textarea { min-height: 128px; line-height: 1.55; resize: vertical; }
+    .form-field textarea:focus, .form-field select:focus, .form-field input:focus { outline: 2px solid var(--action-blue); outline-offset: 1px; }
+    .form-help { color: var(--muted); font-size: 12px; margin: 0; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .container { padding: 0 14px 40px; }
+      .page-title { font-size: 24px; }
+      .detail-title { font-size: 21px; }
+      .header { padding: 10px 14px; }
+      .header-title { font-size: 16px; }
+      .level-header h2 { font-size: 20px; }
+      .faculty-accordion { gap: 8px; }
+      .faculty-label { max-width: calc(100% - 120px); font-size: 12px; padding: 6px 14px; }
+      .faculty-accordion-count { font-size: 12px; }
+    }
+  </style>
 </head>
 <body>
-  <div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-title">MQF 2.0</div>
-    <div class="loading-subtitle">Program Information System</div>
-    <div class="loading-spinner"></div>
-    <div class="loading-bar-track"><div class="loading-bar-fill" id="loadingBarFill"></div></div>
-    <div class="loading-text">Loading programme data...</div>
-  </div>
-
-  <div id="login-page" class="login-page" style="display:none;">
-    <div class="login-card">
-      <div class="login-title">MQF 2.0</div>
-      <div class="login-subtitle">Program Information System</div>
-      <div id="login-error" class="login-error"></div>
-      <div id="oauth-error" style="display:none"><?= oauthError ?></div>
-      <div id="session-email" style="display:none"><?= sessionEmail ?></div>
-      <div id="session-user" style="display:none"><?= sessionUser ?></div>
-      <div id="connection-error" style="display:none"><?= connectionError ?></div>
-      <div id="oauth-url" style="display:none"><?= oauthUrl ?></div>
-      <a id="sign-in-with-google" class="btn btn-primary" href="<?= oauthUrl ?>" target="_top" style="margin-top:16px;width:100%;text-align:center;text-decoration:none">Sign in with Google</a>
-    </div>
-  </div>
-
-  <div id="app" class="min-h-screen" style="background:var(--soft-stone)">
-    <header class="header app-header">
+  <div id="app" class="min-h-screen" @keydown.esc="closeEdit">
+    <header class="header">
       <div class="brand-lockup">
         <img src="https://i.postimg.cc/L6bJj0H1/GS-logo-color-cropped.png" alt="Graduate School" class="brand-logo">
-       <div><h1 class="header-title">MQF 2.0 (2024)</h1><div class="header-subtitle">Programme governance workspace</div></div>
+        <div>
+          <h1 class="header-title">MQF 2.0 (2024)</h1>
+          <div class="header-subtitle">Programme information</div>
+        </div>
       </div>
-      <nav class="app-nav" aria-label="Primary navigation">
-        <button class="nav-button" :class="{active: currentView === 'dashboard'}" @click="setView('dashboard')">Overview</button>
-        <button class="nav-button" :class="{active: currentView === 'programmes' || currentView === 'detail'}" @click="setView('programmes')">Programmes</button>
-        <button v-if="user.role === 'Admin'" class="nav-button" :class="{active: currentView === 'admin'}" @click="setView('admin')">Admin</button>
-      </nav>
-      <div class="identity-chip"><span class="status-dot"></span><span>{{ user.name || user.email }}</span><span class="role-label">{{ user.role === 'Admin' ? 'Graduate School' : user.faculty }}</span></div>
     </header>
 
-    <main class="container" style="padding-top:24px;padding-bottom:48px;">
-      <section v-if="currentView === 'dashboard'" class="dashboard-view">
-        <div class="page-intro">
-           <div><p class="eyebrow">{{ user.role === 'Admin' ? 'UNIVERSITY CONTROL CENTER' : 'FACULTY WORKSPACE' }}</p><h2 class="page-title">Programme readiness</h2><p class="page-lede">A current view of completion across {{ dashboard ? dashboard.facultyCount : 'the university' }} faculties. Deadline: {{ dashboard ? dashboard.academicDeadline : '23 July 2026, 11:59:59 PM MYT' }}.</p></div>
-          <button class="btn btn-primary" @click="setView('programmes')">Open programme workspace</button>
-        </div>
-        <div v-if="dashboardError" class="alert alert-error">{{ dashboardError }}</div>
-         <div v-if="dashboardLoading" class="loading-panel" role="status" aria-live="polite"><strong>Loading readiness data...</strong><div class="dashboard-loading-bar-row"><div class="dashboard-loading-track"><span :style="{width: dashboardLoadingProgress + '%'}"></span></div><span class="dashboard-loading-spinner" aria-label="Loading" role="img"></span></div><div class="dashboard-loading-status">{{ dashboardLoadingStatus }}</div></div>
-        <template v-if="dashboard && !dashboardLoading">
-           <div class="metric-grid">
-             <article class="metric-card metric-card-strong"><span class="metric-label">Programmes tracked</span><strong>{{ dashboard.programmeCount }}</strong><span class="metric-note">{{ dashboard.facultyCount }} faculties</span></article>
-             <article class="metric-card"><span class="metric-label">Phase 1 complete</span><strong>{{ dashboard.totals.phase1CompleteCount }}</strong><span class="metric-note status-good">of {{ dashboard.programmeCount }} programmes</span></article>
-             <article class="metric-card"><span class="metric-label">Phase 2 complete</span><strong>{{ dashboard.totals.phase2CompleteCount }}</strong><span class="metric-note status-good">of {{ dashboard.programmeCount }} programmes</span></article>
-             <article class="metric-card"><span class="metric-label">Overall completion</span><strong>{{ completionPercent(dashboard.totals) }}%</strong><span class="metric-note">Phase 1 + Phase 2 average</span></article>
-           </div>
-           <section class="readiness-criteria" aria-labelledby="readiness-criteria-title"><div class="criteria-heading"><div><p class="eyebrow">TWO-PHASE PROGRESSION</p><h3 id="readiness-criteria-title" class="section-title">What does each phase measure?</h3></div><span class="criteria-rule">Overall = (Phase 1 + Phase 2) ÷ 2</span></div><div class="phase-summary-grid"><article><span class="phase-badge">PHASE 1</span><div><strong>Programme foundation</strong><small>PEO and PLO descriptions, MQF domains, and taxonomy must all be complete.</small></div></article><article><span class="phase-badge phase-badge-blue">PHASE 2</span><div><strong>Impact mapping</strong><small>Six equally weighted items: 3 SDGs plus one SC from each competency category.</small></div></article></div><p class="criteria-note"><span class="lock-mark">&#9679;</span> Faculty percentages are averaged across the faculty’s programmes. Phase 2 is calculated as completed mapping items divided by <strong>6 × programme count</strong>.</p></section>
-           <section class="dashboard-section card-bordered">
-            <div class="section-heading-row"><div><p class="eyebrow">REPORTING PERIOD {{ dashboard.reportingPeriod }}</p><h3 class="section-title">Faculty readiness</h3></div><span class="last-updated">Updated {{ dashboard.generatedAt }}</span></div>
-               <div class="table-wrap"><table class="readiness-table"><caption class="sr-only">Faculty phase progression by postgraduate research programme</caption><thead><tr><th scope="col">Faculty<small>Academic unit</small></th><th scope="col" title="Total postgraduate research programmes">Programmes<small>Total</small></th><th scope="col" title="Phase 1 structure-complete programmes">Phase 1 (Structure)<small>Foundation</small></th><th scope="col" title="Phase 2 mapping progress across six items per programme">Phase 2 (Mapping)<small>6 items/programme</small></th><th scope="col">Completion<small>Phase average</small></th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
-                 <tbody><template v-for="faculty in dashboard.faculties"><tr :key="faculty.faculty"><td><strong>{{ facultyDisplayName(faculty) }}</strong><small>{{ faculty.faculty }}</small></td><td>{{ faculty.programmeCount }}</td><td class="status-good">{{ faculty.phase1CompleteCount }}/{{ faculty.programmeCount }}<small>{{ phase1Percent(faculty) }}%</small></td><td class="status-good">{{ faculty.phase2CompletedItems }}/{{ faculty.phase2TotalItems }}<small>{{ phase2Percent(faculty) }}%</small></td><td><div class="progress-track"><span :style="{width: completionPercent(faculty) + '%'}"></span></div><small>{{ completionPercent(faculty) }}%</small></td><td><button type="button" class="table-action" :class="{'restricted-action': user.role !== 'Admin'}" :title="user.role === 'Admin' ? (expandedFaculty === faculty.faculty ? 'Hide faculty details' : 'Show faculty details') : 'Only accessible by admin'" :aria-label="user.role === 'Admin' ? (expandedFaculty === faculty.faculty ? 'Hide ' + faculty.faculty + ' details' : 'Show ' + faculty.faculty + ' details') : 'Review ' + faculty.faculty + ' (only accessible by admin)'" @click="toggleFaculty(faculty.faculty)">{{ expandedFaculty === faculty.faculty ? 'Hide' : 'Details' }}</button></td></tr>
-                 <tr v-if="expandedFaculty === faculty.faculty" :key="faculty.faculty + '-details'" class="faculty-detail-row"><td colspan="7"><div class="faculty-detail-panel"><div class="faculty-detail-heading"><div><strong>Programme readiness detail</strong><small>{{ facultyDisplayName(faculty) }} · {{ faculty.programmeCount }} programmes</small></div><span v-if="facultyDetailsLoading[faculty.faculty]" class="detail-loading">Loading details...</span></div><div v-if="facultyDetailsError[faculty.faculty]" class="detail-error">{{ facultyDetailsError[faculty.faculty] }}</div><div v-else-if="facultyDetails[faculty.faculty]" class="detail-table-wrap"><table class="faculty-programme-table"><thead><tr><th>Programme</th><th>MQA code</th><th>Phase 1 (Structure)</th><th>Phase 2 (Mapping)</th><th>PEO</th><th>PLO</th><th>MQF domain</th><th>Taxonomy</th><th>Review</th></tr></thead><tbody><tr v-for="programme in facultyDetails[faculty.faculty].programmes" :key="programme.mqaCode"><td><strong>{{ programme.name }}</strong><small>{{ programme.progCode }} · {{ programme.level }}</small></td><td class="code-cell">{{ programme.mqaCode }}</td><td><span class="state-chip" :class="statusTone(programme.status.phase1Complete ? 'Complete' : 'In progress')">{{ programme.status.phase1Complete ? 'Complete' : 'In progress' }}</span></td><td><span class="state-chip" :class="statusTone(programme.status.phase2Complete ? 'Complete' : 'In progress')">{{ programme.status.phase2CompletedItems }}/{{ programme.status.phase2TotalItems }}</span><small>{{ programme.status.phase2Percent }}%</small></td><td><span class="state-chip" :class="statusTone(programme.status.peoState)">{{ programme.status.peoState }}</span><small>{{ programme.status.counts.peoComplete }}/{{ programme.status.counts.peos }} statements</small></td><td><span class="state-chip" :class="statusTone(programme.status.ploState)">{{ programme.status.ploState }}</span><small>{{ programme.status.counts.ploComplete }}/{{ programme.status.counts.plos }} statements</small></td><td><span class="state-chip" :class="statusTone(programme.status.mqfDomainState)">{{ programme.status.mqfDomainState }}</span><small>{{ programme.status.counts.mqfDomainComplete }}/{{ programme.status.counts.plos }} PLOs</small></td><td><span class="state-chip" :class="statusTone(programme.status.taxonomyState)">{{ programme.status.taxonomyState }}</span><small>{{ programme.status.counts.taxonomyComplete }}/{{ programme.status.counts.plos }} PLOs</small></td><td><span class="state-chip" :class="statusTone(programme.status.reviewState)">{{ programme.status.reviewState }}</span><small>{{ programme.status.overdue ? 'Past deadline' : 'Within deadline' }}</small></td></tr></tbody></table></div></div></td></tr>
-                </template></tbody><tfoot><tr><th scope="row">University total<small>{{ dashboard.facultyCount }} faculties</small></th><td>{{ dashboard.totals.programmeCount }}</td><td class="status-good">{{ dashboard.totals.phase1CompleteCount }}/{{ dashboard.totals.programmeCount }}<small>{{ phase1Percent(dashboard.totals) }}%</small></td><td class="status-good">{{ dashboard.totals.phase2CompletedItems }}/{{ dashboard.totals.phase2TotalItems }}<small>{{ phase2Percent(dashboard.totals) }}%</small></td><td><div class="progress-track"><span :style="{width: completionPercent(dashboard.totals) + '%'}"></span></div><small>{{ completionPercent(dashboard.totals) }}%</small></td><td><span class="total-label">All faculties</span></td></tr></tfoot>
-               </table></div><div class="table-legend" aria-label="Phase progression definitions"><span><i class="legend-swatch legend-good"></i><strong>Phase 1 (Structure)</strong> foundation completion</span><span><i class="legend-swatch legend-blue"></i><strong>Phase 2 (Mapping)</strong> six mapping items per programme</span><span><i class="legend-swatch legend-ink"></i><strong>Completion</strong> average of both phases</span></div>
-           </section>
-           <p class="privacy-note"><span class="lock-mark">&#9679;</span> This overview shows status signals only. Programme detail is available within your authorized scope.</p>
-           <section v-if="user.role !== 'Admin'" class="card-bordered access-request-card">
-             <p class="eyebrow">NEED TO COLLABORATE?</p>
-             <h3 class="section-title">Request temporary access</h3>
-             <p class="text-sm text-muted">Ask Graduate School administration for a specific programme or faculty. Approved access expires automatically after seven days.</p>
-             <div class="request-fields">
-               <input v-model="accessRequest.targetFaculty" placeholder="Target faculty code" aria-label="Target faculty code">
-               <input v-model="accessRequest.mqaCode" placeholder="Research MQA code (required)" aria-label="Research MQA code (required)">
-               <input v-model="accessRequest.reason" placeholder="Reason for access" aria-label="Reason for access">
-               <button class="btn btn-primary" @click="createAccessRequest">Send request</button>
-             </div>
-             <div v-if="myAccessRequests.length" class="request-list">
-               <div v-for="request in myAccessRequests" :key="request.requestId"><strong>{{ request.status }}</strong> · {{ request.mqaCode || request.targetFaculty }}<span v-if="request.expiresAt"> · expires {{ request.expiresAt }}</span></div>
-             </div>
-           </section>
-         </template>
+    <div v-if="login.open" class="modal-backdrop">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+        <header class="modal-header">
+          <div>
+            <h2 id="login-title" class="modal-title">Log Masuk</h2>
+            <p class="modal-subtitle">Sila sahkan maklumat anda berdasarkan direktori PPS.</p>
+          </div>
+        </header>
+        <form class="modal-body" @submit.prevent="submitLogin">
+          <div v-if="login.error" class="alert alert-error">{{ login.error }}</div>
+          <div class="form-field">
+            <label for="login-faculty">Fakulti</label>
+            <select id="login-faculty" v-model="login.faculty" @change="resetLoginUser" :disabled="login.loading || login.submitting" required>
+              <option value="" disabled>Pilih fakulti</option>
+              <option v-for="entry in login.directory" :key="entry.faculty" :value="entry.faculty">{{ entry.faculty }}</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="login-user">Pengguna</label>
+            <select id="login-user" v-model="login.user" :disabled="!login.faculty || login.loading || login.submitting" required>
+              <option value="" disabled>Pilih pengguna</option>
+              <option v-for="user in loginUsers" :key="user.name" :value="user.name">{{ user.name }}</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="login-username">Username emel</label>
+            <input id="login-username" v-model.trim="login.username" type="text" autocomplete="username" placeholder="Tanpa @unisza.edu.my" :disabled="login.loading || login.submitting" required>
+            <p class="form-help">Masukkan username emel sahaja, tanpa @unisza.edu.my.</p>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" @click="clearLogin" :disabled="login.submitting">Batal</button>
+            <button type="submit" class="btn btn-primary" :disabled="login.loading || login.submitting">{{ login.submitting ? 'Mengesahkan...' : 'Log Masuk' }}</button>
+          </div>
+        </form>
       </section>
+    </div>
 
-      <div v-if="currentView === 'admin'" class="dashboard-view"><div class="page-intro"><div><p class="eyebrow">GRADUATE SCHOOL ADMINISTRATION</p><h2 class="page-title">Governance operations</h2><p class="page-lede">Use the programme workspace to drill into any authorized programme. Approval queues and governance controls remain below.</p></div><button class="btn btn-primary" @click="setView('programmes')">Browse all programmes</button></div></div>
-
-      <div v-if="currentView === 'programmes'">
-        <div class="page-intro compact-intro"><div><p class="eyebrow">PROGRAMME DIRECTORY</p><h2 class="page-title">Your programmes</h2><p class="page-lede">Select a programme to continue its MQF 2.0 completion workflow.</p></div></div>
-        <div class="flex items-center gap-3 mb-4 directory-toolbar">
-          <input v-model="search" type="text" placeholder="Search programmes..." class="search-input">
+    <main class="container">
+      <!-- LIST VIEW -->
+      <template v-if="currentView === 'list'">
+        <div class="page-intro compact-intro">
+          <p class="eyebrow">PROGRAMME DIRECTORY</p>
+          <h2 class="page-title">Your programmes</h2>
+          <p class="page-lede">Select a programme to continue its MQF 2.0 completion workflow.</p>
+          <input v-model="search" type="text" placeholder="Search programmes..." class="search-input" aria-label="Search programmes">
         </div>
 
-        <div v-if="loading" class="text-center py-8 text-muted">Loading...</div>
+        <div v-if="loading" class="loading-panel">Loading programmes...</div>
         <div v-if="error" class="alert alert-error">{{ error }}</div>
 
-        <div v-if="!loading && !error && groupedProgrammes.length === 0" class="text-center py-8 text-muted">No programmes found.</div>
+        <div v-if="!loading && !error && grouped.length === 0" class="loading-panel">No programmes found.</div>
 
-        <div v-for="group in groupedProgrammes" :key="group.key" class="mb-6">
-          <div class="faculty-header">
-            <h2 class="faculty-title">{{ group.title }}</h2>
-            <span class="faculty-count">{{ group.count }} programmes</span>
-          </div>
-
-          <div v-for="sub in group.subGroups" :key="sub.key" class="ml-3 mb-2">
-            <div @click="toggleSub(sub)" class="subgroup-header" style="cursor:pointer">
-              <span class="level-badge" :class="sub.cssClass || ''">{{ sub.title }}</span>
-              <span class="text-muted" style="font-size:13px">{{ sub.count }} programmes</span>
-              <span style="color:var(--muted);margin-left:auto;font-size:12px">{{ subgroupOpen[sub.key] ? '▲' : '▼' }}</span>
+        <template v-for="level in grouped">
+          <div :key="'level-' + level.key" class="mb-6">
+            <div class="level-header">
+              <h2>{{ level.title }}</h2>
+              <span class="level-count">{{ level.count }} programmes</span>
             </div>
-            <div v-show="subgroupOpen[sub.key]" class="subgroup-content">
-               <div v-for="p in sub.programmes" :key="p.programmeId || p.mqaCode" @click="openProgramme(p)" class="card-soft cursor-pointer programme-card">
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <div class="font-medium">{{ p.name }}
-                      <span v-if="healStatus[p.mqaCode] === 'Needs attention'" class="heal-badge" title="Needs attention — missing parentPEO or taxonomy">⚠</span>
-                      <span v-if="healStatus[p.mqaCode] === 'Complete'" class="heal-badge heal-ok" title="All PLOs complete">✓</span>
+
+            <div v-for="faculty in level.faculties" :key="faculty.key">
+              <div class="faculty-accordion" :aria-expanded="open[faculty.key]" role="button" tabindex="0" @click="toggleFaculty(faculty)" @keydown.enter="toggleFaculty(faculty)">
+                <span class="faculty-label">{{ faculty.title }}</span>
+                <span class="faculty-accordion-count">{{ faculty.count }} programmes</span>
+                <span class="faculty-chevron">{{ open[faculty.key] ? '▲' : '▼' }}</span>
+              </div>
+              <div v-show="open[faculty.key]" class="faculty-programmes">
+                <div v-for="p in faculty.programmes" :key="p.mqaCode" @click="openProgramme(p)" class="card-soft cursor-pointer programme-card">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="font-medium">{{ p.name }}</div>
+                      <div class="text-sm text-muted mt-1">{{ p.mqaCode }} · {{ p.progCode || '—' }}</div>
                     </div>
-                    <div class="text-sm text-muted mt-1">{{ p.mqaCode }} · {{ p.progCode }} · {{ p.level }}</div>
+                    <span class="state-chip">{{ p.level }}</span>
                   </div>
                 </div>
               </div>
             </div>
-             </div>
+          </div>
+        </template>
+      </template>
+
+      <!-- DETAIL VIEW -->
+      <template v-else-if="currentView === 'detail'">
+        <div class="detail-head">
+          <div>
+            <p class="eyebrow">PROGRAMME DETAIL</p>
+            <h2 class="detail-title">{{ detail.name }}</h2>
+            <div class="detail-meta">
+              <span class="code-cell">{{ detail.mqaCode }}</span>
+              <span v-if="detail.progCode" class="code-cell">{{ detail.progCode }}</span>
+              <span class="code-cell">{{ detail.level }}</span>
+              <span class="code-cell">{{ detail.facultyFull || detail.faculty }}</span>
             </div>
-        </div>
-
-      <div v-if="user.role === 'Admin'" class="mb-6">
-        <div class="flex justify-end mb-3">
-          <button @click="prepareSheets" class="btn btn-success text-sm" :disabled="preparing">{{ preparing ? 'Preparing...' : '⚙ Prepare Spreadsheet' }}</button>
-        </div>
-        <div class="card-bordered">
-          <div @click="pendingOpen = !pendingOpen" class="accordion-header">
-            <h3 class="section-title" style="margin-bottom:0">Pending Approvals ({{ pendingDeletions.length }})</h3>
-            <span style="color:var(--muted);font-size:14px">{{ pendingOpen ? '▲' : '▼' }}</span>
           </div>
-          <div v-show="pendingOpen" class="mt-4">
-             <h4 class="text-sm text-muted font-medium mb-2 mt-4">File Delete Requests</h4>
-            <div v-if="pendingDeletions.length === 0" class="text-sm text-muted">No pending file delete requests.</div>
-             <div v-for="(d, idx) in pendingDeletions" :key="'d'+idx" class="card-bordered" style="padding:12px;margin-bottom:8px;">
-               <div class="text-sm"><strong>{{ d.fileName }}</strong> — {{ d.programme }} by {{ d.requestedBy }}</div>
-              <div class="mt-1" v-if="d.status === 'Pending'">
-                 <button @click="approveDelete(d.requestId)" class="btn btn-success text-sm">Approve</button>
-              </div>
-               <div class="text-xs mt-1" v-else><span class="text-action-blue">{{ d.status }}</span></div>
-             </div>
-
-             <div class="admin-grid">
-               <section>
-                 <h4 class="text-sm text-muted font-medium mb-2">Access requests</h4>
-                 <div v-if="accessRequests.length === 0" class="text-sm text-muted">No access requests.</div>
-                 <div v-for="request in accessRequests" :key="request.requestId" class="admin-row">
-                   <div><strong>{{ request.requesterFaculty }}</strong> &rarr; {{ request.mqaCode || request.targetFaculty }}<small>{{ request.reason }}</small></div>
-                   <span class="status-chip">{{ request.status }}</span>
-                   <div v-if="request.status === 'Pending'">
-                     <button @click="decideAccess(request, 'Approved')" class="table-action">Approve</button>
-                     <button @click="decideAccess(request, 'Rejected')" class="table-action">Reject</button>
-                   </div>
-                   <button v-if="request.status === 'Approved'" @click="revokeAccess(request)" class="table-action">Revoke</button>
-                 </div>
-               </section>
-               <section>
-                 <h4 class="text-sm text-muted font-medium mb-2">Governance queue</h4>
-                 <div v-if="governanceItems.length === 0" class="text-sm text-muted">No revisions, audits, or central requests.</div>
-                 <div v-for="item in governanceItems" :key="item.itemId" class="admin-row">
-                   <div><strong>{{ item.type }}</strong> · {{ item.title || item.mqaCode || 'University item' }}<small>{{ item.status }}<span v-if="item.dueDate"> · due {{ item.dueDate }}</span></small></div>
-                 </div>
-            </section>
-        </div>
+          <div class="detail-actions">
+            <button class="btn btn-primary" @click="generatePdf" :disabled="pdf.generating">{{ pdf.generating ? 'Generating PDF…' : 'Download PDF' }}</button>
+            <button class="btn btn-outline" @click="backToList()">← Back to programmes</button>
+          </div>
         </div>
 
-       </div>
-      </div>
+        <div v-if="detailError" class="alert alert-error">{{ detailError }}</div>
+        <div v-if="notice" class="alert alert-success">{{ notice }}</div>
 
-        <div v-if="currentView === 'admin' && facultyUserDirectory.length" class="dashboard-section card-bordered faculty-user-directory">
-         <div class="section-heading-row"><div><p class="eyebrow">CONTACT DIRECTORY</p><h3 class="section-title">Faculty contacts</h3></div></div>
-         <div v-for="group in facultyUserDirectory" :key="group.code" class="faculty-contact-group">
-           <h4 class="faculty-contact-title">{{ group.name }}<span v-if="group.name.indexOf('(' + group.code + ')') === -1"> ({{ group.code }})</span></h4>
-           <ol class="faculty-contact-list"><li v-for="person in group.users" :key="group.code + person.name + person.position"><strong>{{ person.name }}</strong><span class="faculty-contact-position">| {{ person.position }}</span></li></ol>
-         </div>
-       </div>
-
-         <div v-if="currentView === 'detail' && currentProgramme" class="research-workspace">
-          <button type="button" class="back-link" @click="leaveResearchWorkspace">&larr; Back to list</button>
-           <section class="programme-context">
-            <div><p class="eyebrow">POSTGRADUATE RESEARCH PROGRAMME</p><h2 class="section-title">{{ currentProgramme.name }}</h2><p class="text-sm text-muted">{{ currentProgramme.mqaCode }} · {{ currentProgramme.progCode }} · Postgraduate by Research</p></div>
-            <div class="context-status"><span class="status-chip">{{ researchStatus }}</span><span class="save-state" :class="researchSaveState">{{ researchLoading ? 'Loading workspace...' : (researchWorkspaceFatalError || researchError) ? 'Action required' : researchDirty ? 'Unsaved changes' : researchSaveState === 'saved' ? 'All changes saved' : 'Ready to edit' }}</span></div>
-         </section>
-           <nav class="research-tabs" role="tablist" aria-label="Programme workspace">
-             <button id="research-information-tab" type="button" role="tab" aria-controls="research-information-panel" :aria-selected="researchCategory === 'information'" :tabindex="researchCategory === 'information' ? 0 : -1" :class="{active: researchCategory === 'information'}" @click="researchCategory = 'information'" @keydown="handleResearchCategoryKeydown">Maklumat Program</button>
-              <button id="research-mapping-tab" type="button" role="tab" aria-controls="research-mapping-panel" :aria-selected="researchCategory === 'mapping'" :tabindex="researchCategory === 'mapping' ? 0 : -1" :class="{active: researchCategory === 'mapping'}" @click="researchCategory = 'mapping'" @keydown="handleResearchCategoryKeydown">Pemetaan Program</button>
-              <button id="research-assessment-tab" type="button" role="tab" aria-controls="research-assessment-panel" :aria-selected="researchCategory === 'assessment'" :tabindex="researchCategory === 'assessment' ? 0 : -1" :class="{active: researchCategory === 'assessment'}" @click="researchCategory = 'assessment'" @keydown="handleResearchCategoryKeydown">Pemetaan Pentaksiran</button>
-         </nav>
-
-           <div v-if="researchLoading" class="loading-panel research-loading-panel" role="status" aria-live="polite"><div>Loading research workspace...</div><span class="research-loading-spinner" aria-label="Loading" role="img"></span></div>
-           <div v-if="researchWorkspaceFatalError" class="alert alert-error" role="alert" aria-live="assertive"><strong>Research workspace could not be loaded.</strong><div>{{ researchWorkspaceFatalError }}</div><button type="button" class="btn btn-secondary mt-3" @click="loadResearchWorkspace">Retry research workspace</button></div>
-           <div v-if="assessmentWorkspaceFatalError" class="alert alert-error" role="alert" aria-live="assertive"><strong>Assessment workspace could not be loaded.</strong><div>{{ assessmentWorkspaceFatalError }}</div><button type="button" class="btn btn-secondary mt-3" @click="loadAssessmentWorkspace">Retry assessment workspace</button></div>
-            <div v-for="endpoint in assessmentEndpointNames" :key="'assessment-endpoint-' + endpoint" v-if="assessmentEndpointErrors[endpoint]" class="alert alert-error" role="alert" aria-live="polite"><strong>Assessment {{ endpoint }} failed</strong> <span class="font-mono">(assessment/{{ endpoint }})</span><div>{{ assessmentEndpointErrors[endpoint].message }}</div><button v-if="assessmentEndpointErrors[endpoint].retryable" type="button" class="btn btn-secondary mt-3" :disabled="assessmentEndpointLoading[endpoint]" :aria-label="'Retry assessment ' + endpoint + ' endpoint'" @click="retryAssessmentEndpoint(endpoint)">{{ assessmentEndpointLoading[endpoint] ? 'Retrying...' : 'Retry assessment ' + endpoint }}</button></div>
-           <div v-if="researchError" class="alert alert-error" role="alert"><strong>Research action needs attention.</strong><div>{{ researchError }}</div><div class="text-sm mt-2">Review the editable records and try the action again.</div></div>
-           <div v-for="endpoint in researchEndpointNames" :key="'research-endpoint-' + endpoint" v-if="researchEndpointErrors[endpoint]" class="alert alert-error" role="alert" aria-live="polite"><strong>{{ researchEndpointLabel(endpoint) }} failed</strong> <span class="font-mono">({{ endpoint }})</span><div>{{ researchEndpointErrors[endpoint].message }}</div><button v-if="researchEndpointErrors[endpoint].retryable" type="button" class="btn btn-secondary mt-3" :disabled="researchEndpointLoading[endpoint]" :aria-label="'Retry ' + researchEndpointLabel(endpoint) + ' endpoint'" @click="retryResearchEndpoint(endpoint)">{{ researchEndpointLoading[endpoint] ? 'Retrying...' : 'Retry ' + endpoint }}</button></div>
-          <section v-if="researchCategory === 'information'" id="research-information-panel" class="research-panel" role="tabpanel" aria-labelledby="research-information-tab">
-            <div class="panel-heading"><div><p class="eyebrow">PROGRAMME PROFILE</p><h3 class="section-title">Programme Information</h3></div><div class="heading-actions"><button type="button" class="btn btn-secondary" @click="downloadProgrammePdf" :disabled="pdfGenerating">{{ pdfGenerating ? 'Menjana PDF...' : 'Download PDF' }}</button><button class="btn btn-primary" @click="saveResearchProfile" :disabled="researchSaveState === 'saving'">Save profile</button></div></div>
-            <div v-if="researchEndpointLoading.profile && !researchProfile" class="loading-panel" role="status" aria-live="polite">Loading profile...</div><div v-else-if="researchEndpointErrors.profile && !researchProfile" class="alert alert-error" role="alert">Programme profile is unavailable until the <span class="font-mono">profile</span> endpoint succeeds.</div><div v-else-if="researchProfile" class="profile-grid">
-             <div class="form-group"><label for="profile-mqa">MQA code</label><input id="profile-mqa" :value="researchProfile.mqaCode" disabled></div>
-             <div class="form-group"><label for="profile-name">Programme name</label><input id="profile-name" v-model="researchProfile.programmeName" disabled></div>
-             <div class="form-group"><label for="profile-faculty">Faculty or centre</label><input id="profile-faculty" v-model="researchProfile.facultyOrCentre" disabled></div>
-             <div class="form-group"><label for="profile-level">Study level</label><input id="profile-level" v-model="researchProfile.studyLevel" disabled></div>
-              <div class="form-group"><label for="profile-mode">Study mode</label><input id="profile-mode" value="Postgraduate by Research" disabled></div>
-               <div class="form-group"><label for="profile-status">Mapping status</label><input id="profile-status" :value="researchProfile.mappingStatus" disabled></div>
-               <div class="form-group"><label for="profile-programme-id">Programme ID</label><input id="profile-programme-id" :value="researchProfile.programmeId" disabled></div>
-               <div class="form-group"><label for="profile-created">Created</label><input id="profile-created" value="(MQA Document)" disabled></div>
-               <div class="form-group"><label for="profile-updated">Last updated</label><input id="profile-updated" :value="formatResearchDate(researchProfile.updatedAt)" disabled></div>
-              <div class="form-group"><label for="profile-updated-by">Last updated by</label><input id="profile-updated-by" :value="researchProfile.updatedBy" disabled></div>
-           </div>
-             <div class="research-subsection"><div class="panel-heading"><div><p class="eyebrow">PROGRAMME EDUCATIONAL OBJECTIVES</p><h3 class="section-title">PEO parent records</h3></div><div><button type="button" class="btn btn-success" @click="addResearchPEO">+ Add PEO</button><button type="button" class="btn btn-primary ml-2" @click="saveResearchPEOs">Save PEOs</button></div></div><div v-if="researchEndpointLoading.peos && !researchPEOs.length" class="loading-panel" role="status" aria-live="polite">Loading PEO records...</div><div v-else-if="researchEndpointErrors.peos && !researchPEOs.length" class="alert alert-error" role="alert">PEO records are unavailable from the <span class="font-mono">peos</span> endpoint.</div>
-             <article v-for="(peo, index) in researchPEOs" :key="peo.peoId || peo.code" class="peo-card"><div class="record-row"><input class="code-input" v-model="peo.code" aria-label="PEO code" @input="markResearchDirty"><button class="btn btn-danger text-xs" @click="researchPEOs.splice(index, 1); markResearchDirty()">Remove</button></div><label class="field-label" :for="'peo-statement-' + index">PEO statement <span class="required-mark">Required</span></label><textarea :id="'peo-statement-' + index" v-model="peo.statement" class="expand-textarea" @input="markResearchDirty"></textarea></article>
-           </div>
-              <div class="research-subsection"><div class="panel-heading"><div><p class="eyebrow">PROGRAMME LEARNING OUTCOMES</p><h3 class="section-title">PLO records</h3></div><div><button type="button" class="btn btn-success" @click="addResearchPLO">+ Add PLO</button><button type="button" class="btn btn-primary ml-2" @click="saveResearchPLOs">Save PLOs</button></div></div><p class="text-sm text-muted">Define each outcome here. Mapping selections are managed in Pemetaan Program.</p>
-               <div v-if="researchPLOs.length" class="plo-record-list"><article v-for="(plo, index) in researchPLOs" :key="plo.ploId || plo.code" class="plo-record-card"><div class="record-row"><input class="code-input" v-model="plo.code" aria-label="PLO code" @input="markResearchDirty"><label class="plo-parent-field"><span>Parent PEO</span><select class="plo-parent-select" v-model="plo.parentPEO" aria-label="Parent PEO" @change="markResearchDirty"><option value="">Select parent PEO</option><option v-for="peo in researchPEOs" :value="peo.code">{{ peo.code }}</option></select></label><button type="button" class="btn btn-danger text-xs" @click="removeResearchPLO(index)">Remove</button></div><label class="field-label" :for="'plo-statement-' + (plo.ploId || plo.code)">PLO statement</label><textarea :id="'plo-statement-' + (plo.ploId || plo.code)" v-model="plo.statement" class="expand-textarea" @input="markResearchDirty"></textarea><div class="plo-record-meta"><label><strong>MQF:</strong><select :value="(plo.mqfDomains || [])[0] || ''" aria-label="MQF domain" @change="setResearchPLOMQF(plo, $event.target.value)"><option value="">Select MQF domain</option><option v-for="domain in researchReferences.MQF" :value="domain.code">{{ domain.code }}</option></select></label><label><strong>Taxonomy:</strong><select v-model="plo.taxonomy" aria-label="Taxonomy" @change="markResearchDirty"><option value="">Select Taxonomy</option><option v-for="level in taxonomyOptions" :value="level.id">{{ level.id }} — {{ level.label }}</option></select></label></div></article></div><div v-else class="text-sm text-muted">No PLO records found in this programme detail tab.</div></div>
-            </section>
-            <section v-if="researchCategory === 'assessment'" id="research-assessment-panel" class="research-panel assessment-panel" role="tabpanel" aria-labelledby="research-assessment-tab">
-              <div class="panel-heading"><div><p class="eyebrow">ASSESSMENT MAPPING</p><h3 class="section-title">Pemetaan Pentaksiran</h3><p class="text-sm text-muted">Align assessment instruments to MQF, taxonomy, derived TF, and one Primary SC without changing the PPS baseline.</p></div><div><button type="button" class="btn btn-primary" @click="saveAssessmentMapping" :disabled="assessmentSaveState === 'saving'">Save alignment</button><button type="button" class="btn btn-secondary ml-2" @click="resetAssessmentMapping">Reset to PPS defaults</button></div></div>
-              <div class="assessment-legend" aria-label="Assessment provenance legend"><span class="provenance-pill provenance-default"><i class="legend-swatch"></i>PPS default</span><span class="provenance-pill provenance-faculty"><i class="legend-swatch"></i>Faculty alignment</span><span class="provenance-pill provenance-derived"><i class="legend-swatch"></i>Derived TF</span><span class="text-sm text-muted">Source status is shown on every instrument.</span></div>
-              <nav class="assessment-subnav" role="tablist" aria-label="Assessment instruments"><button id="assessment-progress-tab" type="button" role="tab" :aria-selected="assessmentPage === 'progress'" :tabindex="assessmentPage === 'progress' ? 0 : -1" :class="{active: assessmentPage === 'progress'}" @click="assessmentPage = 'progress'" @keydown="handleAssessmentPageKeydown">Laporan Kemajuan</button><button id="assessment-viva-tab" type="button" role="tab" :aria-selected="assessmentPage === 'viva'" :tabindex="assessmentPage === 'viva' ? 0 : -1" :class="{active: assessmentPage === 'viva'}" @click="assessmentPage = 'viva'" @keydown="handleAssessmentPageKeydown">Peperiksaan Lisan</button><button id="assessment-thesis-tab" type="button" role="tab" :aria-selected="assessmentPage === 'thesis'" :tabindex="assessmentPage === 'thesis' ? 0 : -1" :class="{active: assessmentPage === 'thesis'}" @click="assessmentPage = 'thesis'" @keydown="handleAssessmentPageKeydown">Pemeriksaan Tesis</button></nav>
-              <div v-if="assessmentReview && assessmentPageIssues.length" class="alert alert-error" role="alert"><strong>Assessment validation alerts</strong><div v-for="issue in assessmentPageIssues" :key="issue.code + issue.instrumentCode + issue.itemCode">{{ issue.message }}</div></div>
-              <div v-if="assessmentEndpointLoading.mapping" class="assessment-loading-panel" role="status" aria-live="polite"><div class="assessment-loading-heading"><span class="assessment-loading-spinner" aria-hidden="true"></span><div><strong>Loading assessment instruments...</strong><p>Retrieving the three assessment instruments. Please wait.</p></div></div><div class="assessment-loading-list" aria-hidden="true"><div class="assessment-loading-item"><span class="assessment-loading-spinner"></span><span>Laporan Kemajuan</span></div><div class="assessment-loading-item"><span class="assessment-loading-spinner"></span><span>Peperiksaan Lisan</span></div><div class="assessment-loading-item"><span class="assessment-loading-spinner"></span><span>Pemeriksaan Tesis</span></div></div></div><div v-else-if="assessmentMapping && assessmentMapping.length" class="assessment-instrument-list">
-                <article v-for="instrument in assessmentVisibleInstruments" :key="instrument.instrumentId" class="assessment-instrument-card">
-                  <div class="assessment-instrument-heading"><div><p class="eyebrow">{{ instrument.studyLevels.join(' / ') }}</p><h4>{{ instrument.name }}</h4><p class="text-sm text-muted">{{ instrument.description }}</p><span class="source-badge">{{ instrument.sourceStatus }} source · {{ instrument.sourceDocument }}</span></div><div class="assessment-total"><strong>{{ instrument.totals.calculated }} / {{ instrument.totals.expected }}</strong><span>marks</span></div></div>
-                   <div v-if="!instrument.categories.length" class="assessment-item-list-fallback"><article v-for="item in instrument.items" :key="item.itemId" class="assessment-item-card"><div class="assessment-item-heading"><div><strong>{{ item.code }} · {{ item.title }}</strong><p>{{ item.descriptor }}</p><p v-if="item.descriptorMs" class="descriptor-ms">{{ item.descriptorMs }}</p></div><span class="mark-badge">/{{ item.maxMarks }}</span></div><div class="assessment-item-grid"><div class="assessment-picker-field"><span>MQF</span><details class="assessment-mqf-picker"><summary><span>{{ assessmentMQFLabel(item) }}</span><span class="assessment-picker-chevron" aria-hidden="true">⌄</span></summary><div class="assessment-mqf-menu"><label v-for="reference in researchReferences.MQF" :key="reference.code" class="assessment-mqf-option"><input type="checkbox" :value="reference.code" v-model="item.effective.mqfDomains" @change="markAssessmentDirty"><span>{{ reference.code }} — {{ reference.title }}</span></label></div></details></div><label><span>Taxonomy</span><select v-model="item.effective.taxonomy" @change="markAssessmentDirty"><option value="">Select taxonomy</option><option v-for="level in taxonomyOptions" :value="level.id">{{ level.id }} — {{ level.label }}</option></select></label><label><span>Primary SC</span><select v-model="item.effective.primarySC" @change="markAssessmentDirty"><option value="">Select one Primary SC</option><option v-for="reference in researchReferences.SC" :value="reference.code">{{ reference.code }} — {{ reference.title }}</option></select></label><div class="derived-field"><span>Derived TF</span><strong>{{ item.effective.tfIds.join(', ') || 'None from selected MQF' }}</strong></div></div><label class="assessment-note"><span>Alignment note</span><input v-model="item.note" @input="markAssessmentDirty" placeholder="Optional rationale or alignment note"></label></article></div>
-                  <div v-if="instrument.categories.length" class="assessment-category-list"><section v-for="category in instrument.categories" :key="category.categoryId" class="assessment-category-card"><div class="assessment-category-heading"><h5>{{ category.name }}</h5><span>{{ category.totals.calculated }} / {{ category.totals.expected }}</span></div><div v-for="item in category.items" :key="item.itemId" class="assessment-item-card"><div class="assessment-item-heading"><div><strong>{{ item.code }} · {{ item.title }}</strong><p>{{ item.descriptor }}</p><p v-if="item.descriptorMs" class="descriptor-ms">{{ item.descriptorMs }}</p></div><span class="mark-badge">/{{ item.maxMarks }}</span></div><div class="assessment-item-grid"><div class="assessment-picker-field"><span>MQF</span><details class="assessment-mqf-picker"><summary><span>{{ assessmentMQFLabel(item) }}</span><span class="assessment-picker-chevron" aria-hidden="true">⌄</span></summary><div class="assessment-mqf-menu"><label v-for="reference in researchReferences.MQF" :key="reference.code" class="assessment-mqf-option"><input type="checkbox" :value="reference.code" v-model="item.effective.mqfDomains" @change="markAssessmentDirty"><span>{{ reference.code }} — {{ reference.title }}</span></label></div></details><small :class="assessmentProvenanceClass(item.provenance.mqfDomains)">{{ item.provenance.mqfDomains.label }}{{ item.provenance.mqfDomains.active ? ' · active' : ' · inactive' }}</small></div><label><span>Taxonomy</span><select v-model="item.effective.taxonomy" @change="markAssessmentDirty"><option value="">Select taxonomy</option><option v-for="level in taxonomyOptions" :value="level.id">{{ level.id }} — {{ level.label }}</option></select><small :class="assessmentProvenanceClass(item.provenance.taxonomy)">{{ item.provenance.taxonomy.label }}</small></label><label><span>Primary SC</span><select v-model="item.effective.primarySC" @change="markAssessmentDirty"><option value="">Select one Primary SC</option><option v-for="reference in researchReferences.SC" :value="reference.code">{{ reference.code }} — {{ reference.title }}</option></select><small :class="assessmentProvenanceClass(item.provenance.primarySC)">{{ item.provenance.primarySC.label }}{{ item.provenance.primarySC.active ? ' · active' : ' · inactive' }}</small></label><div class="derived-field"><span>Derived TF</span><strong>{{ item.effective.tfIds.join(', ') || 'None from selected MQF' }}</strong><small class="provenance-derived">Derived from effective MQF</small></div></div><label class="assessment-note"><span>Alignment note</span><input v-model="item.note" @input="markAssessmentDirty" placeholder="Optional rationale or alignment note"></label><div v-if="item.validation.critical.length" class="assessment-item-error" role="alert">{{ item.validation.critical.join('; ') }}</div></div></section></div><div v-else class="assessment-item-list"><article v-for="item in instrument.items" :key="item.itemId" class="assessment-item-card"><div class="assessment-item-heading"><div><strong>{{ item.code }} · {{ item.title }}</strong><p>{{ item.descriptor }}</p><p v-if="item.descriptorMs" class="descriptor-ms">{{ item.descriptorMs }}</p></div><span class="mark-badge">/{{ item.maxMarks }}</span></div><div class="assessment-item-grid"><div class="assessment-picker-field"><span>MQF</span><details class="assessment-mqf-picker"><summary><span>{{ assessmentMQFLabel(item) }}</span><span class="assessment-picker-chevron" aria-hidden="true">⌄</span></summary><div class="assessment-mqf-menu"><label v-for="reference in researchReferences.MQF" :key="reference.code" class="assessment-mqf-option"><input type="checkbox" :value="reference.code" v-model="item.effective.mqfDomains" @change="markAssessmentDirty"><span>{{ reference.code }} — {{ reference.title }}</span></label></div></details><small :class="assessmentProvenanceClass(item.provenance.mqfDomains)">{{ item.provenance.mqfDomains.label }}{{ item.provenance.mqfDomains.active ? ' · active' : ' · inactive' }}</small></div><label><span>Taxonomy</span><select v-model="item.effective.taxonomy" @change="markAssessmentDirty"><option value="">Select taxonomy</option><option v-for="level in taxonomyOptions" :value="level.id">{{ level.id }} — {{ level.label }}</option></select><small :class="assessmentProvenanceClass(item.provenance.taxonomy)">{{ item.provenance.taxonomy.label }}</small></label><label><span>Primary SC</span><select v-model="item.effective.primarySC" @change="markAssessmentDirty"><option value="">Select one Primary SC</option><option v-for="reference in researchReferences.SC" :value="reference.code">{{ reference.code }} — {{ reference.title }}</option></select><small :class="assessmentProvenanceClass(item.provenance.primarySC)">{{ item.provenance.primarySC.label }}{{ item.provenance.primarySC.active ? ' · active' : ' · inactive' }}</small></label><div class="derived-field"><span>Derived TF</span><strong>{{ item.effective.tfIds.join(', ') || 'None from selected MQF' }}</strong><small class="provenance-derived">Derived from effective MQF</small></div></div><label class="assessment-note"><span>Alignment note</span><input v-model="item.note" @input="markAssessmentDirty" placeholder="Optional rationale or alignment note"></label><div v-if="item.validation.critical.length" class="assessment-item-error" role="alert">{{ item.validation.critical.join('; ') }}</div></article></div>
-                </article>
-              </div><div v-else-if="assessmentMapping" class="empty-state">No assessment instruments are available for this study level.</div>
-            </section>
-
-          <section v-if="researchCategory === 'mapping'" id="research-mapping-panel" class="research-panel" role="tabpanel" aria-labelledby="research-mapping-tab">
-           <div class="panel-heading"><div><p class="eyebrow">PLO MAPPING</p><h3 class="section-title">PLO Workspace</h3></div><div><span class="status-chip">{{ researchStatus }}</span><button type="button" class="btn btn-success ml-2" aria-label="Add PLO to PLO Workspace" @click="addResearchPLO">+ Add PLO</button></div></div>
-           <div v-if="researchReview && researchReview.critical && researchReview.critical.length" class="alert alert-error" role="alert"><strong>Validation alerts</strong><div v-for="issue in researchReview.critical" :key="issue.code + issue.ploCode">{{ issue.message }}</div></div>
-
-           <section class="peo-sdg-section" aria-labelledby="peo-sdg-title"><div class="panel-heading"><div><p class="eyebrow">PEO → SDG</p><h4 id="peo-sdg-title" class="section-subtitle">Programme-wide impact mapping</h4></div><span v-if="peoSdgLoading" class="peo-sdg-loading" role="status" aria-live="polite"><span class="peo-sdg-spinner" aria-hidden="true"></span>Loading SDG mappings&hellip;</span></div><div class="peo-sdg-list"><article v-for="peo in researchPEOs" :key="peo.peoId" class="peo-sdg-card" :class="peoSdgClass(peo.peoId)"><div class="peo-sdg-card-heading"><div><strong class="font-mono">{{ peo.code }}</strong><p class="text-sm text-muted">{{ peo.statement }}</p></div><span v-if="peoSdgClass(peo.peoId) === 'sdg-faculty'" class="sdg-badge sdg-badge-faculty">Faculty Alignment</span><span v-else-if="peoSdgClass(peo.peoId) === 'sdg-default'" class="sdg-badge sdg-badge-default">PPS default</span></div><div class="peo-sdg-select-row"><label class="sr-only" :for="'sdg-' + peo.peoId">SDG for {{ peo.code }}</label><select :id="'sdg-' + peo.peoId" class="peo-sdg-select" :disabled="peoSdgLoading" :value="peoSdgCurrent(peo.peoId)" @change="setSDGOnPEO(peo.peoId, $event.target.value)"><option value="">&mdash; None &mdash;</option><option v-for="reference in researchReferences.SDG" :key="peo.peoId + reference.code" :value="reference.code">{{ reference.code }} &mdash; {{ reference.title }}</option></select></div></article></div></section>
-
-           <!-- Compact PLO → SC + TF rows -->
-           <section class="plo-sc-section"><div class="panel-heading"><div><p class="eyebrow">PLO → SC + TF</p><h4 class="section-subtitle">Learning-outcome competency mapping</h4></div></div>
-             <div v-for="plo in researchPLOs" :key="plo.ploId || plo.code" class="plo-sc-row">
-               <div class="plo-sc-row-main">
-                 <div class="plo-sc-row-left">
-                   <strong class="font-mono">{{ plo.code }}</strong>
-                   <span class="plo-sc-statement" :title="plo.statement">{{ plo.statement }}</span>
-                 </div>
-                 <div class="plo-sc-row-right">
-                    <div class="plo-sc-field" :class="ploScClass(plo)">
-                      <span class="plo-sc-field-label">SC<span v-if="researchEndpointLoading && researchEndpointLoading.mappings" class="plo-sc-spinner" role="status" aria-live="polite"></span></span>
-                      <select class="plo-sc-select" :disabled="researchEndpointLoading && researchEndpointLoading.mappings" :value="ploScCurrent(plo)" @change="selectSCForPLO(plo, $event.target.value)">
-                        <option value="">Select SC</option>
-                        <optgroup v-for="category in scCategories" :key="category.name" :label="category.name">
-                          <option v-for="reference in researchSCOptions(category)" :key="reference.code" :value="reference.code">{{ reference.code }} — {{ reference.title }}</option>
-                        </optgroup>
-                      </select>
-                      <span v-if="ploScClass(plo) === 'plo-sc-faculty'" class="plo-sc-badge plo-sc-badge-faculty">Faculty Alignment</span>
-                      <span v-else-if="ploScClass(plo) === 'plo-sc-default'" class="plo-sc-badge plo-sc-badge-default">PPS default</span>
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>PEO — Programme Educational Objectives</h3>
+            <div class="section-heading-actions">
+              <span class="count">{{ detail.peos.length }} records</span>
+              <button class="btn btn-outline btn-sm" @click="addRecord('peo')" :disabled="adding">+ Add PEO</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col">PEO statement</th>
+                  <th scope="col">MQF domain</th>
+                  <th scope="col" class="action-cell"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="peo in detail.peos" :key="peo.code">
+                  <td><code>{{ peo.code }}</code></td>
+                  <td>{{ peo.statement }}</td>
+                  <td>
+                    <div v-if="peo.mqfDomains && peo.mqfDomains.length" class="mqf-list">
+                      <span v-for="domain in peo.mqfDomains" :key="domain" class="state-chip">{{ domain }}</span>
                     </div>
-                   <div class="plo-sc-field">
-                     <span class="plo-sc-field-label">TF</span>
-                     <span class="tf-badge" :title="'Derived from MQF domains'">{{ (researchMapping(plo).derivedTFIds || [])[0] || '—' }}</span>
-                   </div>
-                 </div>
-               </div>
-               <div class="plo-sc-parent">
-                 <span class="text-sm text-muted">Parent: {{ plo.parentPEO || 'Not set' }}</span>
-                 <button class="btn btn-primary text-sm" @click="saveResearchPLOMapping(plo)">Save</button>
-               </div>
-             </div>
-           </section>
-
-           <!-- PLO mapping matrix — read-only, expanded at bottom -->
-           <section class="coverage-section"><div class="panel-heading"><div><p class="eyebrow">READ-ONLY COVERAGE</p><h3 class="section-title">PLO Mapping Matrix</h3></div><button class="btn btn-secondary" @click="loadResearchCoverage">Refresh coverage</button></div><p class="matrix-legend"><span class="explicit-badge">Explicit PLO mapping</span> MQF checks are selected in the PLO editor. <span class="derived-badge">TF derived from MQF mapping</span> is calculated from the current reference table.</p><p id="mapping-matrix-instructions" class="sr-only">Focus this matrix, then use the left and right arrow keys to scroll its columns.</p><div class="coverage-metrics" v-if="researchReview && researchReview.metrics"><span><strong>{{ researchReview.metrics.ploTotal }}</strong> PLOs</span><span><strong>{{ researchReview.metrics.mqfDomainCoverage }}</strong> MQF domains</span><span><strong>{{ researchReview.metrics.tfCoverage }}</strong> TFs</span><span><strong>{{ researchReview.metrics.sdgCoverage }}</strong> SDGs</span><span><strong>{{ researchReview.metrics.scCoverage }}</strong> SCs</span></div><div class="matrix-wrap mapping-matrix-wrap" role="region" tabindex="0" aria-label="PLO mapping matrix scrolling region" aria-describedby="mapping-matrix-instructions"><table class="coverage-matrix mapping-matrix" aria-label="PLO mapping matrix"><thead><tr><th scope="col">PLO</th><th v-for="domain in ['MQF1', 'MQF2', 'MQF3a', 'MQF3b', 'MQF3c', 'MQF3d', 'MQF3e', 'MQF3f', 'MQF4a', 'MQF4b', 'MQF5']" :key="domain" scope="col">{{ domain }}</th><th scope="col">TF derived from MQF mapping</th><th scope="col">SC coverage</th></tr></thead><tbody><tr v-for="row in mappingMatrixRows" :key="row.code"><th scope="row">{{ row.code }}</th><td v-for="domain in ['MQF1', 'MQF2', 'MQF3a', 'MQF3b', 'MQF3c', 'MQF3d', 'MQF3e', 'MQF3f', 'MQF4a', 'MQF4b', 'MQF5']" :key="domain"><span class="matrix-indicator" role="img" :aria-label="row.mqf[domain] ? 'Explicit PLO mapping to ' + domain + ': checked' : 'Explicit PLO mapping to ' + domain + ': not checked'">{{ row.mqf[domain] ? 'Checked' : 'Not checked' }}</span></td><td><span v-if="row.tf && row.tf.length" class="derived-badge">TF derived from MQF mapping: {{ row.tf.join(', ') }}</span><span v-else class="status-warn">No TF derived</span></td><td><span v-if="row.sc && row.sc.length" class="derived-badge">{{ row.sc.join(', ') }}</span><span v-else class="status-warn">None</span></td></tr></tbody></table></div></section>
-            <section class="coverage-section"><div class="panel-heading"><div><p class="eyebrow">PEO ROLL-UP</p><h3 class="section-title">Coverage Matrix</h3></div></div><div class="matrix-wrap"><table class="coverage-matrix"><thead><tr><th scope="col">PEO</th><th scope="col">Child PLOs</th><th scope="col">TF / PEO roll-up</th><th scope="col">SDG</th><th scope="col">SC</th></tr></thead><tbody><tr v-for="item in (researchCoverage ? researchCoverage.peoCoverage : [])" :key="item.peoId"><th scope="row">{{ item.code }}</th><td>{{ item.coverage ? item.coverage.childCount : 0 }}</td><td><span v-if="item.coverage" class="derived-badge">Derived from PLO mappings: {{ item.coverage.tfIds.join(', ') || 'None' }}</span><span v-else class="status-warn">{{ item.issue }}</span></td><td>{{ item.coverage ? item.coverage.tfIds.join(', ') || 'None' : '—' }}</td><td>{{ (peoSDGMappings[item.peoId] ? peoSDGMappings[item.peoId].sdgIds.join(', ') : '') || 'None' }}</td><td>{{ item.coverage ? item.coverage.scIds.join(', ') || 'None' : '—' }}</td></tr></tbody></table></div></section>
-           <section class="review-panel research-review"><div class="panel-heading"><div><p class="eyebrow">FINAL CHECK</p><h3 class="section-title">Review &amp; Submit</h3></div><span class="review-status" :class="reviewStatusClass">{{ researchStatus }}</span></div><div v-if="researchReview" class="review-issues"><div v-for="warning in researchReview.warnings" :key="warning.code + warning.ploCode" class="issue-warning">{{ warning.message }}</div><div v-if="!researchReview.critical.length && !researchReview.warnings.length" class="status-good">No validation issues.</div></div><div class="review-actions"><button class="btn btn-secondary" @click="loadResearchReview">Refresh review</button><button class="btn btn-primary" :disabled="!researchReview || researchReview.critical.length > 0 || researchSaveState === 'saving'" @click="submitResearchProgramme">Submit for review</button></div></section>
-            </section>
+                    <span v-else>—</span>
+                  </td>
+                  <td class="action-cell">
+                    <button type="button" class="icon-button" @click="openEdit('peo', peo)" :aria-label="'Edit ' + peo.code" title="Edit PEO">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="detail.peos.length === 0">
+                  <td colspan="4" class="empty-note">No PEO records yet.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-     </main>
+        </section>
 
-    <div v-if="toast" class="toast">{{ toast }}</div>
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>PLO — Programme Learning Outcomes</h3>
+            <div class="section-heading-actions">
+              <span class="count">{{ detail.plos.length }}/11 records</span>
+              <button class="btn btn-outline btn-sm" @click="addRecord('plo')" :disabled="adding || detail.plos.length >= 11">+ Add PLO</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col">PLO statement</th>
+                  <th scope="col">Parent PEO</th>
+                  <th scope="col">MQF domain</th>
+                  <th scope="col">Taxonomy</th>
+                  <th scope="col">SDG</th>
+                  <th scope="col">SC</th>
+                  <th scope="col">TF</th>
+                  <th scope="col" class="action-cell"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="plo in detail.plos" :key="plo.code">
+                  <td><code>{{ plo.code }}</code></td>
+                  <td>{{ plo.statement }}</td>
+                  <td>{{ plo.parentPEO || '—' }}</td>
+                  <td>{{ plo.mqfDomain || '—' }}</td>
+                  <td>{{ plo.taxonomy || '—' }}</td>
+                  <td>{{ isSDGEligiblePLO(plo.code) ? (plo.sdg || '—') : '' }}</td>
+                  <td>{{ isSCEligiblePLO(plo.code) ? (plo.sc || '—') : '' }}</td>
+                  <td>{{ plo.tf || '—' }}</td>
+                  <td class="action-cell">
+                    <button type="button" class="icon-button" @click="openEdit('plo', plo)" :aria-label="'Edit ' + plo.code" title="Edit PLO">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="detail.plos.length === 0">
+                  <td colspan="9" class="empty-note">No PLO records yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </template>
+    </main>
+
+    <div v-if="editor.open" class="modal-backdrop" @click.self="closeEdit">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-record-title">
+        <header class="modal-header">
+          <div>
+            <h2 id="edit-record-title" class="modal-title">Edit {{ editor.type === 'peo' ? 'PEO' : 'PLO' }} — {{ editor.draft.code }}</h2>
+            <p class="modal-subtitle">{{ editor.type === 'peo' ? 'The MQF domain is derived from this PEO\'s child PLOs.' : 'Set the nested PEO, MQF domain, Bloom taxonomy, SDG, SC, and TF for this PLO.' }}</p>
+          </div>
+          <button type="button" class="modal-close" @click="closeEdit" :disabled="saving" aria-label="Close edit dialog">×</button>
+        </header>
+        <form class="modal-body" @submit.prevent="saveEdit">
+          <div v-if="editError" class="alert alert-error">{{ editError }}</div>
+          <div class="form-field">
+            <label for="record-statement">{{ editor.type === 'peo' ? 'PEO statement' : 'PLO statement' }}</label>
+            <textarea id="record-statement" v-model.trim="editor.draft.statement" required></textarea>
+          </div>
+
+          <template v-if="editor.type === 'plo'">
+            <div class="form-field">
+              <label for="parent-peo">Parent PEO</label>
+              <select id="parent-peo" v-model="editor.draft.parentPEO" required>
+                <option value="" disabled>Select parent PEO</option>
+                <option v-for="peo in detail.peos" :key="peo.code" :value="peo.code">{{ peo.code }}</option>
+              </select>
+              <p class="form-help">This establishes the nesting used to derive the parent PEO's MQF domains.</p>
+            </div>
+            <div class="form-field">
+              <label for="mqf-domain">MQF domain</label>
+              <select id="mqf-domain" v-model="editor.draft.mqfDomain" @change="clearTF" required>
+                <option value="" disabled>Select MQF domain</option>
+                <option v-for="domain in mqfDomains" :key="domain.code" :value="domain.code">{{ domain.label }}</option>
+              </select>
+            </div>
+            <div v-if="isSDGEligiblePLO(editor.draft.code)" class="form-field">
+              <label for="sdg">Sustainable Development Goal (SDG)</label>
+              <select id="sdg" v-model="editor.draft.sdg" required>
+                <option value="" disabled>Select SDG</option>
+                <option v-for="sdg in sdgs" :key="sdg.code" :value="sdg.code">{{ sdg.code }} - {{ sdg.label }}</option>
+              </select>
+            </div>
+            <div v-if="isSCEligiblePLO(editor.draft.code)" class="form-field">
+              <label for="sc">Sustainability competency (SC)</label>
+              <select id="sc" v-model="editor.draft.sc" required>
+                <option value="" disabled>Select sustainability competency</option>
+                <option v-for="competency in sustainabilityCompetencies" :key="competency.code" :value="competency.code">{{ competency.code }} - {{ competency.label }}</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="tf">Transversal future skill (TF)</label>
+              <select id="tf" v-model="editor.draft.tf" :disabled="availableTFs.length === 0" required>
+                <option value="" disabled>{{ availableTFs.length ? 'Select transversal future skill' : 'Select an MQF domain first' }}</option>
+                <option v-for="skill in availableTFs" :key="skill.code" :value="skill.code">{{ skill.code }} - {{ skill.label }}</option>
+              </select>
+              <p class="form-help">Options are limited to skills mapped to the selected MQF domain.</p>
+            </div>
+            <div class="form-field">
+              <label for="taxonomy">Bloom taxonomy</label>
+              <select id="taxonomy" v-model="editor.draft.taxonomy" required>
+                <option value="" disabled>Select taxonomy level</option>
+                <optgroup v-for="group in taxonomyGroups" :key="group.label" :label="group.label">
+                  <option v-for="level in group.levels" :key="level.code" :value="level.code">{{ level.code }} — {{ level.label }}</option>
+                </optgroup>
+              </select>
+            </div>
+          </template>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" @click="closeEdit" :disabled="saving">Cancel</button>
+            <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Saving...' : 'Save changes' }}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div v-if="pdf.open" class="modal-backdrop" @click.self="closePdf">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="pdf-modal-title">
+        <header class="modal-header">
+          <div>
+            <h2 id="pdf-modal-title" class="modal-title">PDF — {{ detail.name }}</h2>
+            <p class="modal-subtitle">Generate a PDF of this programme's PEO and PLO records.</p>
+          </div>
+          <button type="button" class="modal-close" @click="closePdf" :disabled="pdf.generating" aria-label="Close PDF dialog">×</button>
+        </header>
+        <div class="modal-body">
+          <div v-if="pdf.error" class="alert alert-error">{{ pdf.error }}</div>
+
+          <div v-if="pdf.generating" class="loading-panel">Generating PDF…</div>
+
+          <template v-else-if="pdf.ready">
+            <div class="alert alert-success">PDF is ready.</div>
+            <p class="form-help" style="margin:10px 0 0">File: <strong>{{ pdf.filename }}</strong></p>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-outline" @click="closePdf">Close</button>
+              <button type="button" class="btn btn-primary" @click="downloadPdf">Download PDF</button>
+              <button type="button" class="btn btn-outline" @click="showEmailForm">Email</button>
+            </div>
+          </template>
+
+          <template v-else-if="pdf.emailForm">
+            <div class="form-field">
+              <label for="pdf-email">Send to email address</label>
+              <input id="pdf-email" v-model.trim="pdf.email" type="email" placeholder="name@example.com" required>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-outline" @click="backToPdf">Back</button>
+              <button type="button" class="btn btn-outline" @click="closePdf">Close</button>
+              <button type="button" class="btn btn-primary" @click="sendPdfEmail" :disabled="pdf.sending || !pdf.email">{{ pdf.sending ? 'Sending…' : 'Send' }}</button>
+            </div>
+          </template>
+
+          <template v-else-if="pdf.sent">
+            <div class="alert alert-success">PDF sent to {{ pdf.email }}.</div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-primary" @click="closePdf">Done</button>
+            </div>
+          </template>
+        </div>
+      </section>
+    </div>
   </div>
+
   <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.min.js"></script>
-  <?!= include('JavaScript'); ?>
+  <script>
+    function initApp() {
+      new Vue({
+        el: '#app',
+        data: {
+          currentView: 'list',
+          programmes: [],
+          loading: true,
+          error: null,
+          search: '',
+          open: {},
+          detail: { name: '', mqaCode: '', progCode: '', level: '', faculty: '', facultyFull: '', peos: [], plos: [] },
+          detailError: null,
+          notice: null,
+          saving: false,
+          editError: null,
+          adding: false,
+          pdf: { open: false, generating: false, ready: false, error: null, filename: '', url: '', fileId: '', email: '', emailForm: false, sending: false, sent: false },
+          editor: { open: false, type: '', draft: {} },
+          sessionToken: '',
+          login: { open: true, loading: true, submitting: false, error: null, directory: [], faculty: '', user: '', username: '' },
+          mqfDomains: [
+            { code: 'MQF 1', label: 'MQF1 — Knowledge and Understanding' },
+            { code: 'MQF 2', label: 'MQF2 — Cognitive Skills' },
+            { code: 'MQF 3a', label: 'MQF3a — Practical Skills' },
+            { code: 'MQF 3b', label: 'MQF3b — Interpersonal Skills' },
+            { code: 'MQF 3c', label: 'MQF3c — Communication Skills' },
+            { code: 'MQF 3d', label: 'MQF3d — Digital Skills' },
+            { code: 'MQF 3e', label: 'MQF3e — Numeracy Skills' },
+            { code: 'MQF 3f', label: 'MQF3f — Leadership, Autonomy and Responsibility' },
+            { code: 'MQF 4a', label: 'MQF4a — Personal Skills' },
+            { code: 'MQF 4b', label: 'MQF4b — Entrepreneurial Skills' },
+            { code: 'MQF 5', label: 'MQF5 — Ethics and Professionalism' }
+          ],
+          taxonomyGroups: [
+            { label: 'C — Cognitive', levels: [{ code: 'C1', label: 'Remember' }, { code: 'C2', label: 'Understand' }, { code: 'C3', label: 'Apply' }, { code: 'C4', label: 'Analyse' }, { code: 'C5', label: 'Evaluate' }, { code: 'C6', label: 'Create' }] },
+            { label: 'A — Affective', levels: [{ code: 'A1', label: 'Receive' }, { code: 'A2', label: 'Respond' }, { code: 'A3', label: 'Value' }, { code: 'A4', label: 'Organise' }, { code: 'A5', label: 'Characterise' }] },
+            { label: 'P — Psychomotor', levels: [{ code: 'P1', label: 'Imitation' }, { code: 'P2', label: 'Manipulation' }, { code: 'P3', label: 'Precision' }, { code: 'P4', label: 'Articulation' }, { code: 'P5', label: 'Naturalisation' }] }
+          ],
+          sdgs: [
+            { code: 'SDG1', label: 'No Poverty' }, { code: 'SDG2', label: 'Zero Hunger' }, { code: 'SDG3', label: 'Good Health and Well-being' }, { code: 'SDG4', label: 'Quality Education' }, { code: 'SDG5', label: 'Gender Equality' }, { code: 'SDG6', label: 'Clean Water and Sanitation' }, { code: 'SDG7', label: 'Affordable and Clean Energy' }, { code: 'SDG8', label: 'Decent Work and Economic Growth' }, { code: 'SDG9', label: 'Industry, Innovation and Infrastructure' }, { code: 'SDG10', label: 'Reduced Inequalities' }, { code: 'SDG11', label: 'Sustainable Cities and Communities' }, { code: 'SDG12', label: 'Responsible Consumption and Production' }, { code: 'SDG13', label: 'Climate Action' }, { code: 'SDG14', label: 'Life Below Water' }, { code: 'SDG15', label: 'Life on Land' }, { code: 'SDG16', label: 'Peace, Justice and Strong Institutions' }, { code: 'SDG17', label: 'Partnerships for the Goals' }
+          ],
+          sustainabilityCompetencies: [
+            { code: 'SC1', label: 'Systems-thinking' }, { code: 'SC2', label: 'Anticipatory' }, { code: 'SC3', label: 'Critical thinking' }, { code: 'SC4', label: 'Strategic' }, { code: 'SC5', label: 'Collaboration' }, { code: 'SC6', label: 'Integrated problem-solving' }, { code: 'SC7', label: 'Self-awareness' }, { code: 'SC8', label: 'Normative' }
+          ],
+          transversalFutureSkills: [
+            { code: 'TF1', label: 'Knowledge and Understanding', mqfDomains: ['MQF1', 'MQF4A'] },
+            { code: 'TF2', label: 'Practical and Cognitive Skills', mqfDomains: ['MQF2', 'MQF3D', 'MQF3E'] },
+            { code: 'TF3', label: 'Communication and Social Skills', mqfDomains: ['MQF3A', 'MQF3B', 'MQF3C', 'MQF3F'] },
+            { code: 'TF4', label: 'Professional and Ethical Practice', mqfDomains: ['MQF4B', 'MQF5'] }
+          ]
+        },
+        computed: {
+          filtered: function () {
+            var self = this;
+            if (!this.search) return this.programmes;
+            var q = this.search.toLowerCase();
+            return this.programmes.filter(function (p) {
+              return (p.name || '').toLowerCase().indexOf(q) > -1 ||
+                     (p.nameMy || '').toLowerCase().indexOf(q) > -1 ||
+                     (p.mqaCode || '').toLowerCase().indexOf(q) > -1 ||
+                     (p.progCode || '').toLowerCase().indexOf(q) > -1 ||
+                     (p.facultyFull || '').toLowerCase().indexOf(q) > -1;
+            });
+          },
+          grouped: function () {
+            var order = ['Doctorate', 'Masters', 'Other'];
+            var map = {};
+            var self = this;
+            this.filtered.forEach(function (p) {
+              var level = order.indexOf(p.level) === -1 ? 'Other' : p.level;
+              if (!map[level]) map[level] = {};
+              if (!map[level][p.faculty]) map[level][p.faculty] = [];
+              map[level][p.faculty].push(p);
+            });
+
+            return order.reduce(function (result, level) {
+              if (!map[level]) return result;
+              var facultyKeys = Object.keys(map[level]).sort();
+              var faculties = facultyKeys.map(function (key) {
+                var programmes = map[level][key].sort(function (a, b) {
+                  return (a.name || '').localeCompare(b.name || '');
+                });
+                var first = programmes[0] || {};
+                return {
+                  title: first.facultyFull || key || 'Unknown',
+                  key: level + '::' + key,
+                  count: programmes.length,
+                  programmes: programmes
+                };
+              });
+              var count = faculties.reduce(function (n, f) { return n + f.count; }, 0);
+              result.push({ title: level, key: level, count: count, faculties: faculties });
+              return result;
+            }, []);
+          },
+          availableTFs: function () {
+            var compact = String(this.editor.draft.mqfDomain || '').replace(/\s+/g, '').toUpperCase();
+            return this.transversalFutureSkills.filter(function (skill) {
+              return skill.mqfDomains.indexOf(compact) > -1;
+            });
+          },
+          loginUsers: function () {
+            for (var i = 0; i < this.login.directory.length; i++) {
+              if (this.login.directory[i].faculty === this.login.faculty) return this.login.directory[i].users;
+            }
+            return [];
+          }
+        },
+        methods: {
+          toggleFaculty: function (faculty) {
+            this.$set(this.open, faculty.key, !this.open[faculty.key]);
+          },
+          openProgramme: function (programme) {
+            this.currentView = 'detail';
+            this.detail = Object.assign({}, programme, { peos: [], plos: [] });
+            this.detailError = null;
+            this.notice = null;
+            this.loadDetail(programme.mqaCode);
+            window.scrollTo(0, 0);
+          },
+          backToList: function () {
+            this.currentView = 'list';
+            this.detail = { name: '', mqaCode: '', progCode: '', level: '', faculty: '', facultyFull: '', peos: [], plos: [] };
+            this.notice = null;
+          },
+          normalizeMQFDomain: function (value) {
+            var compact = String(value || '').replace(/\s+/g, '').toUpperCase();
+            for (var i = 0; i < this.mqfDomains.length; i++) {
+              if (this.mqfDomains[i].code.replace(/\s+/g, '').toUpperCase() === compact) return this.mqfDomains[i].code;
+            }
+            return String(value || '').trim();
+          },
+          clearTF: function () {
+            this.editor.draft.tf = '';
+          },
+          isSDGEligiblePLO: function (ploCode) {
+            var programmeCode = String(this.detail.mqaCode || '').trim().toUpperCase();
+            var eligible = (programmeCode === 'MQA/FA5573' || programmeCode === 'MQA/FA5574')
+              ? ['PLO1', 'PLO9', 'PLO10']
+              : ['PLO1', 'PLO9', 'PLO11'];
+            return eligible.indexOf(String(ploCode || '').replace(/\s+/g, '').toUpperCase().replace(/^PLO0+(\d+)$/, 'PLO$1')) > -1;
+          },
+          isSCEligiblePLO: function (ploCode) {
+            var programmeCode = String(this.detail.mqaCode || '').trim().toUpperCase();
+            var eligible = (programmeCode === 'MQA/FA5573' || programmeCode === 'MQA/FA5574')
+              ? ['PLO2', 'PLO4', 'PLO9', 'PLO10']
+              : ['PLO2', 'PLO4', 'PLO9', 'PLO11'];
+            return eligible.indexOf(String(ploCode || '').replace(/\s+/g, '').toUpperCase().replace(/^PLO0+(\d+)$/, 'PLO$1')) > -1;
+          },
+          openEdit: function (type, record) {
+            this.editError = null;
+            this.editor = {
+              open: true,
+              type: type,
+              draft: {
+                code: record.code,
+                statement: record.statement || '',
+                parentPEO: record.parentPEO || '',
+                mqfDomain: this.normalizeMQFDomain(record.mqfDomain),
+                taxonomy: String(record.taxonomy || '').toUpperCase(),
+                sdg: this.isSDGEligiblePLO(record.code) ? String(record.sdg || '').replace(/\s+/g, '').toUpperCase() : '',
+                sc: this.isSCEligiblePLO(record.code) ? String(record.sc || '').replace(/\s+/g, '').toUpperCase() : '',
+                tf: String(record.tf || '').replace(/\s+/g, '').toUpperCase()
+              }
+            };
+          },
+          closeEdit: function () {
+            if (this.saving) return;
+            this.editor = { open: false, type: '', draft: {} };
+            this.editError = null;
+          },
+          applyDetail: function (result) {
+            this.$set(this.detail, 'peos', result.peos || []);
+            this.$set(this.detail, 'plos', result.plos || []);
+          },
+          resetLoginUser: function () {
+            this.login.user = '';
+            this.login.error = null;
+          },
+          clearLogin: function () {
+            if (this.login.submitting) return;
+            this.login.faculty = '';
+            this.login.user = '';
+            this.login.username = '';
+            this.login.error = null;
+          },
+          loadLoginDirectory: function () {
+            var self = this;
+            this.login.loading = true;
+            google.script.run
+              .withSuccessHandler(function (result) {
+                self.login.directory = result || [];
+                self.login.loading = false;
+              })
+              .withFailureHandler(function (err) {
+                self.login.error = err && err.message ? err.message : 'Direktori pengguna tidak dapat dimuatkan.';
+                self.login.loading = false;
+              })
+              .getLoginDirectoryApi();
+          },
+          submitLogin: function () {
+            var self = this;
+            this.login.submitting = true;
+            this.login.error = null;
+            google.script.run
+              .withSuccessHandler(function (result) {
+                if (!result || !result.token) {
+                  self.login.error = 'Log masuk tidak dapat disahkan.';
+                  self.login.submitting = false;
+                  return;
+                }
+                self.sessionToken = result.token;
+                self.login.open = false;
+                self.login.submitting = false;
+                self.loadProgrammes();
+              })
+              .withFailureHandler(function (err) {
+                self.login.error = err && err.message ? err.message : 'Maklumat log masuk tidak sah.';
+                self.login.submitting = false;
+              })
+              .loginApi(this.login.faculty, this.login.user, this.login.username);
+          },
+          addRecord: function (type) {
+            var self = this;
+            this.adding = true;
+            this.detailError = null;
+            google.script.run
+              .withSuccessHandler(function (result) {
+                self.applyDetail(result || {});
+                self.notice = (type === 'peo' ? 'PEO' : 'PLO') + ' added.';
+                self.adding = false;
+              })
+              .withFailureHandler(function (err) {
+                self.detailError = err && err.message ? err.message : 'Unable to add ' + type.toUpperCase() + '.';
+                self.adding = false;
+              })
+              .addProgrammeRecordApi(this.detail.mqaCode, type, this.sessionToken);
+          },
+          generatePdf: function () {
+            var self = this;
+            this.pdf = { open: true, generating: true, ready: false, error: null, filename: '', url: '', fileId: '', email: '', emailForm: false, sending: false, sent: false };
+            google.script.run
+              .withSuccessHandler(function (result) {
+                self.pdf.generating = false;
+                if (!result || !result.fileId) {
+                  self.pdf.error = 'PDF could not be generated.';
+                  return;
+                }
+                self.pdf.ready = true;
+                self.pdf.filename = result.filename;
+                self.pdf.url = result.url;
+                self.pdf.fileId = result.fileId;
+              })
+              .withFailureHandler(function (err) {
+                self.pdf.generating = false;
+                self.pdf.error = err && err.message ? err.message : 'Unable to generate the PDF.';
+              })
+              .generatePdfApi(this.detail.mqaCode, this.sessionToken);
+          },
+          downloadPdf: function () {
+            if (this.pdf.url) window.open(this.pdf.url, '_blank');
+          },
+          showEmailForm: function () {
+            this.pdf.emailForm = true;
+            this.pdf.ready = false;
+            this.pdf.error = null;
+          },
+          backToPdf: function () {
+            this.pdf.emailForm = false;
+            this.pdf.ready = true;
+            this.pdf.error = null;
+          },
+          sendPdfEmail: function () {
+            var self = this;
+            if (!this.pdf.email) { this.pdf.error = 'Enter a valid email address.'; return; }
+            this.pdf.sending = true;
+            this.pdf.error = null;
+            google.script.run
+              .withSuccessHandler(function (result) {
+                self.pdf.sending = false;
+                if (!result || !result.sent) {
+                  self.pdf.error = 'Email could not be sent.';
+                  return;
+                }
+                self.pdf.emailForm = false;
+                self.pdf.sent = true;
+              })
+              .withFailureHandler(function (err) {
+                self.pdf.sending = false;
+                self.pdf.error = err && err.message ? err.message : 'Unable to send the email.';
+              })
+              .sendPdfEmailApi(this.detail.mqaCode, this.pdf.email, this.pdf.fileId, this.sessionToken);
+          },
+          closePdf: function () {
+            if (this.pdf.sending || this.pdf.generating) return;
+            this.pdf = { open: false, generating: false, ready: false, error: null, filename: '', url: '', fileId: '', email: '', emailForm: false, sending: false, sent: false };
+          },
+          saveEdit: function () {
+            var self = this;
+            this.saving = true;
+            this.editError = null;
+            google.script.run
+              .withSuccessHandler(function (result) {
+                self.applyDetail(result || {});
+                self.notice = (self.editor.type === 'peo' ? 'PEO' : 'PLO') + ' updated.';
+                self.saving = false;
+                self.closeEdit();
+              })
+              .withFailureHandler(function (err) {
+                self.editError = err && err.message ? err.message : 'Unable to save this record.';
+                self.saving = false;
+              })
+              .saveProgrammeRecordApi(this.detail.mqaCode, this.editor.type, this.editor.draft, this.sessionToken);
+          },
+          loadDetail: function (mqaCode) {
+            var self = this;
+            google.script.run
+              .withSuccessHandler(function (result) {
+                self.applyDetail(result || {});
+              })
+              .withFailureHandler(function (err) {
+                self.detailError = err.message;
+              })
+              .getProgrammeDetailApi(mqaCode, this.sessionToken);
+          },
+          loadProgrammes: function () {
+            var self = this;
+            this.loading = true;
+            google.script.run
+              .withSuccessHandler(function (result) {
+                self.programmes = result || [];
+                self.loading = false;
+              })
+              .withFailureHandler(function (err) {
+                self.error = err.message;
+                self.loading = false;
+              })
+              .getProgrammesApi(this.sessionToken);
+          }
+        },
+        mounted: function () {
+          this.loadLoginDirectory();
+        }
+      });
+    }
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
 </body>
 </html>
