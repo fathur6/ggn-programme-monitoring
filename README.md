@@ -2,6 +2,12 @@
 
 Google Apps Script web application for managing MQF 2.0 programme information at the UniSZA Graduate School.
 
+## Lightweight Iteration (v34 baseline)
+
+The lightweight branch (`lightweight/v34-sdg-plo-mapping`) replaces the modular application with the compact v34 deployment baseline: `gas/Code.js`, `gas/Index.html`, and `gas/appsscript.json`. SDG/SC mappings for the PhD programmes `MQA/FA5573` and `MQA/FA5574` sit on `PLO10` (`PLO10 → SDG12 → SC8`); Masters programmes keep `PLO11`. PDF download uses Drive's native conversion (no `UrlFetchApp`) with hidden gridlines.
+
+![MQF 2.0 (2024) Mapping](https://i.postimg.cc/3JfpSBdh/MQF_2.0_%282024%29_Mapping.png)
+
 ## Local Project
 
 The deployable source is under `gas/`. It includes the recovered unsanitized local configuration and clasp metadata, which are intentionally ignored by Git. The matching Apps Script project ID is stored in `gas/.clasp.json`.
