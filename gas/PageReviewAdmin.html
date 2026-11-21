@@ -130,6 +130,70 @@
 
         <section class="section-card">
           <div class="section-heading">
+            <h3>Direktori pengguna</h3>
+            <div class="section-heading-actions">
+              <span class="count">{{ directory.rows.length }} kenalan</span>
+            </div>
+          </div>
+          <p class="text-sm text-muted" style="margin:0 0 14px">
+            TDA, PIC dan Penyelaras Program yang boleh log masuk dan mengemas kini status.
+            Kemas kini di sini apabila berlaku pertukaran lantikan.
+          </p>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="dir-faculty">Fakulti</label>
+              <input id="dir-faculty" type="text" v-model.trim="dirForm.faculty" placeholder="FKI">
+            </div>
+            <div class="form-field">
+              <label for="dir-name">Nama</label>
+              <input id="dir-name" type="text" v-model.trim="dirForm.name">
+            </div>
+            <div class="form-field">
+              <label for="dir-email">E-mel</label>
+              <input id="dir-email" type="email" v-model.trim="dirForm.email" placeholder="nama@unisza.edu.my">
+            </div>
+            <div class="form-field">
+              <label for="dir-position">Jawatan</label>
+              <input id="dir-position" type="text" v-model.trim="dirForm.position" placeholder="Deputy Dean Academic / Faculty PIC / Graduate Coordinator">
+            </div>
+          </div>
+          <div class="modal-actions" style="justify-content:flex-start">
+            <button type="button" class="btn btn-primary" @click="saveDirectory" :disabled="busy">
+              {{ dirForm.rowIndex ? 'Simpan perubahan' : 'Tambah kenalan' }}
+            </button>
+            <button v-if="dirForm.rowIndex" type="button" class="btn btn-outline" @click="resetDirectory" :disabled="busy">Batal</button>
+          </div>
+
+          <div class="table-wrap" style="margin-top:16px">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th scope="col">Fakulti</th>
+                  <th scope="col">Nama</th>
+                  <th scope="col">E-mel</th>
+                  <th scope="col">Jawatan</th>
+                  <th scope="col" class="action-cell"><span class="sr-only">Tindakan</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="person in directory.rows" :key="person.rowIndex">
+                  <td>{{ person.faculty }}</td>
+                  <td>{{ person.name }}</td>
+                  <td>{{ person.email }}</td>
+                  <td>{{ person.position }}</td>
+                  <td class="action-cell">
+                    <button type="button" class="btn btn-outline btn-sm" @click="editDirectory(person)" :disabled="busy">Edit</button>
+                    <button type="button" class="btn btn-outline btn-sm" @click="removeDirectory(person)" :disabled="busy">Padam</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <div class="section-heading">
             <h3>Penyelenggaraan</h3>
           </div>
           <p class="text-sm text-muted" style="margin:0 0 14px">

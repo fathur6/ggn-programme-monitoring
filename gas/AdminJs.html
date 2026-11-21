@@ -18,6 +18,8 @@
         currentUser: ADMIN_BOOT.user || null,
         sessionToken: ADMIN_BOOT.token || '',
         review: ADMIN_BOOT.review || { active: null, periods: [], faculties: [], unregistered: [], programmesTotal: 0 },
+        directory: ADMIN_BOOT.directory || { rows: [] },
+        dirForm: { rowIndex: 0, faculty: '', name: '', email: '', position: '' },
         form: { cutoffDate: adminDate(0), closesDate: adminDate(30), title: '' },
         busy: false,
         error: null,
@@ -97,6 +99,57 @@
               self.error = err && err.message ? err.message : 'E-mel tidak dapat dihantar.';
             })
             .sendReviewEmailsApi(kind, dryRun, this.sessionToken);
+        },
+        editDirectory: function (person) {
+          this.dirForm = {
+            rowIndex: person.rowIndex,
+            faculty: person.faculty,
+            name: person.name,
+            email: person.email,
+            position: person.position
+          };
+          this.error = null;
+          this.notice = null;
+        },
+        resetDirectory: function () {
+          this.dirForm = { rowIndex: 0, faculty: '', name: '', email: '', position: '' };
+        },
+        saveDirectory: function () {
+          var self = this;
+          if (this.busy) return;
+          this.busy = true;
+          this.error = null;
+          this.notice = null;
+          google.script.run
+            .withSuccessHandler(function (payload) {
+              self.busy = false;
+              self.$set(self, 'directory', payload || { rows: [] });
+              self.notice = self.dirForm.rowIndex ? 'Kenalan dikemas kini.' : 'Kenalan baharu ditambah.';
+              self.resetDirectory();
+            })
+            .withFailureHandler(function (err) {
+              self.busy = false;
+              self.error = err && err.message ? err.message : 'Direktori tidak dapat disimpan.';
+            })
+            .saveDirectoryAdminApi(this.dirForm, this.sessionToken);
+        },
+        removeDirectory: function (person) {
+          var self = this;
+          if (this.busy) return;
+          this.busy = true;
+          this.error = null;
+          this.notice = null;
+          google.script.run
+            .withSuccessHandler(function (payload) {
+              self.busy = false;
+              self.$set(self, 'directory', payload || { rows: [] });
+              self.notice = 'Kenalan dipadam daripada direktori.';
+            })
+            .withFailureHandler(function (err) {
+              self.busy = false;
+              self.error = err && err.message ? err.message : 'Kenalan tidak dapat dipadam.';
+            })
+            .removeDirectoryAdminApi(person.rowIndex, this.sessionToken);
         },
         setState: function (periodId, state) {
           var self = this;

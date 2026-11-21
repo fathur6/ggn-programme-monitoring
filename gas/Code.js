@@ -886,7 +886,7 @@ function reviewRecipients_() {
   }, []);
 }
 
-function sendReviewEmails_(kind, dryRun, session) {
+function sendReviewEmails_(kind, dryRun, session, limit) {
   var period = activeReviewPeriod_();
   if (!period) throw new Error('Tiada sesi semakan yang dibuka.');
   // Faculty labels come from two sheets; normalise so invisible whitespace or
@@ -919,6 +919,7 @@ function sendReviewEmails_(kind, dryRun, session) {
   var seen = {};
 
   contacts.forEach(function (contact) {
+    if (limit && sent >= limit) return;
     var faculty = contact.faculty;
     var total = totals[facultyKey_(faculty)] || 0;
     if (!total) { skipped++; return; }
@@ -997,6 +998,65 @@ function maybeSendReviewReminder_(session) {
   } catch (err) {
     console.error('Review reminder failed: ' + (err && err.message ? err.message : err));
   }
+}
+
+/** USER sheet rows for the admin console (no auth check inside). */
+function directoryPayload_() {
+  var sheet = programmeSpreadsheet_().getSheetByName(USER_DIRECTORY_SHEET_NAME_);
+  if (!sheet) return { rows: [] };
+  var data = sheet.getDataRange().getValues();
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var name = String(row[1] || '').trim();
+    var email = String(row[2] || '').trim();
+    if (!name && !email) continue;
+    rows.push({
+      rowIndex: i + 1,
+      faculty: String(row[0] || '').trim(),
+      name: name,
+      email: email,
+      position: String(row[3] || '').trim()
+    });
+  }
+  return { count: rows.length, rows: rows };
+}
+
+function getDirectoryAdminApi(sessionToken) {
+  requireReviewManager_(requireLogin_(sessionToken));
+  return directoryPayload_();
+}
+
+function saveDirectoryAdminApi(payload, sessionToken) {
+  requireReviewManager_(requireLogin_(sessionToken));
+  var input = payload || {};
+  var faculty = String(input.faculty || '').trim();
+  var name = String(input.name || '').trim();
+  var email = String(input.email || '').trim().toLowerCase();
+  var position = String(input.position || '').trim();
+  if (!faculty || !name || !email) throw new Error('Fakulti, nama dan e-mel wajib diisi.');
+  if (!/@unisza\.edu\.my$/.test(email)) throw new Error('E-mel mesti berakhir dengan @unisza.edu.my.');
+
+  var sheet = programmeSpreadsheet_().getSheetByName(USER_DIRECTORY_SHEET_NAME_);
+  var rowIndex = Number(input.rowIndex || 0);
+  if (rowIndex >= 2) {
+    sheet.getRange(rowIndex, 1, 1, 4).setValues([[faculty, name, email, position]]);
+  } else {
+    sheet.appendRow([faculty, name, email, position]);
+  }
+  SpreadsheetApp.flush();
+  return directoryPayload_();
+}
+
+function removeDirectoryAdminApi(rowIndex, sessionToken) {
+  requireReviewManager_(requireLogin_(sessionToken));
+  var index = Number(rowIndex || 0);
+  if (index < 2) throw new Error('Baris tidak sah.');
+  var sheet = programmeSpreadsheet_().getSheetByName(USER_DIRECTORY_SHEET_NAME_);
+  if (index > sheet.getLastRow()) throw new Error('Baris tidak ditemui.');
+  sheet.deleteRow(index);
+  SpreadsheetApp.flush();
+  return directoryPayload_();
 }
 
 function jsonResponse_(payload) {
@@ -1195,6 +1255,7 @@ function renderReviewAdminPage_(session) {
     token: session.token,
     baseUrl: deploymentUrl_(),
     review: reviewAdminPayload_(session.user),
+    directory: directoryPayload_(),
     appJs: 'AdminJs'
   });
 }
