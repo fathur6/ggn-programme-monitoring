@@ -62,6 +62,8 @@ var PROGRAMME_PARTNER_TAB_SEPARATOR_ = '__';
 var PDF_LOG_SHEET_NAME_ = 'PDF_Log';
 var PDF_LOG_HEADERS_ = ['FileId', 'FileName', 'MQACode', 'Faculty', 'GeneratedBy', 'GeneratedByEmail', 'GeneratedAt', 'Source'];
 var TIME_ZONE_ = 'Asia/Kuala_Lumpur';
+var APP_NAME_ = 'Maklumat, Pemetaan dan Semakan Program Akademik Pascasiswazah UniSZA';
+var APP_SHORT_NAME_ = 'Program Akademik Pascasiswazah UniSZA';
 var USER_SESSION_PREFIX_ = 'mqf-programme-session:';
 var USER_SESSION_TTL_SECONDS_ = 21600;
 
@@ -233,7 +235,7 @@ function doGet(e) {
 }
 
 function renderProgrammeListPage_(session) {
-  return renderPage_('PageProgrammes', 'MQF 2.0 — Programmes', {
+  return renderPage_('PageProgrammes', APP_SHORT_NAME_ + ' — Program', {
     page: 'programmes',
     user: session.user,
     token: session.token,
@@ -255,7 +257,7 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
   }
 
   var detail = getProgrammeDetailFor_(programme);
-  return renderPage_('PageProgrammeDetail', 'MQF 2.0 — ' + programme.name, {
+  return renderPage_('PageProgrammeDetail', APP_SHORT_NAME_ + ' — ' + programme.name, {
     page: 'detail',
     user: session.user,
     token: session.token,
@@ -490,7 +492,7 @@ function renderAccessPage_(state) {
   template.retryUrl = deploymentUrl_() + '?page=programmes';
   template.signInUrl = state.signInUrl || '';
   return template.evaluate()
-    .setTitle('MQF 2.0 — Akses')
+    .setTitle(APP_SHORT_NAME_ + ' — Akses')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }

@@ -1,4 +1,6 @@
-# GGN MQF 2.0 Programme Information Monitoring
+# Maklumat, Pemetaan dan Semakan Program Akademik Pascasiswazah UniSZA
+
+GGN MQF 2.0 programme information and mapping module.
 
 Google Apps Script web application for managing MQF 2.0 programme information at the UniSZA Graduate School.
 
