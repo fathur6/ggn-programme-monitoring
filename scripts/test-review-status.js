@@ -140,7 +140,7 @@ function stub(app, options) {
   app.reviewSubmissions_ = function () {
     return [{ PeriodId: 'P2026-11-21', MQACode: 'MQA/FA1' }];
   };
-  app.userDirectoryEntries_ = function () {
+  app.reviewRecipients_ = function () {
     return [
       { faculty: 'FKI', name: 'Koordinator FKI', email: 'fki@unisza.edu.my' },
       { faculty: 'FPP', name: 'Koordinator FPP', email: 'fpp@unisza.edu.my' },

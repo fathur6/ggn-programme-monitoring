@@ -860,6 +860,32 @@ function reviewLinks_() {
  * Email each faculty contact about the open cycle. dryRun routes everything to
  * the requester so the wording can be checked without emailing the faculties.
  */
+/**
+ * Recipients for review emails, read directly from the USER sheet so the result
+ * does not depend on the login directory helper.
+ */
+function reviewRecipients_() {
+  var sheet = programmeSpreadsheet_().getSheetByName(USER_DIRECTORY_SHEET_NAME_);
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+  var header = data[0].map(function (value) { return String(value).trim().toLowerCase(); });
+  var facultyCol = header.indexOf('faculty');
+  var nameCol = header.indexOf('graduate coordinator');
+  var emailCol = header.indexOf('graduate coordinator email');
+  if (facultyCol < 0 || emailCol < 0) return [];
+  return data.slice(1).reduce(function (out, row) {
+    var email = String(row[emailCol] || '').trim().toLowerCase();
+    if (!email || email.indexOf('@') === -1) return out;
+    out.push({
+      faculty: String(row[facultyCol] || '').replace(/\s+/g, ' ').trim(),
+      name: nameCol < 0 ? '' : String(row[nameCol] || '').trim(),
+      email: email
+    });
+    return out;
+  }, []);
+}
+
 function sendReviewEmails_(kind, dryRun, session) {
   var period = activeReviewPeriod_();
   if (!period) throw new Error('Tiada sesi semakan yang dibuka.');
@@ -884,7 +910,7 @@ function sendReviewEmails_(kind, dryRun, session) {
     if (faculty) { submitted[faculty] = submitted[faculty] || {}; submitted[faculty][String(row.MQACode)] = true; }
   });
 
-  var contacts = userDirectoryEntries_().filter(function (entry) { return !!entry.email; });
+  var contacts = reviewRecipients_();
   var link = reviewLinks_();
   var cutoff = String(period.CutoffLabel || '');
   var closes = period.ClosesAt ? reviewDateLabel_(period.ClosesAt) : '';
@@ -940,7 +966,7 @@ function sendReviewEmails_(kind, dryRun, session) {
     }
   }
 
-  return { ok: true, kind: kind, dryRun: !!dryRun, sent: sent, skipped: skipped };
+  return { ok: true, kind: kind, dryRun: !!dryRun, sent: sent, skipped: skipped, recipients: contacts.length };
 }
 
 function sendReviewEmailsApi(kind, dryRun, sessionToken) {
