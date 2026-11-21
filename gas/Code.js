@@ -195,9 +195,15 @@ function resolveProgrammeColumns_(sheet, data) {
 function doGet(e) {
   var params = (e && e.parameter) || {};
   var page = String(params.page || 'programmes').toLowerCase();
+  var returnUrl = deploymentUrl_() + (e && e.queryString ? '?' + e.queryString : '');
 
   var session = resolveGoogleSession_();
-  if (!session.ok) return renderAccessPage_(session);
+  if (!session.ok) {
+    if (session.reason === 'no_google_session' || session.reason === 'wrong_domain') {
+      session.signInUrl = 'https://accounts.google.com/AccountChooser?continue=' + encodeURIComponent(returnUrl);
+    }
+    return renderAccessPage_(session);
+  }
 
   try {
     if (String(params.setup || '') === 'sharedrole') {
@@ -482,6 +488,7 @@ function renderAccessPage_(state) {
   template.message = state.message || 'Sesi Google tidak dapat disahkan.';
   template.email = state.email || '';
   template.retryUrl = deploymentUrl_() + '?page=programmes';
+  template.signInUrl = state.signInUrl || '';
   return template.evaluate()
     .setTitle('MQF 2.0 — Akses')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)

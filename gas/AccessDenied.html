@@ -32,7 +32,14 @@
         <p class="text-sm text-muted" style="margin:0 0 20px">
           Pastikan pelayar ini sudah log masuk dengan akaun @unisza.edu.my, kemudian tekan Cuba lagi.
         </p>
-        <a class="btn btn-primary" href="<?= retryUrl ?>">Cuba lagi</a>
+        <? if (signInUrl) { ?>
+          <a class="btn btn-primary" href="<?= signInUrl ?>" target="_blank" rel="noopener noreferrer">Pilih akaun Google UniSZA</a>
+          <p class="text-sm text-muted" style="margin:12px 0 0">
+            Google akan dibuka dalam tab baharu. Pilih akaun @unisza.edu.my, kembali ke tab ini, kemudian tekan Cuba lagi.
+          </p>
+        <? } else { ?>
+          <a class="btn btn-primary" href="<?= retryUrl ?>">Cuba lagi</a>
+        <? } ?>
       </div>
     </main>
   </div>

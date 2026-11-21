@@ -179,9 +179,18 @@ assert(
   'doGet must route the detail page'
 );
 assert(
-  /if \(!session\.ok\) return renderAccessPage_\(session\)/.test(source),
+  /if \(!session\.ok\) \{[\s\S]*?return renderAccessPage_\(session\);/.test(source),
   'doGet must render the access page before any data work'
 );
+
+// A personal Google account must reach our sign-in prompt, not a Google error page.
+const manifest = JSON.parse(fs.readFileSync('gas/appsscript.json', 'utf8'));
+assert.strictEqual(manifest.webapp.access, 'ANYONE', 'Deployment must accept any Google account so we can prompt');
+assert.strictEqual(manifest.webapp.executeAs, 'USER_DEPLOYING');
+assert(/accounts\.google\.com\/AccountChooser\?continue=/.test(source), 'Access page must offer an account chooser');
+const accessPage = fs.readFileSync('gas/AccessDenied.html', 'utf8');
+assert(accessPage.indexOf('Pilih akaun Google UniSZA') !== -1, 'Access page must show the UniSZA sign-in button');
+assert(accessPage.indexOf('signInUrl') !== -1, 'Access page must use the injected sign-in URL');
 assert(
   source.indexOf('function renderAccessPage_') !== -1,
   'AccessDenied page renderer must exist'
