@@ -178,6 +178,16 @@
 
     .state-chip.chip-shared { background: #e8f0fe; color: #1a56b0; }
     .state-chip.chip-warn { background: #fdf3e3; color: var(--action-amber); }
+    .review-toggle { display: flex; align-items: center; gap: 12px; width: 100%; background: transparent; border: none; padding: 2px 0; cursor: pointer; text-align: left; }
+    .review-toggle-title { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 18px; font-weight: 600; color: var(--ink); }
+    .review-toggle-meta { margin-left: auto; color: var(--muted); font-size: 13px; }
+    .review-chevron { color: var(--muted); font-size: 13px; }
+    .review-body { padding-top: 16px; }
+    .review-headline { font-weight: 600; margin: 2px 0 8px; color: var(--ink); }
+    .review-label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--ink); }
+    .review-textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); font: inherit; color: var(--ink); background: var(--canvas); resize: vertical; }
+    .review-textarea:focus { outline: 2px solid var(--action-blue); outline-offset: 1px; }
+    .review-missing { color: var(--action-amber); font-weight: 500; }
     .state-chip {
       display: inline-block; font-size: 12px; font-weight: 500; padding: 3px 10px;
       border-radius: var(--radius-pill); background: var(--canvas-muted); color: var(--slate);

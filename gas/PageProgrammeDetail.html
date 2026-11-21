@@ -147,6 +147,64 @@
           </div>
         </section>
 
+        <section class="section-card">
+          <button type="button" class="review-toggle" @click="review.open = !review.open" :aria-expanded="review.open">
+            <span class="review-toggle-title">Status Semakan</span>
+            <span class="review-toggle-meta">
+              {{ review.active ? 'Sesi dibuka · tutup ' + (review.active.closesAtLabel || review.active.cutoffLabel) : 'Tiada sesi dibuka' }}
+            </span>
+            <span class="review-chevron">{{ review.open ? '▲' : '▼' }}</span>
+          </button>
+
+          <div v-if="review.open" class="review-body">
+            <div v-if="review.error" class="alert alert-error">{{ review.error }}</div>
+            <div v-if="review.notice" class="alert alert-success">{{ review.notice }}</div>
+
+            <div v-if="review.active">
+              <p class="eyebrow">SESI SEMASA</p>
+              <p class="review-headline">{{ review.active.title }}</p>
+              <p v-if="review.currentText" class="text-sm text-muted">Status terkini: {{ review.currentText }}</p>
+              <p v-else class="text-sm text-muted">Belum ada status untuk sesi ini.</p>
+
+              <template v-if="review.canSubmit">
+                <label class="review-label" for="review-status">Status semakan (teks bebas)</label>
+                <textarea id="review-status" v-model.trim="review.draft" rows="5" class="review-textarea"
+                  placeholder="Contoh: pemurnian telah dibuat … semakan dan penambahbaikan akan dibuat dalam bengkel hujung April 2026."></textarea>
+                <div class="modal-actions">
+                  <button type="button" class="btn btn-primary" @click="submitReview" :disabled="review.submitting || !review.draft">
+                    {{ review.submitting ? 'Menghantar…' : 'Hantar status' }}
+                  </button>
+                </div>
+              </template>
+              <p v-else class="text-sm text-muted">Akaun anda tiada akses untuk mengemas kini program ini.</p>
+            </div>
+            <p v-else class="empty-note">Tiada sesi semakan dibuka. Sejarah dipaparkan di bawah.</p>
+
+            <div v-if="review.history.length" class="table-wrap" style="margin-top:16px">
+              <table class="detail-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Sesi</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Dikemaskini oleh</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="entry in review.history" :key="entry.periodId">
+                    <td><strong>{{ entry.cutoffLabel || entry.title }}</strong></td>
+                    <td :class="{ 'review-missing': entry.missing }">{{ entry.statusText || '—' }}</td>
+                    <td>
+                      <span v-if="entry.submittedBy">{{ entry.submittedBy }}</span>
+                      <span v-else class="text-muted">—</span>
+                      <span v-if="entry.submittedAtLabel" class="text-muted text-sm"> · {{ entry.submittedAtLabel }}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
     <div v-if="editor.open" class="modal-backdrop" @click.self="closeEdit">
       <section class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-record-title">
         <header class="modal-header">

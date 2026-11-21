@@ -272,6 +272,7 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
     token: session.token,
     baseUrl: deploymentUrl_(),
     pdfLog: listPdfLog_(session.user, programme.mqaCode),
+    review: reviewPayloadFor_(programme, session.user),
     detail: {
       name: programme.name,
       nameMy: programme.nameMy,
@@ -338,6 +339,146 @@ function reviewRows_(name) {
     headers.forEach(function (header, index) { if (header) record[header] = row[index]; });
     return record;
   });
+}
+
+/** Effective state: a period whose window has passed counts as closed. */
+function reviewPeriodState_(period) {
+  if (!period) return '';
+  var state = String(period.State || '').trim();
+  if (state === REVIEW_STATE_CLOSED_) return REVIEW_STATE_CLOSED_;
+  var closes = period.ClosesAt ? new Date(period.ClosesAt) : null;
+  if (closes && !isNaN(closes.getTime()) && new Date() > closes) return REVIEW_STATE_CLOSED_;
+  return state || REVIEW_STATE_CLOSED_;
+}
+
+function reviewPeriods_() {
+  return reviewRows_(REVIEW_PERIODS_SHEET_).slice().sort(function (left, right) {
+    return String(right.PeriodId || '').localeCompare(String(left.PeriodId || ''));
+  });
+}
+
+function reviewSubmissions_() {
+  return reviewRows_(REVIEW_SUBMISSIONS_SHEET_);
+}
+
+/** The cycle currently accepting submissions, if any. */
+function activeReviewPeriod_() {
+  var now = new Date();
+  var open = reviewPeriods_().filter(function (period) {
+    return reviewPeriodState_(period) === REVIEW_STATE_OPEN_;
+  });
+  for (var i = 0; i < open.length; i++) {
+    var opens = open[i].OpensAt ? new Date(open[i].OpensAt) : null;
+    if (opens && !isNaN(opens.getTime()) && now < opens) continue;
+    return open[i];
+  }
+  return null;
+}
+
+function reviewPeriodModel_(period) {
+  if (!period) return null;
+  return {
+    periodId: String(period.PeriodId || ''),
+    title: String(period.Title || ''),
+    cutoffLabel: String(period.CutoffLabel || ''),
+    closesAtLabel: period.ClosesAt ? reviewDateLabel_(period.ClosesAt) : '',
+    state: reviewPeriodState_(period)
+  };
+}
+
+function reviewDateLabel_(value) {
+  var date = value instanceof Date ? value : new Date(value);
+  if (isNaN(date.getTime())) return '';
+  return Utilities.formatDate(date, TIME_ZONE_, 'dd/MM/yyyy');
+}
+
+/**
+ * One row per cycle for a programme, newest first. A closed cycle with no
+ * submission is reported as "Tidak dikemaskini" so gaps stay visible.
+ */
+function reviewHistoryFor_(mqaCode) {
+  var code = String(mqaCode || '').trim();
+  var latest = {};
+  reviewSubmissions_().forEach(function (row) {
+    if (String(row.MQACode || '').trim() !== code) return;
+    var periodId = String(row.PeriodId || '');
+    var stamp = row.SubmittedAt instanceof Date ? row.SubmittedAt.getTime() : new Date(row.SubmittedAt).getTime();
+    if (!latest[periodId] || (stamp || 0) >= latest[periodId].stamp) {
+      latest[periodId] = { row: row, stamp: stamp || 0 };
+    }
+  });
+  return reviewPeriods_().map(function (period) {
+    var periodId = String(period.PeriodId || '');
+    var hit = latest[periodId];
+    var state = reviewPeriodState_(period);
+    var closed = state === REVIEW_STATE_CLOSED_;
+    return {
+      periodId: periodId,
+      title: String(period.Title || ''),
+      cutoffLabel: String(period.CutoffLabel || ''),
+      state: state,
+      statusText: hit ? String(hit.row.StatusText || '') : (closed ? REVIEW_MISSING_TEXT_ : ''),
+      missing: !hit && closed,
+      submittedBy: hit ? String(hit.row.SubmittedBy || '') : '',
+      submittedByEmail: hit ? String(hit.row.SubmittedByEmail || '') : '',
+      submittedAtLabel: hit && hit.row.SubmittedAt ? reviewDateLabel_(hit.row.SubmittedAt) : '',
+      source: hit ? String(hit.row.Source || '') : ''
+    };
+  });
+}
+
+function reviewPayloadFor_(programme, session) {
+  var active = activeReviewPeriod_();
+  var history = reviewHistoryFor_(programme.mqaCode);
+  var current = null;
+  if (active) {
+    for (var i = 0; i < history.length; i++) {
+      if (history[i].periodId === String(active.PeriodId)) { current = history[i]; break; }
+    }
+  }
+  return {
+    active: reviewPeriodModel_(active),
+    canSubmit: !!active && !!session && (session.isAdmin || session.faculty === programme.faculty),
+    currentText: current ? current.statusText : '',
+    history: history,
+    missingLabel: REVIEW_MISSING_TEXT_
+  };
+}
+
+function getReviewStatusApi(mqaCode, sessionToken, faculty) {
+  var session = requireLogin_(sessionToken);
+  var programme = requireProgrammeFacultyAccess_(mqaCode, session, faculty);
+  return reviewPayloadFor_(programme, session);
+}
+
+/** Append-only submission: the history keeps every revision. */
+function submitReviewStatusApi(mqaCode, text, sessionToken, faculty) {
+  var session = requireLogin_(sessionToken);
+  var programme = requireProgrammeFacultyAccess_(mqaCode, session, faculty);
+  var period = activeReviewPeriod_();
+  if (!period) throw new Error('Tiada sesi semakan yang dibuka. Hubungi PJK PPS.');
+  var body = String(text || '').trim();
+  if (!body) throw new Error('Sila isi status semakan sebelum menghantar.');
+
+  var previous = reviewSubmissions_().filter(function (row) {
+    return String(row.PeriodId || '') === String(period.PeriodId) &&
+      String(row.MQACode || '') === programme.mqaCode;
+  });
+  var revision = previous.length + 1;
+  ensureReviewTabs_().submissions.appendRow([
+    String(period.PeriodId) + '::' + programme.mqaCode + '::r' + revision,
+    period.PeriodId,
+    programme.mqaCode,
+    programme.faculty,
+    body,
+    session.name || '',
+    session.email || '',
+    new Date(),
+    'app',
+    revision
+  ]);
+  SpreadsheetApp.flush();
+  return reviewPayloadFor_(programme, session);
 }
 
 function jsonResponse_(payload) {

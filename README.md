@@ -42,8 +42,14 @@ History from the legacy `Status Semakan Maklumat Program Akademik Siswazah.xlsx`
 faculty's Deputy Dean (Academic) recorded as the author, because those rows carry
 no user. Entries are captured in `docs/import/review-history-2026-08.json`.
 
-PJK and TDA PPS will open and close each cycle from the admin page; a programme
-with no submission when the cycle closes is reported as "Tidak dikemaskini".
+PJK and TDA PPS open and close each cycle from the admin page; a programme with no
+submission when the cycle closes is reported as "Tidak dikemaskini".
+
+On the programme page the register appears as a collapsed **Status Semakan**
+accordion below the generated-PDF table: the current cycle with a free-text box
+(any coordinator, PIC or deputy dean of that faculty, while the cycle is open),
+then the history newest first with author and date. Submissions are append-only,
+so a correction adds a revision instead of erasing the previous text.
 
 ## Generated PDFs
 

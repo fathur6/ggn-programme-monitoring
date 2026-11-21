@@ -20,6 +20,11 @@
         baseUrl: BOOT.baseUrl || '',
         programmes: BOOT.programmes || [],
         pdfLog: BOOT.pdfLog || [],
+        review: Object.assign({
+          open: false, active: null, canSubmit: false, currentText: '',
+          history: [], missingLabel: 'Tidak dikemaskini',
+          draft: '', submitting: false, error: null, notice: null
+        }, BOOT.review || {}),
         detail: BOOT.detail || emptyDetail(),
         search: '',
         open: {},
@@ -189,6 +194,30 @@
           if (result.hasOwnCopy !== undefined) this.$set(this.detail, 'hasOwnCopy', result.hasOwnCopy);
           if (result.differsFromOwner !== undefined) this.$set(this.detail, 'differsFromOwner', result.differsFromOwner);
         },
+        submitReview: function () {
+          var self = this;
+          if (this.review.submitting || !this.review.draft) return;
+          this.review.submitting = true;
+          this.review.error = null;
+          this.review.notice = null;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.review.submitting = false;
+              self.applyReview(result || {});
+              self.review.notice = 'Status semakan telah dihantar.';
+            })
+            .withFailureHandler(function (err) {
+              self.review.submitting = false;
+              self.review.error = err && err.message ? err.message : 'Status tidak dapat dihantar.';
+            })
+            .submitReviewStatusApi(this.detail.mqaCode, this.review.draft, this.sessionToken, this.detail.faculty);
+        },
+        applyReview: function (payload) {
+          this.$set(this.review, 'active', payload.active || null);
+          this.$set(this.review, 'canSubmit', !!payload.canSubmit);
+          this.$set(this.review, 'currentText', payload.currentText || '');
+          this.$set(this.review, 'history', payload.history || []);
+        },
         addRecord: function (type) {
           var self = this;
           this.adding = true;
@@ -284,6 +313,7 @@
       },
       mounted: function () {
         if (this.page === 'programmes') this.openOwnFaculty();
+        if (this.review && this.review.currentText) this.review.draft = this.review.currentText;
       }
     });
   }
