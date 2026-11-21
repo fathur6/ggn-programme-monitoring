@@ -249,16 +249,22 @@ const different = { peos: [{ code: 'PEO1', statement: 'Different', mqfDomain: 'M
 assert.strictEqual(app.sameProgrammeContent_(left, sameText), true, 'Whitespace/case must not count as a difference');
 assert.strictEqual(app.sameProgrammeContent_(left, different), false);
 
-// Copy endpoint and its guard rails.
-assert(source.indexOf('function copyProgrammeFromOwnerApi') !== -1, 'Copy-from-owner API must exist');
-assert(/ownerSheet\.copyTo\(ss\)\.setName\(programme\.tabName\)/.test(source), 'Copy must clone the owner tab');
+// Partner content is copied automatically on first access.
+assert(source.indexOf('function ensurePartnerCopy_') !== -1, 'Auto-copy helper must exist');
+assert(/LockService\.getScriptLock\(\)/.test(source), 'Auto-copy must be serialised with a script lock');
+assert(/ownerSheet\.copyTo\(ss\)\.setName\(programme\.tabName\)/.test(source), 'Auto-copy must clone the owner tab');
+assert(/function getProgrammeDetailFor_\(programme\) \{\s*ensurePartnerCopy_\(programme\);/.test(source),
+  'Reading a detail must ensure the partner copy first');
+assert(/function requireOwnProgrammeTab_\(programme\) \{\s*ensurePartnerCopy_\(programme\);/.test(source),
+  'Writing must ensure the partner copy first');
 assert(source.indexOf('function setupSharedProgrammeRoleColumn') !== -1, 'Role column setup must exist');
 
 const detailMarkup = fs.readFileSync('gas/PageProgrammeDetail.html', 'utf8');
-assert(detailMarkup.indexOf('Salin daripada fakulti pemilik') !== -1, 'Copy button must be present');
+assert(detailMarkup.indexOf('Salin daripada fakulti pemilik') === -1, 'Manual copy button must be gone');
 assert(detailMarkup.indexOf('Berbeza dengan fakulti pemilik') !== -1, 'Difference badge must be present');
+assert(detailMarkup.indexOf('Sama dengan fakulti pemilik') !== -1, 'Match badge must be present');
 
-assert(appJs.indexOf('copyProgrammeFromOwnerApi') !== -1, 'Client must call the copy API');
+assert(appJs.indexOf('copyFromOwner') === -1, 'Client must not offer a manual copy action');
 assert(appJs.indexOf('this.detail.faculty)') !== -1, 'Client must pass the faculty to write APIs');
 
 console.log('single-workbook guard: OK');

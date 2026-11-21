@@ -271,26 +271,6 @@ function jsonResponse_(payload) {
 }
 
 /**
- * Partner faculty starts from the owner's content, then diverges freely.
- * Copying is explicit so a partner never silently edits the owner's records.
- */
-function copyProgrammeFromOwnerApi(mqaCode, sessionToken, faculty) {
-  var programme = requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken), faculty);
-  if (programme.role !== PROGRAMME_ROLE_PARTNER_) {
-    throw new Error('Program ini bukan program berkongsi.');
-  }
-  var ss = programmeSpreadsheet_();
-  if (ss.getSheetByName(programme.tabName)) {
-    throw new Error('Kandungan tersendiri fakulti anda sudah wujud.');
-  }
-  var ownerSheet = ss.getSheetByName(sanitizeSheetName_(programme.mqaCode));
-  if (!ownerSheet) throw new Error('Kandungan fakulti pemilik belum tersedia.');
-  ownerSheet.copyTo(ss).setName(programme.tabName);
-  SpreadsheetApp.flush();
-  return getProgrammeDetailFor_(programme);
-}
-
-/**
  * One-off, idempotent setup: writes the Peranan / Fakulti Pemilik columns and
  * marks the first row of every duplicated MQA code as the owner. Existing values
  * are never overwritten.
@@ -678,12 +658,45 @@ function readProgrammeSheet_(tabName, baseCode) {
   return { exists: true, peos: peos, plos: plos };
 }
 
-/** Partners must copy the owner's content before they can edit anything. */
-function requireOwnProgrammeTab_(programme) {
-  var sheet = programmeSpreadsheet_().getSheetByName(programme.tabName);
-  if (!sheet) {
-    throw new Error('Kandungan tersendiri fakulti anda belum wujud. Tekan "Salin daripada fakulti pemilik" dahulu.');
+/**
+ * A partner faculty starts from the owner's content on its first access. The copy
+ * is serialised with LockService so two simultaneous page loads cannot create
+ * duplicate tabs, and it is idempotent: an existing tab is never touched.
+ */
+function ensurePartnerCopy_(programme) {
+  if (!programme || programme.role !== PROGRAMME_ROLE_PARTNER_) return;
+  var ss = programmeSpreadsheet_();
+  if (ss.getSheetByName(programme.tabName)) return;
+
+  var lock = LockService.getScriptLock();
+  var locked = false;
+  try {
+    locked = lock.tryLock(15000);
+  } catch (e) {
+    locked = false;
   }
+  if (!locked) return;
+
+  try {
+    if (ss.getSheetByName(programme.tabName)) return;
+    var ownerSheet = ss.getSheetByName(sanitizeSheetName_(programme.mqaCode));
+    if (ownerSheet) {
+      ownerSheet.copyTo(ss).setName(programme.tabName);
+    } else {
+      seedProgrammeTab_(ss.insertSheet(programme.tabName));
+    }
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Last-resort guard: the partner tab always exists after ensurePartnerCopy_. */
+
+function requireOwnProgrammeTab_(programme) {
+  ensurePartnerCopy_(programme);
+  var sheet = programmeSpreadsheet_().getSheetByName(programme.tabName);
+  if (!sheet) throw new Error('Kandungan program tidak dapat disediakan. Sila muat semula halaman.');
   return sheet;
 }
 
@@ -701,6 +714,7 @@ function getProgrammeDetail_(mqaCode) {
  * content still matches the owner.
  */
 function getProgrammeDetailFor_(programme) {
+  ensurePartnerCopy_(programme);
   var own = readProgrammeSheet_(programme.tabName, programme.mqaCode);
   var result = {
     mqaCode: programme.mqaCode,
