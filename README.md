@@ -24,6 +24,25 @@ instance for both pages, reading the server-injected `BOOT` payload).
 Programme rows and the "Back to programmes" control are real links, so a detail
 page can be bookmarked or shared.
 
+## Shared MQA codes (owner vs partner faculty)
+
+Some MQA codes are offered by more than one faculty. The first row for a code
+owns the shared content; every other row is a partner with its own content.
+
+- **Sheet columns** on `Programme`: `J = Peranan` (`Pemilik` / `Berkongsi`) and
+  `K = Fakulti Pemilik`. Blank values fall back to "first row owns it", so the app
+  keeps working before the columns are filled.
+- **Tabs**: the owner keeps `MQAFA5589`; a partner stores its own content in
+  `MQAFA5589__<FACULTY>` (for example `MQAFA5589__ESERI`).
+- **Partner flow**: a partner with no tab yet sees "Kandungan tersendiri belum ada"
+  and the button **Salin daripada fakulti pemilik**, which clones the owner tab.
+  After copying, the partner edits its own tab freely — the owner is untouched.
+- **Status**: once a partner has its own tab, the page compares it with the owner
+  and shows "Sama dengan fakulti pemilik" or "Berbeza dengan fakulti pemilik".
+- **Setup**: visit `?setup=sharedrole` as an admin once to write the two columns
+  and mark the first row of each duplicated code as the owner. The routine never
+  overwrites values that are already filled.
+
 ## Local Project
 
 The deployable source is under `gas/`. It includes the recovered unsanitized local configuration and clasp metadata, which are intentionally ignored by Git. The matching Apps Script project ID is stored in `gas/.clasp.json`.

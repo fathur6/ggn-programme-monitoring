@@ -56,6 +56,9 @@ var PDF_FOLDER_ID_ = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
  */
 var USER_DIRECTORY_SHEET_NAME_ = 'USER';
 var ADMIN_DIRECTORY_SHEET_NAME_ = 'ADMIN';
+var PROGRAMME_ROLE_OWNER_ = 'Pemilik';
+var PROGRAMME_ROLE_PARTNER_ = 'Berkongsi';
+var PROGRAMME_PARTNER_TAB_SEPARATOR_ = '__';
 var USER_SESSION_PREFIX_ = 'mqf-programme-session:';
 var USER_SESSION_TTL_SECONDS_ = 21600;
 
@@ -194,9 +197,15 @@ function doGet(e) {
   if (!session.ok) return renderAccessPage_(session);
 
   try {
+    if (String(params.setup || '') === 'sharedrole') {
+      if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
+      return jsonResponse_(setupSharedProgrammeRoleColumn());
+    }
     if (page === 'detail') {
       var mqaCode = String(params.mqaCode || '').trim();
-      if (mqaCode) return renderProgrammeDetailPage_(session, mqaCode);
+      if (mqaCode) {
+        return renderProgrammeDetailPage_(session, mqaCode, String(params.faculty || '').trim());
+      }
     }
     return renderProgrammeListPage_(session);
   } catch (err) {
@@ -220,13 +229,9 @@ function renderProgrammeListPage_(session) {
   });
 }
 
-function renderProgrammeDetailPage_(session, mqaCode) {
-  var programmes = getProgrammesApi(session.token);
-  var meta = null;
-  for (var i = 0; i < programmes.length; i++) {
-    if (programmes[i].mqaCode === mqaCode) { meta = programmes[i]; break; }
-  }
-  if (!meta) {
+function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
+  var programme = programmeForSession_(mqaCode, session.user, facultyHint);
+  if (!programme) {
     return renderAccessPage_({
       reason: 'not_found',
       title: 'Program tidak ditemui',
@@ -234,24 +239,94 @@ function renderProgrammeDetailPage_(session, mqaCode) {
       email: session.user.email
     });
   }
-  var detail = getProgrammeDetailApi(mqaCode, session.token);
-  return renderPage_('PageProgrammeDetail', 'MQF 2.0 — ' + meta.name, {
+
+  var detail = getProgrammeDetailFor_(programme);
+  return renderPage_('PageProgrammeDetail', 'MQF 2.0 — ' + programme.name, {
     page: 'detail',
     user: session.user,
     token: session.token,
     baseUrl: deploymentUrl_(),
     detail: {
-      name: meta.name,
-      nameMy: meta.nameMy,
-      mqaCode: meta.mqaCode,
-      progCode: meta.progCode,
-      level: meta.level,
-      faculty: meta.faculty,
-      facultyFull: meta.facultyFull,
-      peos: detail.peos || [],
-      plos: detail.plos || []
+      name: programme.name,
+      nameMy: programme.nameMy,
+      mqaCode: programme.mqaCode,
+      progCode: programme.progCode,
+      level: programme.level,
+      faculty: programme.faculty,
+      facultyFull: programme.facultyFull,
+      isSharedCode: detail.isSharedCode,
+      role: detail.role,
+      ownerFaculty: detail.ownerFaculty,
+      hasOwnCopy: detail.hasOwnCopy,
+      differsFromOwner: detail.differsFromOwner,
+      peos: detail.peos,
+      plos: detail.plos
     }
   });
+}
+
+function jsonResponse_(payload) {
+  return ContentService.createTextOutput(JSON.stringify(payload, null, 2))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Partner faculty starts from the owner's content, then diverges freely.
+ * Copying is explicit so a partner never silently edits the owner's records.
+ */
+function copyProgrammeFromOwnerApi(mqaCode, sessionToken, faculty) {
+  var programme = requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken), faculty);
+  if (programme.role !== PROGRAMME_ROLE_PARTNER_) {
+    throw new Error('Program ini bukan program berkongsi.');
+  }
+  var ss = programmeSpreadsheet_();
+  if (ss.getSheetByName(programme.tabName)) {
+    throw new Error('Kandungan tersendiri fakulti anda sudah wujud.');
+  }
+  var ownerSheet = ss.getSheetByName(sanitizeSheetName_(programme.mqaCode));
+  if (!ownerSheet) throw new Error('Kandungan fakulti pemilik belum tersedia.');
+  ownerSheet.copyTo(ss).setName(programme.tabName);
+  SpreadsheetApp.flush();
+  return getProgrammeDetailFor_(programme);
+}
+
+/**
+ * One-off, idempotent setup: writes the Peranan / Fakulti Pemilik columns and
+ * marks the first row of every duplicated MQA code as the owner. Existing values
+ * are never overwritten.
+ */
+function setupSharedProgrammeRoleColumn() {
+  var ss = programmeSpreadsheet_();
+  var sheet = ss.getSheetByName('Programme');
+  if (!sheet) throw new Error('Sheet "Programme" not found');
+
+  var lastColumn = Math.max(sheet.getLastColumn(), 11);
+  sheet.getRange(1, 10, 1, 2).setValues([['Peranan', 'Fakulti Pemilik']]);
+  sheet.getRange(1, 10, 1, 2).setFontWeight('bold');
+
+  var data = sheet.getRange(1, 1, sheet.getLastRow(), Math.max(lastColumn, 11)).getValues();
+  var firstRowByCode = {};
+  for (var i = 1; i < data.length; i++) {
+    var code = String(data[i][2] || '').trim();
+    if (!code) continue;
+    if (!firstRowByCode[code]) firstRowByCode[code] = { row: i + 1, faculty: String(data[i][7] || '').trim() };
+  }
+
+  var counts = {};
+  for (var j = 1; j < data.length; j++) {
+    var mqa = String(data[j][2] || '').trim();
+    if (!mqa) continue;
+    var faculty = String(data[j][7] || '').trim();
+    var owner = firstRowByCode[mqa];
+    var role = faculty === owner.faculty ? PROGRAMME_ROLE_OWNER_ : PROGRAMME_ROLE_PARTNER_;
+    var existingRole = String(data[j][9] || '').trim();
+    var existingOwner = String(data[j][10] || '').trim();
+    if (!existingRole) sheet.getRange(j + 1, 10).setValue(role);
+    if (!existingOwner) sheet.getRange(j + 1, 11).setValue(owner.faculty);
+    counts[role] = (counts[role] || 0) + 1;
+  }
+  SpreadsheetApp.flush();
+  return { ok: true, rows: counts, codes: Object.keys(firstRowByCode).length };
 }
 
 function renderPage_(pageFile, title, bootstrap) {
@@ -432,13 +507,10 @@ function getProgrammesApi(sessionToken) {
   return session.isAdmin ? getProgrammes_() : getProgrammes_().filter(function(programme) { return programme.faculty === session.faculty; });
 }
 
-function requireProgrammeFacultyAccess_(mqaCode, session) {
-  var code = String(mqaCode || '').trim();
-  var programmes = getProgrammes_();
-  for (var i = 0; i < programmes.length; i++) {
-    if (programmes[i].mqaCode === code && (session.isAdmin || programmes[i].faculty === session.faculty)) return programmes[i];
-  }
-  throw new Error('Anda hanya boleh mengakses program di bawah fakulti sendiri.');
+function requireProgrammeFacultyAccess_(mqaCode, session, facultyHint) {
+  var programme = programmeForSession_(mqaCode, session, facultyHint);
+  if (!programme) throw new Error('Anda hanya boleh mengakses program di bawah fakulti sendiri.');
+  return programme;
 }
 
 function getProgrammes_() {
@@ -464,10 +536,88 @@ function getProgrammes_() {
       facultyFull: String(row[6] || '').trim(),
       faculty: String(row[7] || '').trim(),
       sharing: String(row[8] || '').trim(),
+      roleRaw: String(row[9] || '').trim(),
+      ownerFacultyRaw: String(row[10] || '').trim(),
       level: detectLevel_(nameMy || name)
     });
   }
+  annotateSharedProgrammes_(programmes);
   return programmes;
+}
+
+/**
+ * A single MQA code can be offered by several faculties. The first row for a
+ * code owns the shared tab; every other row is a partner with its own tab.
+ * Columns J ("Peranan") and K ("Fakulti Pemilik") let PPS override that
+ * inference without touching code.
+ */
+function annotateSharedProgrammes_(programmes) {
+  var byCode = {};
+  programmes.forEach(function (programme) {
+    if (!byCode[programme.mqaCode]) byCode[programme.mqaCode] = [];
+    byCode[programme.mqaCode].push(programme);
+  });
+
+  Object.keys(byCode).forEach(function (code) {
+    var rows = byCode[code];
+    var explicitOwner = rows.filter(function (row) {
+      return String(row.roleRaw || '').toLowerCase() === PROGRAMME_ROLE_OWNER_.toLowerCase();
+    })[0];
+    var owner = explicitOwner || rows[0];
+    rows.forEach(function (row) {
+      var role = String(row.roleRaw || '').toLowerCase();
+      row.isSharedCode = rows.length > 1;
+      if (role === PROGRAMME_ROLE_PARTNER_.toLowerCase()) {
+        row.role = PROGRAMME_ROLE_PARTNER_;
+      } else if (role === PROGRAMME_ROLE_OWNER_.toLowerCase()) {
+        row.role = PROGRAMME_ROLE_OWNER_;
+      } else {
+        row.role = row === owner ? PROGRAMME_ROLE_OWNER_ : PROGRAMME_ROLE_PARTNER_;
+      }
+      row.ownerFaculty = row.role === PROGRAMME_ROLE_OWNER_
+        ? row.faculty
+        : (String(row.ownerFacultyRaw || '').trim() || owner.faculty);
+      row.tabName = programmeTabName_(row);
+    });
+  });
+  return programmes;
+}
+
+function programmeTabName_(programme) {
+  var base = sanitizeSheetName_(programme.mqaCode);
+  if (programme.role === PROGRAMME_ROLE_PARTNER_) {
+    return sanitizeSheetName_(base + PROGRAMME_PARTNER_TAB_SEPARATOR_ + programme.faculty);
+  }
+  return base;
+}
+
+/**
+ * Resolve one programme row for a session. A faculty hint is only meaningful for
+ * admins, who can see the same MQA code under several faculties.
+ */
+function programmeForSession_(mqaCode, session, facultyHint) {
+  var code = String(mqaCode || '').trim();
+  if (!code) return null;
+  var rows = getProgrammes_().filter(function (programme) { return programme.mqaCode === code; });
+  if (!rows.length) return null;
+
+  if (session && session.isAdmin) {
+    var hint = String(facultyHint || '').trim();
+    if (hint) {
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i].faculty === hint) return rows[i];
+      }
+    }
+    for (var j = 0; j < rows.length; j++) {
+      if (rows[j].role === PROGRAMME_ROLE_OWNER_) return rows[j];
+    }
+    return rows[0];
+  }
+
+  for (var k = 0; k < rows.length; k++) {
+    if (rows[k].faculty === (session && session.faculty)) return rows[k];
+  }
+  return null;
 }
 
 /**
@@ -475,18 +625,20 @@ function getProgrammes_() {
  * Layout: marker row "PEO" then code|statement|mqf rows, marker row "PLO"
  * then code|statement|mqf|parentPEO|taxonomy|sdg|sc|tf rows.
  */
-function getProgrammeDetailApi(mqaCode, sessionToken) {
-  requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken));
-  return getProgrammeDetail_(mqaCode);
+function getProgrammeDetailApi(mqaCode, sessionToken, faculty) {
+  var programme = requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken), faculty);
+  return getProgrammeDetailFor_(programme);
 }
 
-function getProgrammeDetail_(mqaCode) {
-  var code = String(mqaCode || '').trim();
-  if (!code) throw new Error('MQA code is required');
-
-  var ss = programmeSpreadsheet_();
-  var sheet = ss.getSheetByName(code);
-  if (!sheet) return { mqaCode: code, peos: [], plos: [] };
+/**
+ * Read one programme tab. Partners keep their own tab, so the caller passes the
+ * resolved tab name instead of assuming the MQA code.
+ */
+function readProgrammeSheet_(tabName, baseCode) {
+  var name = String(tabName || '').trim();
+  var code = String(baseCode || name || '').trim();
+  var sheet = name ? programmeSpreadsheet_().getSheetByName(name) : null;
+  if (!sheet) return { exists: false, peos: [], plos: [] };
 
   var data = sheet.getDataRange().getValues();
   var peos = [];
@@ -523,16 +675,72 @@ function getProgrammeDetail_(mqaCode) {
   }
   relocateSpecialPhdSc_(plos, code);
   applyPEOMQFRollup_(peos, plos);
-  return { mqaCode: code, peos: peos, plos: plos };
+  return { exists: true, peos: peos, plos: plos };
+}
+
+/** Partners must copy the owner's content before they can edit anything. */
+function requireOwnProgrammeTab_(programme) {
+  var sheet = programmeSpreadsheet_().getSheetByName(programme.tabName);
+  if (!sheet) {
+    throw new Error('Kandungan tersendiri fakulti anda belum wujud. Tekan "Salin daripada fakulti pemilik" dahulu.');
+  }
+  return sheet;
+}
+
+/** Owner-tab reader kept for callers that only have an MQA code. */
+function getProgrammeDetail_(mqaCode) {
+  var code = String(mqaCode || '').trim();
+  if (!code) throw new Error('MQA code is required');
+  var content = readProgrammeSheet_(sanitizeSheetName_(code), code);
+  return { mqaCode: code, peos: content.peos, plos: content.plos };
 }
 
 /**
- * Updates one existing PEO or PLO row. PEO MQF domains are derived from child
- * PLOs and therefore cannot be edited directly. This write path has no lock.
+ * Detail payload for the page. Partners start without their own tab; once they
+ * copy the owner's content they can diverge, and the page reports whether the
+ * content still matches the owner.
  */
-function saveProgrammeRecordApi(mqaCode, recordType, payload, sessionToken) {
-  requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken));
-  var code = String(mqaCode || '').trim();
+function getProgrammeDetailFor_(programme) {
+  var own = readProgrammeSheet_(programme.tabName, programme.mqaCode);
+  var result = {
+    mqaCode: programme.mqaCode,
+    peos: own.peos,
+    plos: own.plos,
+    isSharedCode: !!programme.isSharedCode,
+    role: programme.role,
+    ownerFaculty: programme.ownerFaculty || programme.faculty,
+    hasOwnCopy: own.exists,
+    differsFromOwner: false
+  };
+
+  if (programme.role === PROGRAMME_ROLE_PARTNER_ && own.exists) {
+    var ownerContent = readProgrammeSheet_(sanitizeSheetName_(programme.mqaCode), programme.mqaCode);
+    result.differsFromOwner = !sameProgrammeContent_(own, ownerContent);
+  }
+  return result;
+}
+
+function sameProgrammeContent_(left, right) {
+  return programmeContentSignature_(left) === programmeContentSignature_(right);
+}
+
+function programmeContentSignature_(content) {
+  var normalise = function (list, fields) {
+    return (list || []).map(function (item) {
+      return fields.map(function (field) {
+        return String(item[field] == null ? '' : item[field]).replace(/\s+/g, ' ').trim().toUpperCase();
+      }).join('|');
+    });
+  };
+  return JSON.stringify({
+    peos: normalise(content.peos, ['code', 'statement', 'mqfDomain']),
+    plos: normalise(content.plos, ['code', 'statement', 'parentPEO', 'mqfDomain', 'taxonomy', 'sdg', 'sc', 'tf'])
+  });
+}
+
+function saveProgrammeRecordApi(mqaCode, recordType, payload, sessionToken, faculty) {
+  var programme = requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken), faculty);
+  var code = programme.mqaCode;
   var type = String(recordType || '').trim().toLowerCase();
   var item = payload || {};
   var itemCode = String(item.code || '').trim();
@@ -541,9 +749,7 @@ function saveProgrammeRecordApi(mqaCode, recordType, payload, sessionToken) {
   if (type !== 'peo' && type !== 'plo') throw new Error('Invalid record type');
   if (!statement) throw new Error('Statement is required');
 
-  var ss = programmeSpreadsheet_();
-  var sheet = ss.getSheetByName(code);
-  if (!sheet) throw new Error('Programme sheet not found: ' + code);
+  var sheet = requireOwnProgrammeTab_(programme);
 
   var data = sheet.getDataRange().getValues();
   var match = findProgrammeRecordRow_(data, type, itemCode);
@@ -552,7 +758,7 @@ function saveProgrammeRecordApi(mqaCode, recordType, payload, sessionToken) {
   if (type === 'peo') {
     sheet.getRange(match.row, 2).setValue(statement);
     SpreadsheetApp.flush();
-    return getProgrammeDetail_(code);
+    return getProgrammeDetailFor_(programme);
   }
 
   var parentPEO = String(item.parentPEO || '').trim();
@@ -589,7 +795,7 @@ function saveProgrammeRecordApi(mqaCode, recordType, payload, sessionToken) {
     if (legacySc) sheet.getRange(legacySc.row, 7).clearContent();
   }
   SpreadsheetApp.flush();
-  return getProgrammeDetail_(code);
+  return getProgrammeDetailFor_(programme);
 }
 
 function findProgrammeRecordRow_(data, recordType, itemCode) {
@@ -861,16 +1067,14 @@ function detectLevel_(name) {
  * Adds a new PEO or PLO row to a programme tab. PLO rows are capped at 11.
  * Returns the refreshed programme detail.
  */
-function addProgrammeRecordApi(mqaCode, recordType, sessionToken) {
-  requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken));
-  var code = String(mqaCode || '').trim();
+function addProgrammeRecordApi(mqaCode, recordType, sessionToken, faculty) {
+  var programme = requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken), faculty);
+  var code = programme.mqaCode;
   var type = String(recordType || '').trim().toLowerCase();
   if (!code) throw new Error('MQA code is required');
   if (type !== 'peo' && type !== 'plo') throw new Error('Invalid record type');
 
-  var ss = programmeSpreadsheet_();
-  var sheet = ss.getSheetByName(code);
-  if (!sheet) throw new Error('Programme sheet not found: ' + code);
+  var sheet = requireOwnProgrammeTab_(programme);
 
   var data = sheet.getDataRange().getValues();
   var peoHeader = -1;
@@ -897,7 +1101,7 @@ function addProgrammeRecordApi(mqaCode, recordType, sessionToken) {
     }
     sheet.getRange(peoRow + 1, 1, 1, 3).setValues([[peoCode, '', '']]);
     SpreadsheetApp.flush();
-    return getProgrammeDetail_(code);
+    return getProgrammeDetailFor_(programme);
   }
 
   if (ploRows >= MAX_PLO_COUNT_) throw new Error('Maksimum ' + MAX_PLO_COUNT_ + ' PLO sahaja.');
@@ -906,7 +1110,7 @@ function addProgrammeRecordApi(mqaCode, recordType, sessionToken) {
   ensurePLOHeaderColumns_(sheet, data);
   sheet.getRange(ploRow + 1, 1, 1, 8).setValues([[ploCode, '', '', '', '', '', '', '']]);
   SpreadsheetApp.flush();
-  return getProgrammeDetail_(code);
+  return getProgrammeDetailFor_(programme);
 }
 
 /**
@@ -914,17 +1118,10 @@ function addProgrammeRecordApi(mqaCode, recordType, sessionToken) {
  * shared Graduate School Drive folder with the naming convention
  * MQA-FAxxxx-ddmmyy-zz (zz = daily serial). Returns the stored file details.
  */
-function generatePdfApi(mqaCode, sessionToken) {
-  requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken));
-  var code = String(mqaCode || '').trim();
-  if (!code) throw new Error('MQA code is required');
-
-  var programmes = getProgrammes_();
-  var programme = null;
-  for (var i = 0; i < programmes.length; i++) {
-    if (String(programmes[i].mqaCode).trim() === code) { programme = programmes[i]; break; }
-  }
-  var detail = getProgrammeDetail_(code);
+function generatePdfApi(mqaCode, sessionToken, faculty) {
+  var programme = requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken), faculty);
+  var code = programme.mqaCode;
+  var detail = getProgrammeDetailFor_(programme);
   var folder = getPdfFolder_();
   var filename = buildPdfFilename_(code, folder);
 
@@ -1109,10 +1306,10 @@ function escapeHtml_(text) {
  * (Academic) PPS address. The address is valid when it is either the executing
  * account's own email or one of its send-as aliases; otherwise the send fails.
  */
-function sendPdfEmailApi(mqaCode, email, fileId, sessionToken) {
-  requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken));
+function sendPdfEmailApi(mqaCode, email, fileId, sessionToken, faculty) {
+  var programme = requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken), faculty);
   var to = String(email || '').trim();
-  var code = String(mqaCode || '').trim();
+  var code = programme.mqaCode;
   var id = String(fileId || '').trim();
   if (!to || !code || !id) throw new Error('Email, programme code and file ID are required');
 
@@ -1126,12 +1323,7 @@ function sendPdfEmailApi(mqaCode, email, fileId, sessionToken) {
   }
 
   var file = DriveApp.getFileById(id);
-  var programmes = getProgrammes_();
-  var programme = null;
-  for (var i = 0; i < programmes.length; i++) {
-    if (String(programmes[i].mqaCode).trim() === code) { programme = programmes[i]; break; }
-  }
-  var name = programme && programme.name ? programme.name : code;
+  var name = programme.name || code;
   var filename = file.getName();
   var pdfBlob = file.getBlob();
   pdfBlob.setName(filename);

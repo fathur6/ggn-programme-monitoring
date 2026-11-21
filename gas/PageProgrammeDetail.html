@@ -8,9 +8,15 @@
               <span class="code-cell">{{ detail.level }}</span>
               <span class="code-cell">{{ detail.facultyFull || detail.faculty }}</span>
             </div>
+            <div v-if="detail.isSharedCode" class="detail-meta" style="margin-top:8px">
+              <span v-if="detail.role === 'Pemilik'" class="state-chip">Pemilik program · {{ detail.faculty }}</span>
+              <span v-else class="state-chip chip-shared">Berkongsi kod · pemilik {{ detail.ownerFaculty }}</span>
+              <span v-if="detail.role === 'Berkongsi' && detail.hasOwnCopy && detail.differsFromOwner" class="state-chip chip-warn">Berbeza dengan fakulti pemilik</span>
+              <span v-if="detail.role === 'Berkongsi' && detail.hasOwnCopy && !detail.differsFromOwner" class="state-chip">Sama dengan fakulti pemilik</span>
+            </div>
           </div>
           <div class="detail-actions">
-            <button class="btn btn-primary" @click="generatePdf" :disabled="pdf.generating">{{ pdf.generating ? 'Generating PDF…' : 'Download PDF' }}</button>
+            <button v-if="detail.role !== 'Berkongsi' || detail.hasOwnCopy" class="btn btn-primary" @click="generatePdf" :disabled="pdf.generating">{{ pdf.generating ? 'Generating PDF…' : 'Download PDF' }}</button>
             <a class="btn btn-outline" :href="listUrl">← Back to programmes</a>
           </div>
         </div>
@@ -18,7 +24,21 @@
         <div v-if="detailError" class="alert alert-error">{{ detailError }}</div>
         <div v-if="notice" class="alert alert-success">{{ notice }}</div>
 
-        <section class="section-card">
+        <section v-if="detail.role === 'Berkongsi' && !detail.hasOwnCopy" class="section-card">
+          <div class="section-heading">
+            <h3>Kandungan tersendiri belum ada</h3>
+          </div>
+          <p class="text-sm text-muted" style="margin:0 0 16px">
+            Program ini berkongsi kod {{ detail.mqaCode }} dengan {{ detail.ownerFaculty }}.
+            Salin kandungan fakulti pemilik sebagai titik mula, kemudian ubah mengikut keperluan fakulti anda.
+          </p>
+          <div v-if="copyError" class="alert alert-error">{{ copyError }}</div>
+          <button type="button" class="btn btn-primary" @click="copyFromOwner" :disabled="copying">
+            {{ copying ? 'Menyalin…' : 'Salin daripada fakulti pemilik' }}
+          </button>
+        </section>
+
+        <section v-if="detail.role !== 'Berkongsi' || detail.hasOwnCopy" class="section-card">
           <div class="section-heading">
             <h3>PEO — Programme Educational Objectives</h3>
             <div class="section-heading-actions">
@@ -60,7 +80,7 @@
           </div>
         </section>
 
-        <section class="section-card">
+        <section v-if="detail.role !== 'Berkongsi' || detail.hasOwnCopy" class="section-card">
           <div class="section-heading">
             <h3>PLO — Programme Learning Outcomes</h3>
             <div class="section-heading-actions">

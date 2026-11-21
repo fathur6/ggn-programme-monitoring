@@ -29,6 +29,8 @@
         saving: false,
         editError: null,
         adding: false,
+        copying: false,
+        copyError: null,
         pdf: emptyPdf(),
         editor: { open: false, type: '', draft: {} },
           mqfDomains: [
@@ -120,7 +122,8 @@
       },
       methods: {
         detailUrl: function (programme) {
-          return this.baseUrl + '?page=detail&mqaCode=' + encodeURIComponent(programme.mqaCode);
+          return this.baseUrl + '?page=detail&mqaCode=' + encodeURIComponent(programme.mqaCode) +
+            '&faculty=' + encodeURIComponent(programme.faculty || '');
         },
         toggleFaculty: function (faculty) {
           this.$set(this.open, faculty.key, !this.open[faculty.key]);
@@ -184,6 +187,24 @@
         applyDetail: function (result) {
           this.$set(this.detail, 'peos', result.peos || []);
           this.$set(this.detail, 'plos', result.plos || []);
+          if (result.hasOwnCopy !== undefined) this.$set(this.detail, 'hasOwnCopy', result.hasOwnCopy);
+          if (result.differsFromOwner !== undefined) this.$set(this.detail, 'differsFromOwner', result.differsFromOwner);
+        },
+        copyFromOwner: function () {
+          var self = this;
+          this.copying = true;
+          this.copyError = null;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.copying = false;
+              self.applyDetail(result || {});
+              self.notice = 'Kandungan fakulti pemilik telah disalin. Anda kini boleh ubah mengikut keperluan fakulti.';
+            })
+            .withFailureHandler(function (err) {
+              self.copying = false;
+              self.copyError = err && err.message ? err.message : 'Salin gagal.';
+            })
+            .copyProgrammeFromOwnerApi(this.detail.mqaCode, this.sessionToken, this.detail.faculty);
         },
         addRecord: function (type) {
           var self = this;
@@ -199,7 +220,7 @@
               self.detailError = err && err.message ? err.message : 'Unable to add ' + type.toUpperCase() + '.';
               self.adding = false;
             })
-            .addProgrammeRecordApi(this.detail.mqaCode, type, this.sessionToken);
+            .addProgrammeRecordApi(this.detail.mqaCode, type, this.sessionToken, this.detail.faculty);
         },
         generatePdf: function () {
           var self = this;
@@ -220,7 +241,7 @@
               self.pdf.generating = false;
               self.pdf.error = err && err.message ? err.message : 'Unable to generate the PDF.';
             })
-            .generatePdfApi(this.detail.mqaCode, this.sessionToken);
+            .generatePdfApi(this.detail.mqaCode, this.sessionToken, this.detail.faculty);
         },
         downloadPdf: function () {
           if (this.pdf.url) window.open(this.pdf.url, '_blank');
@@ -275,7 +296,7 @@
               self.editError = err && err.message ? err.message : 'Unable to save this record.';
               self.saving = false;
             })
-            .saveProgrammeRecordApi(this.detail.mqaCode, this.editor.type, this.editor.draft, this.sessionToken);
+            .saveProgrammeRecordApi(this.detail.mqaCode, this.editor.type, this.editor.draft, this.sessionToken, this.detail.faculty);
         }
       },
       mounted: function () {

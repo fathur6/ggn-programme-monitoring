@@ -214,4 +214,51 @@ const breakout = app.jsonForScript_({ name: '</script><script>alert(1)</script>'
 assert(breakout.indexOf('</script') === -1, 'jsonForScript_ must escape closing script tags');
 assert(breakout.indexOf('\\u003c') !== -1, 'jsonForScript_ must emit unicode escapes');
 
+// 8. Shared MQA codes: owner keeps the code tab, partners get their own tab.
+const sharedRows = [
+  { mqaCode: 'MQA/FA5589', faculty: 'FBIM', roleRaw: '', ownerFacultyRaw: '' },
+  { mqaCode: 'MQA/FA5589', faculty: 'ESERI', roleRaw: '', ownerFacultyRaw: '' },
+  { mqaCode: 'MQA/FA1000', faculty: 'FSSG', roleRaw: '', ownerFacultyRaw: '' }
+];
+app.annotateSharedProgrammes_(sharedRows);
+assert.strictEqual(sharedRows[0].role, 'Pemilik', 'First row of a shared code owns the content');
+assert.strictEqual(sharedRows[0].isSharedCode, true);
+assert.strictEqual(sharedRows[1].role, 'Berkongsi');
+assert.strictEqual(sharedRows[1].ownerFaculty, 'FBIM');
+assert.strictEqual(sharedRows[2].isSharedCode, false);
+assert.strictEqual(sharedRows[2].role, 'Pemilik');
+
+assert.strictEqual(app.programmeTabName_(sharedRows[0]), 'MQA/FA5589');
+assert.strictEqual(app.programmeTabName_(sharedRows[1]), 'MQA/FA5589__ESERI', 'Partner gets its own tab');
+assert.strictEqual(app.programmeTabName_(sharedRows[2]), 'MQA/FA1000');
+
+// An explicit "Pemilik" in the sheet overrides the first-row default.
+const overridden = [
+  { mqaCode: 'MQA/FA9', faculty: 'AAA', roleRaw: 'Berkongsi', ownerFacultyRaw: 'BBB' },
+  { mqaCode: 'MQA/FA9', faculty: 'BBB', roleRaw: 'Pemilik', ownerFacultyRaw: '' }
+];
+app.annotateSharedProgrammes_(overridden);
+assert.strictEqual(overridden[0].role, 'Berkongsi');
+assert.strictEqual(overridden[1].role, 'Pemilik');
+assert.strictEqual(overridden[0].ownerFaculty, 'BBB');
+
+// Content comparison drives the "Berbeza dengan fakulti pemilik" badge.
+const left = { peos: [{ code: 'PEO1', statement: 'Same text', mqfDomain: 'MQF 1' }], plos: [] };
+const sameText = { peos: [{ code: 'PEO1', statement: '  same   TEXT ', mqfDomain: 'mqf 1' }], plos: [] };
+const different = { peos: [{ code: 'PEO1', statement: 'Different', mqfDomain: 'MQF 1' }], plos: [] };
+assert.strictEqual(app.sameProgrammeContent_(left, sameText), true, 'Whitespace/case must not count as a difference');
+assert.strictEqual(app.sameProgrammeContent_(left, different), false);
+
+// Copy endpoint and its guard rails.
+assert(source.indexOf('function copyProgrammeFromOwnerApi') !== -1, 'Copy-from-owner API must exist');
+assert(/ownerSheet\.copyTo\(ss\)\.setName\(programme\.tabName\)/.test(source), 'Copy must clone the owner tab');
+assert(source.indexOf('function setupSharedProgrammeRoleColumn') !== -1, 'Role column setup must exist');
+
+const detailMarkup = fs.readFileSync('gas/PageProgrammeDetail.html', 'utf8');
+assert(detailMarkup.indexOf('Salin daripada fakulti pemilik') !== -1, 'Copy button must be present');
+assert(detailMarkup.indexOf('Berbeza dengan fakulti pemilik') !== -1, 'Difference badge must be present');
+
+assert(appJs.indexOf('copyProgrammeFromOwnerApi') !== -1, 'Client must call the copy API');
+assert(appJs.indexOf('this.detail.faculty)') !== -1, 'Client must pass the faculty to write APIs');
+
 console.log('single-workbook guard: OK');
