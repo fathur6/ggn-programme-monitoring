@@ -24,6 +24,24 @@ instance for both pages, reading the server-injected `BOOT` payload).
 Programme rows and the "Back to programmes" control are real links, so a detail
 page can be bookmarked or shared.
 
+## Generated PDFs
+
+Every generated PDF is recorded in the `PDF_Log` sheet inside the workbook and
+listed at the bottom of the programmes page: file name, programme, faculty,
+timestamp and the account that generated it.
+
+- `generatePdfApi` writes a row (`Source = generate`) with the signed-in user's
+  name and email.
+- `?setup=pdflog` (admin) backfills files that already exist in the Drive folder.
+  Historical files carry no author, so the faculty's Deputy Dean (Academic) is
+  recorded as the stand-in author and `Source = backfill`.
+- Faculty see only their own faculty's rows; admins see everything.
+- Files are opened through the Drive `/view` link in a new tab (the same pattern
+  as `ggn-meeting-management`). There is no delete action anywhere in the app.
+- Access is controlled on the **Drive folder**, not per file: `DriveApp.setSharing`
+  is rejected by the account's sharing policy, so the folder must be shared as
+  "Universiti Sultan Zainal Abidin — Viewer". Files created inside inherit it.
+
 ## Shared MQA codes (owner vs partner faculty)
 
 Some MQA codes are offered by more than one faculty. The first row for a code

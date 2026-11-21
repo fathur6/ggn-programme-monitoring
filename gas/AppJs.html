@@ -19,6 +19,7 @@
         sessionToken: BOOT.token || '',
         baseUrl: BOOT.baseUrl || '',
         programmes: BOOT.programmes || [],
+        pdfLog: BOOT.pdfLog || [],
         detail: BOOT.detail || emptyDetail(),
         search: '',
         open: {},
@@ -29,8 +30,6 @@
         saving: false,
         editError: null,
         adding: false,
-        copying: false,
-        copyError: null,
         pdf: emptyPdf(),
         editor: { open: false, type: '', draft: {} },
           mqfDomains: [
@@ -189,22 +188,6 @@
           this.$set(this.detail, 'plos', result.plos || []);
           if (result.hasOwnCopy !== undefined) this.$set(this.detail, 'hasOwnCopy', result.hasOwnCopy);
           if (result.differsFromOwner !== undefined) this.$set(this.detail, 'differsFromOwner', result.differsFromOwner);
-        },
-        copyFromOwner: function () {
-          var self = this;
-          this.copying = true;
-          this.copyError = null;
-          google.script.run
-            .withSuccessHandler(function (result) {
-              self.copying = false;
-              self.applyDetail(result || {});
-              self.notice = 'Kandungan fakulti pemilik telah disalin. Anda kini boleh ubah mengikut keperluan fakulti.';
-            })
-            .withFailureHandler(function (err) {
-              self.copying = false;
-              self.copyError = err && err.message ? err.message : 'Salin gagal.';
-            })
-            .copyProgrammeFromOwnerApi(this.detail.mqaCode, this.sessionToken, this.detail.faculty);
         },
         addRecord: function (type) {
           var self = this;

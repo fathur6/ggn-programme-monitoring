@@ -37,3 +37,44 @@
             </div>
           </div>
         </template>
+
+        <section class="section-card" style="margin-top:36px">
+          <div class="section-heading">
+            <h3>PDF dijana</h3>
+            <div class="section-heading-actions">
+              <span class="count">{{ pdfLog.length }} fail</span>
+            </div>
+          </div>
+          <p class="text-sm text-muted" style="margin:0 0 14px">
+            Semua versi PDF yang telah dijana untuk program fakulti anda. Fail dibuka dalam tab baharu
+            dan tidak boleh dipadam dari aplikasi ini.
+          </p>
+          <div v-if="!pdfLog.length" class="empty-note">Belum ada PDF dijana.</div>
+          <div v-else class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th scope="col">Fail PDF</th>
+                  <th scope="col">Program</th>
+                  <th scope="col">Tarikh</th>
+                  <th scope="col">Penjana</th>
+                  <th scope="col" class="action-cell"><span class="sr-only">Buka</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in pdfLog" :key="row.fileId">
+                  <td><code>{{ row.fileName }}</code></td>
+                  <td>{{ row.mqaCode }}<span v-if="row.faculty"> · {{ row.faculty }}</span></td>
+                  <td>{{ row.generatedAtLabel }}</td>
+                  <td>
+                    {{ row.generatedBy }}
+                    <span v-if="row.generatedByEmail" class="text-muted text-sm"> · {{ row.generatedByEmail }}</span>
+                  </td>
+                  <td class="action-cell">
+                    <a class="btn btn-outline btn-sm" :href="row.url" target="_blank" rel="noopener noreferrer">Buka PDF</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>

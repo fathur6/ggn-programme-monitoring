@@ -59,6 +59,9 @@ var ADMIN_DIRECTORY_SHEET_NAME_ = 'ADMIN';
 var PROGRAMME_ROLE_OWNER_ = 'Pemilik';
 var PROGRAMME_ROLE_PARTNER_ = 'Berkongsi';
 var PROGRAMME_PARTNER_TAB_SEPARATOR_ = '__';
+var PDF_LOG_SHEET_NAME_ = 'PDF_Log';
+var PDF_LOG_HEADERS_ = ['FileId', 'FileName', 'MQACode', 'Faculty', 'GeneratedBy', 'GeneratedByEmail', 'GeneratedAt', 'Source'];
+var TIME_ZONE_ = 'Asia/Kuala_Lumpur';
 var USER_SESSION_PREFIX_ = 'mqf-programme-session:';
 var USER_SESSION_TTL_SECONDS_ = 21600;
 
@@ -201,6 +204,10 @@ function doGet(e) {
       if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
       return jsonResponse_(setupSharedProgrammeRoleColumn());
     }
+    if (String(params.setup || '') === 'pdflog') {
+      if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
+      return jsonResponse_(backfillPdfLog_());
+    }
     if (page === 'detail') {
       var mqaCode = String(params.mqaCode || '').trim();
       if (mqaCode) {
@@ -225,7 +232,8 @@ function renderProgrammeListPage_(session) {
     user: session.user,
     token: session.token,
     baseUrl: deploymentUrl_(),
-    programmes: getProgrammesApi(session.token)
+    programmes: getProgrammesApi(session.token),
+    pdfLog: listPdfLog_(session.user)
   });
 }
 
@@ -265,9 +273,153 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
   });
 }
 
+/**
+ * Run once from the Apps Script editor. It forces the Drive authorisation prompt
+ * and proves the deployment account can reach the PDF folder.
+ */
+function checkPdfFolderAccess() {
+  var folder = DriveApp.getFolderById(PDF_FOLDER_ID_);
+  console.log('PDF folder: ' + folder.getName() + ' (' + folder.getId() + ')');
+  return folder.getName();
+}
+
 function jsonResponse_(payload) {
   return ContentService.createTextOutput(JSON.stringify(payload, null, 2))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * PDF register. Every generated file is listed on the dashboard with its
+ * programme, timestamp and the account that generated it. Faculty can open and
+ * the file itself is shared domain-wide as view-only, so nobody can delete it
+ * from the web app.
+ */
+function pdfLogSheet_() {
+  var ss = programmeSpreadsheet_();
+  var sheet = ss.getSheetByName(PDF_LOG_SHEET_NAME_);
+  if (!sheet) {
+    sheet = ss.insertSheet(PDF_LOG_SHEET_NAME_);
+    sheet.getRange(1, 1, 1, PDF_LOG_HEADERS_.length).setValues([PDF_LOG_HEADERS_]).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function pdfLogRows_() {
+  var sheet = programmeSpreadsheet_().getSheetByName(PDF_LOG_SHEET_NAME_);
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+  var headers = data[0].map(function (value) { return String(value).trim(); });
+  var index = {};
+  PDF_LOG_HEADERS_.forEach(function (header) { index[header] = headers.indexOf(header); });
+  return data.slice(1).map(function (row) {
+    var record = {};
+    PDF_LOG_HEADERS_.forEach(function (header) {
+      record[header] = index[header] < 0 ? '' : row[index[header]];
+    });
+    record.FileId = String(record.FileId || '').trim();
+    return record;
+  }).filter(function (record) { return record.FileId; });
+}
+
+function recordPdfInLog_(file, programme, session, source) {
+  var sheet = pdfLogSheet_();
+  sheet.appendRow([
+    file.getId(),
+    file.getName(),
+    programme ? programme.mqaCode : '',
+    programme ? programme.faculty : '',
+    session && session.name ? session.name : '',
+    session && session.email ? session.email : '',
+    new Date(),
+    source || 'generate'
+  ]);
+  return true;
+}
+
+function getPdfLogApi(sessionToken) {
+  var session = requireLogin_(sessionToken);
+  return listPdfLog_(session);
+}
+
+function listPdfLog_(session) {
+  var rows = pdfLogRows_().filter(function (record) {
+    return session.isAdmin || String(record.Faculty || '').trim() === session.faculty;
+  });
+  return rows.map(function (record) {
+    var created = record.GeneratedAt instanceof Date ? record.GeneratedAt : new Date(record.GeneratedAt);
+    var valid = !isNaN(created.getTime());
+    return {
+      fileId: record.FileId,
+      fileName: String(record.FileName || ''),
+      mqaCode: String(record.MQACode || ''),
+      faculty: String(record.Faculty || ''),
+      generatedBy: String(record.GeneratedBy || ''),
+      generatedByEmail: String(record.GeneratedByEmail || ''),
+      generatedAtLabel: valid ? Utilities.formatDate(created, TIME_ZONE_, 'dd/MM/yyyy HH:mm') : '',
+      sortKey: valid ? created.getTime() : 0,
+      url: 'https://drive.google.com/file/d/' + record.FileId + '/view'
+    };
+  }).sort(function (left, right) { return right.sortKey - left.sortKey; }).slice(0, 300);
+}
+
+/**
+ * Backfill the register from the Drive folder. Historical files carry no user,
+ * so the faculty's Deputy Dean (Academic) is recorded as the stand-in author.
+ * Idempotent: files already in the register are skipped.
+ */
+function backfillPdfLog_() {
+  var LIMIT = 60;
+  var folder = getPdfFolder_();
+  var known = {};
+  pdfLogRows_().forEach(function (record) { known[record.FileId] = true; });
+
+  var programmes = getProgrammes_();
+  var tdaByFaculty = {};
+  userDirectoryEntries_().forEach(function (entry) {
+    if (String(entry.position || '').toLowerCase().indexOf('deputy dean') !== -1) {
+      if (!tdaByFaculty[entry.faculty]) tdaByFaculty[entry.faculty] = entry;
+    }
+  });
+
+  var pending = [];
+  var files = folder.getFiles();
+  while (files.hasNext()) {
+    var file = files.next();
+    if (known[file.getId()]) continue;
+    known[file.getId()] = true;
+    pending.push(file);
+  }
+
+  var sheet = pdfLogSheet_();
+  var rows = [];
+  pending.slice(0, LIMIT).forEach(function (file) {
+    var name = file.getName();
+    var match = name.match(/^(MQA-[A-Za-z0-9]+)-(\d{2})(\d{2})(\d{2})-(\d+)$/);
+    var mqaCode = match ? match[1].replace('-', '/') : '';
+    var programme = null;
+    for (var i = 0; i < programmes.length; i++) {
+      if (programmes[i].mqaCode === mqaCode) { programme = programmes[i]; break; }
+    }
+    var faculty = programme ? programme.faculty : '';
+    var tda = faculty ? tdaByFaculty[faculty] : null;
+    var created = match
+      ? new Date('20' + match[4] + '-' + match[3] + '-' + match[2] + 'T12:00:00+08:00')
+      : file.getDateCreated();
+    rows.push([
+      file.getId(), name, mqaCode, faculty,
+      tda ? tda.name : 'TDA (tidak direkod)',
+      tda ? tda.email : '',
+      created, 'backfill'
+    ]);
+  });
+
+  if (rows.length) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, PDF_LOG_HEADERS_.length).setValues(rows);
+    SpreadsheetApp.flush();
+  }
+  return { ok: true, added: rows.length, remaining: Math.max(0, pending.length - rows.length), totalPending: pending.length };
 }
 
 /**
@@ -1133,7 +1285,8 @@ function addProgrammeRecordApi(mqaCode, recordType, sessionToken, faculty) {
  * MQA-FAxxxx-ddmmyy-zz (zz = daily serial). Returns the stored file details.
  */
 function generatePdfApi(mqaCode, sessionToken, faculty) {
-  var programme = requireProgrammeFacultyAccess_(mqaCode, requireLogin_(sessionToken), faculty);
+  var session = requireLogin_(sessionToken);
+  var programme = requireProgrammeFacultyAccess_(mqaCode, session, faculty);
   var code = programme.mqaCode;
   var detail = getProgrammeDetailFor_(programme);
   var folder = getPdfFolder_();
@@ -1142,6 +1295,7 @@ function generatePdfApi(mqaCode, sessionToken, faculty) {
   var blob = buildPdfBlob_(programme, detail, code);
   var file = folder.createFile(blob);
   file.setName(filename);
+  recordPdfInLog_(file, programme, session, 'generate');
 
   return {
     filename: filename,

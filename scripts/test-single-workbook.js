@@ -267,4 +267,30 @@ assert(detailMarkup.indexOf('Sama dengan fakulti pemilik') !== -1, 'Match badge 
 assert(appJs.indexOf('copyFromOwner') === -1, 'Client must not offer a manual copy action');
 assert(appJs.indexOf('this.detail.faculty)') !== -1, 'Client must pass the faculty to write APIs');
 
+// 9. PDF register: listed on the dashboard, view-only, no delete path.
+assert(source.indexOf("var PDF_LOG_SHEET_NAME_ = 'PDF_Log'") !== -1, 'PDF log sheet must be defined');
+assert(/recordPdfInLog_\(file, programme, session, 'generate'\)/.test(source), 'Generation must write a log row');
+assert(source.indexOf('setSharing(') === -1, 'Sharing must be managed on the Drive folder, not per file');
+assert(/function listPdfLog_\(session\)/.test(source), 'Log reader must exist');
+assert(/session\.isAdmin \|\| String\(record\.Faculty \|\| ''\)\.trim\(\) === session\.faculty/.test(source),
+  'Faculty must only see their own PDF rows');
+assert(source.indexOf('function backfillPdfLog_') !== -1, 'Historical backfill must exist');
+assert(/TDA \(tidak direkod\)/.test(source), 'Historical rows must fall back to the faculty TDA');
+
+// No deletion path may exist for PDFs. The only trashed object is the temporary
+// spreadsheet used while building the PDF blob.
+assert(source.indexOf('deletePdf') === -1 && source.indexOf('removePdf') === -1, 'No PDF delete API may exist');
+const trashCalls = source.match(/\.setTrashed\(true\)/g) || [];
+assert(trashCalls.length === 1, 'Only one trash call is expected');
+assert(/DriveApp\.getFileById\(tempSs\.getId\(\)\)\.setTrashed\(true\)/.test(source),
+  'The only trash call must be the temporary PDF workbook');
+
+const listPage = fs.readFileSync('gas/PageProgrammes.html', 'utf8');
+assert(listPage.indexOf('PDF dijana') !== -1, 'Dashboard must list generated PDFs');
+['Fail PDF', 'Tarikh', 'Penjana', 'Buka PDF'].forEach(function (label) {
+  assert(listPage.indexOf(label) !== -1, 'PDF table must show ' + label);
+});
+assert(listPage.indexOf('row.url') !== -1, 'PDF rows must open through the Drive link');
+assert(listPage.indexOf('Padam') === -1, 'No delete control may be offered');
+
 console.log('single-workbook guard: OK');
