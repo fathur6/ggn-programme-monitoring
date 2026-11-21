@@ -471,7 +471,7 @@ nodeAssert.deepStrictEqual(researchDataApi, {
   PR_ProgrammeProfile: ['ProgrammeId', 'MQACode', 'FacultyOrCentre', 'ProgrammeName', 'StudyLevel', 'StudyMode', 'StudyField', 'Session', 'DocumentVersion', 'DataOwner', 'MappingStatus', 'DefaultSDGIdsJson', 'SharedFromProgrammeId', 'CreatedAt', 'UpdatedAt', 'UpdatedBy'],
   PR_PEORecords: ['PeoId', 'ProgrammeId', 'Code', 'Statement', 'SortOrder', 'UpdatedAt', 'UpdatedBy'],
   PR_PLORecords: ['PloId', 'ProgrammeId', 'ParentPEO', 'Code', 'Statement', 'MQFDomainsJson', 'Taxonomy', 'Rationale', 'Status', 'UpdatedAt', 'UpdatedBy'],
-  PR_PLOMappings: ['PloId', 'ProgrammeId', 'SCIdsJson', 'DerivedTFIdsJson', 'MappingNote', 'UpdatedAt', 'UpdatedBy'],
+  PR_PLOMappings: ['PloId', 'ProgrammeId', 'SCIdsJson', 'DerivedTFIdsJson', 'MappingNote', 'UpdatedAt', 'UpdatedBy', 'SDGIdsJson'],
   PR_PEOMappings: ['PeoId', 'ProgrammeId', 'SDGIdsJson', 'MappingNote', 'UpdatedAt', 'UpdatedBy'],
   PR_MQFReference: ['Code', 'Title', 'Description', 'Active'],
   PR_TFReference: ['Code', 'Title', 'Description', 'MQFDomainsJson', 'Active'],

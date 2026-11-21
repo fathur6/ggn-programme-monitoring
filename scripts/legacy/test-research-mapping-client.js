@@ -147,6 +147,11 @@ assert(/parentPEO/.test(ploSave) && /statement/.test(ploSave) && /mqfDomains/.te
 assert(/taxonomy/.test(ploSave) && !/rationale/.test(ploSave), 'PLO API payload includes an obsolete rationale field');
 assert(/researchMutationComplete/.test(ploSave) && /refreshResearchDerived/.test(methodSource('researchMutationComplete')), 'PLO save does not refresh server-derived state');
 
+const isChecklistSDGPLO = new Function('return ' + propertyFunctionSource('isChecklistSDGPLO'))();
+const fa5574ChecklistState = {researchReview: {checklist: {sdgPloCodes: ['PLO1', 'PLO9', 'PLO11']}}};
+assert.strictEqual(isChecklistSDGPLO.call(fa5574ChecklistState, {code: 'PLO09'}), true, 'FA5574 must render its SDG field on PLO09');
+assert.strictEqual(isChecklistSDGPLO.call(fa5574ChecklistState, {code: 'PLO08'}), false, 'FA5574 must not render its SDG field on PLO08');
+
 // Lazy endpoints (mappings/coverage/review) must be accepted by
 // applyResearchEndpointResult so their data applies and loading clears
 // (regression: SC spinner spun forever + SC never loaded).

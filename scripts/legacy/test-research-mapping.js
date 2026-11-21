@@ -322,11 +322,15 @@ var referenceHelperSource = extractFunction('getResearchReferenceList_', referen
 var reviewHelpersSource = [
   'reviewIssue_', 'reviewWarning_', 'researchReviewReferences_',
   'reviewReferenceCodes_', 'reviewTFMap_', 'reviewSelectedTFIds_', 'reviewMappingForPLO_',
-  'reviewPolicyRequires_', 'validateResearchProgramme_'
+  'reviewPolicyRequires_', 'checklistCode_', 'checklistProgrammeCode_', 'checklistProgrammeMaster_',
+  'checklistSDGPLOs_', 'checklistSCPLOs_', 'checklistExpectedMapping_', 'checklistSDGPLO_', 'checklistReview_', 'validateResearchProgramme_'
 ].map(function(name) { return extractFunction(name, reviewSource); }).join('\n');
 var RESEARCH_TAXONOMY_IDS = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'];
 var reviewHelperApi = new Function(
   'RESEARCH_TAXONOMY_IDS',
+  'var CHECKLIST_SDG_PLOS_ = ["PLO1", "PLO8", "PLO11"];\n' +
+  'var CHECKLIST_SC_PLOS_ = ["PLO2", "PLO4", "PLO9", "PLO11"];\n' +
+  'var CHECKLIST_PROGRAMME_MASTER_ = {"MQA/FA5574": [{code: "PLO1", sdg: "SDG4", sc: "SC3"}, {code: "PLO9", sdg: "SDG8", sc: "SC6"}, {code: "PLO10", sdg: "SDG12", sc: "SC8"}]};\n' +
   reviewDepsSource + '\n' + referenceHelperSource + '\n' + reviewHelpersSource + '\n' +
   'return { validateResearchProgramme_: validateResearchProgramme_ };'
 )(RESEARCH_TAXONOMY_IDS);
@@ -349,11 +353,16 @@ var peoWithoutChild = reviewHelperApi.validateResearchProgramme_({
 });
 assert(peoWithoutChild.critical.some(function(i) { return i.code === 'PEO_CHILD_REQUIRED'; }), 'PEO without child not detected');
 
+var readyPloCodes = ['PLO1', 'PLO2', 'PLO4', 'PLO8', 'PLO9', 'PLO11'];
 var ready = reviewHelperApi.validateResearchProgramme_({
   peos: [{peoId: 'P1', code: 'PEO1', statement: 'Objective'}],
-  plos: [{code: 'PLO1', statement: 'Demonstrate critical evaluation skills',
-    parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
-  mappings: [{ploId: 'P1', scIds: ['SC2'], derivedTFIds: ['TF2']}],
+  plos: readyPloCodes.map(function(code) {
+    return {ploId: 'id-' + code, code: code, statement: 'Demonstrate critical evaluation skills for the programme',
+      parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'};
+  }),
+  mappings: readyPloCodes.map(function(code) {
+    return {ploId: 'id-' + code, scIds: ['SC2'], derivedTFIds: ['TF2'], sdgIds: ['PLO1 PLO8 PLO11'.indexOf(code) !== -1 ? 'SDG4' : '']};
+  }),
   peoSDGMappings: [{peoId: 'P1', sdgIds: ['SDG4']}],
   references: {
     mqf: [{code: 'MQF2', title: 'Knowledge'}],
@@ -365,6 +374,33 @@ var ready = reviewHelperApi.validateResearchProgramme_({
 assert.strictEqual(ready.critical.length, 0, 'Ready programme has critical issues: ' + JSON.stringify(ready.critical));
 assert.strictEqual(ready.warnings.some(function(w) { return w.code === 'PLO_STATEMENT_BROAD'; }), false, 'Long statement should not fire broad');
 assert.strictEqual(ready.status, 'Ready for review');
+assert.strictEqual(ready.checklist.complete, true, 'Checklist must pass when its required PLO mappings are complete');
+assert.deepStrictEqual(ready.checklist.sdgPloCodes, ['PLO1', 'PLO8', 'PLO11'], 'Standard programmes must retain PLO8 as an SDG target');
+
+var specialPloCodes = ['PLO01', 'PLO09', 'PLO10'];
+var specialReady = reviewHelperApi.validateResearchProgramme_({
+  mqaCode: 'MQA/FA5574',
+  peos: [{peoId: 'P1', code: 'PEO1', statement: 'Objective'}],
+  plos: specialPloCodes.map(function(code) {
+    return {ploId: 'id-' + code, code: code, statement: 'Demonstrate critical evaluation skills for the programme',
+      parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'};
+  }),
+  mappings: specialPloCodes.map(function(code) {
+    var checklistCode = code.replace(/^PLO0+(\d+)$/, 'PLO$1');
+    var expected = {PLO1: {sdg: 'SDG4', sc: 'SC3'}, PLO9: {sdg: 'SDG8', sc: 'SC6'}, PLO10: {sdg: 'SDG12', sc: 'SC8'}}[checklistCode];
+    return {ploId: 'id-' + code, scIds: [expected.sc], derivedTFIds: ['TF2'], sdgIds: [expected.sdg]};
+  }),
+  peoSDGMappings: [{peoId: 'P1', sdgIds: ['SDG4']}],
+  references: {
+    mqf: [{code: 'MQF2', title: 'Knowledge'}],
+    tf: [{code: 'TF2', title: 'Critical thinking', mqfDomains: ['MQF2']}],
+    sdg: [{code: 'SDG4', title: 'Quality Education'}, {code: 'SDG8', title: 'Decent Work'}, {code: 'SDG12', title: 'Responsible Consumption'}],
+    sc: [{code: 'SC3', title: 'Critical Thinking', description: 'Ways of Thinking'}, {code: 'SC6', title: 'Integrated problem-solving', description: 'Ways of Practicing'}, {code: 'SC8', title: 'Normative', description: 'Ways of Being'}]
+  }
+});
+assert.strictEqual(specialReady.checklist.complete, true, 'FA5574 must accept the Program Master mappings');
+assert.deepStrictEqual(specialReady.checklist.sdgPloCodes, ['PLO1', 'PLO9', 'PLO10'], 'FA5574 must use PLO9 and PLO10 as SDG targets');
+assert.deepStrictEqual(specialReady.checklist.scPloCodes, ['PLO1', 'PLO9', 'PLO10'], 'FA5574 must use Program Master SC targets');
 
 var duplicatePlo = reviewHelperApi.validateResearchProgramme_({
   peos: [{peoId: 'P1', code: 'PEO1', statement: 'Objective'}],
@@ -489,8 +525,8 @@ var emptyProgramme = reviewHelperApi.validateResearchProgramme_({
   plos: [],
   mappings: []
 });
-assert.strictEqual(emptyProgramme.critical.length, 0, 'Empty programme has unexpected critical issues');
-assert.strictEqual(emptyProgramme.status, 'Ready for review', 'Empty programme should be Ready for review');
+assert(emptyProgramme.critical.some(function(issue) { return issue.code === 'CHECKLIST_SDG_INCOMPLETE'; }), 'Empty programme must fail the SDG checklist');
+assert.strictEqual(emptyProgramme.status, 'Needs attention', 'Empty programme should need attention');
 
 // Regression: shared-MQA inheritor must read rows under the owner's effectiveKey
 var ownerKey = 'FUHA::PS6001::MQA/FA10523';
@@ -513,12 +549,13 @@ assert.strictEqual(sharedFrom, ownerKey, 'Profile must record SharedFromProgramm
 
 // Programme PDF HTML builder covers profile, PEO(+SDG), PLO(+MQF/taxonomy/SC/TF)
 var pdfServiceSource = fs.readFileSync('gas/ProgrammePdfService.gs', 'utf8');
-var buildPdfHtml = new Function(extractFunction('buildProgrammePdfHtml_', pdfServiceSource) + '\nreturn buildProgrammePdfHtml_;')();
+var buildPdfHtml = new Function('function checklistCode_(value) { return String(value || "").trim().toUpperCase(); }\n' + extractFunction('buildProgrammePdfHtml_', pdfServiceSource) + '\nreturn buildProgrammePdfHtml_;')();
 var pdfHtml = buildPdfHtml({name: 'Doctor of Philosophy', mqaCode: 'MQA/FA7492', progCode: 'PE5002', level: 'Doctorate'}, {
   peos: [{peoId: 'p1', code: 'PEO1', statement: 'Objective one'}],
   plos: [{ploId: 'l1', code: 'PLO1', statement: 'Outcome one', parentPEO: 'PEO1', mqfDomains: ['MQF2'], taxonomy: 'C4'}],
   peoSDGMappings: [{peoId: 'p1', sdgIds: ['SDG13']}],
-  mappings: [{ploId: 'l1', scIds: ['SC3'], tfIds: ['TF2'], derivedTFIds: ['TF2']}]
+  mappings: [{ploId: 'l1', sdgIds: ['SDG13'], scIds: ['SC3'], tfIds: ['TF2'], derivedTFIds: ['TF2']}],
+  review: {checklist: {inheritedSDGByPEO: {PEO1: ['SDG13']}, items: []}}
 });
 assert(pdfHtml.indexOf('Doctor of Philosophy') !== -1, 'PDF HTML missing programme name');
 assert(pdfHtml.indexOf('MQA/FA7492') !== -1, 'PDF HTML missing MQA code');

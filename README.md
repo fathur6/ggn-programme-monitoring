@@ -78,10 +78,15 @@ The example files contain placeholders only. Never paste real values into README
 From the project root, run:
 
 ```bash
-node scripts/verify-mqf-rebuild.js
-node -e "const fs=require('fs'); const files=fs.readdirSync('gas').filter(f=>f.endsWith('.gs')||f.endsWith('.html')); for (const f of files) { const s=fs.readFileSync('gas/'+f,'utf8'); if (f.endsWith('.gs')) new Function(s); } console.log('GAS source syntax passed.');"
+node scripts/test-single-workbook.js
+node scripts/test-pps-v34-sdg-migration.js
+node scripts/test-pdf-export-without-fetch.js
 git diff --check
 ```
+
+Tests for the modular application (`Auth.gs`, `AssessmentService.gs`, `Research*Service.gs`)
+live in `scripts/legacy/` and only run against the modular branch/source. See
+`scripts/legacy/README.md`.
 
 The checks are static and syntax-based because the deployed Google Apps Script services require the UniSZA account, configured spreadsheet, Drive folder, and domain OAuth session.
 
