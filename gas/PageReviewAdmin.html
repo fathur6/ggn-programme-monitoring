@@ -128,6 +128,26 @@
           </div>
         </section>
 
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>Penyelenggaraan</h3>
+          </div>
+          <p class="text-sm text-muted" style="margin:0 0 14px">
+            Salinan Excel dijana daripada Google Sheet (sumber utama). E-mel peringatan dihantar kepada
+            penyelaras, PIC dan TDA setiap fakulti.
+          </p>
+          <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap">
+            <button type="button" class="btn btn-outline" @click="syncBackup" :disabled="busy">Kemas kini backup Excel</button>
+            <button type="button" class="btn btn-outline" @click="sendEmails('open', true)" :disabled="busy || !review.active">Uji e-mel (ke saya)</button>
+            <button type="button" class="btn btn-outline" @click="sendEmails('open', false)" :disabled="busy || !review.active">E-mel sesi dibuka</button>
+            <button type="button" class="btn btn-outline" @click="sendEmails('reminder', false)" :disabled="busy || !review.active">E-mel peringatan</button>
+            <button type="button" class="btn btn-outline" @click="installTrigger" :disabled="busy">Pasang peringatan harian</button>
+          </div>
+          <p v-if="backupUrl" class="text-sm" style="margin:14px 0 0">
+            Backup terkini: <a :href="backupUrl" target="_blank" rel="noopener noreferrer">buka fail Excel</a>
+          </p>
+        </section>
+
         <section v-if="review.unregistered.length" class="section-card">
           <div class="section-heading">
             <h3>Program tidak berdaftar</h3>

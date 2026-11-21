@@ -21,7 +21,8 @@
         form: { cutoffDate: adminDate(0), closesDate: adminDate(30), title: '' },
         busy: false,
         error: null,
-        notice: null
+        notice: null,
+        backupUrl: ''
       },
       computed: {
         userLabel: function () {
@@ -61,6 +62,58 @@
               title: this.form.title,
               state: 'Open'
             }, this.sessionToken);
+        },
+        syncBackup: function () {
+          var self = this;
+          if (this.busy) return;
+          this.busy = true;
+          this.error = null;
+          this.notice = null;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.busy = false;
+              self.backupUrl = result && result.url ? result.url : '';
+              self.notice = result ? ('Backup Excel dikemas kini (' + result.rows + ' program × ' + result.periods + ' sesi).') : 'Backup dikemas kini.';
+            })
+            .withFailureHandler(function (err) {
+              self.busy = false;
+              self.error = err && err.message ? err.message : 'Backup tidak dapat dijana.';
+            })
+            .syncReviewBackupApi(this.sessionToken);
+        },
+        sendEmails: function (kind, dryRun) {
+          var self = this;
+          if (this.busy) return;
+          this.busy = true;
+          this.error = null;
+          this.notice = null;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.busy = false;
+              self.notice = (result && result.dryRun ? 'Ujian: ' : '') + 'E-mel dihantar: ' + (result ? result.sent : 0) + '.';
+            })
+            .withFailureHandler(function (err) {
+              self.busy = false;
+              self.error = err && err.message ? err.message : 'E-mel tidak dapat dihantar.';
+            })
+            .sendReviewEmailsApi(kind, dryRun, this.sessionToken);
+        },
+        installTrigger: function () {
+          var self = this;
+          if (this.busy) return;
+          this.busy = true;
+          this.error = null;
+          this.notice = null;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.busy = false;
+              self.notice = result && result.created ? 'Peringatan harian dipasang (9 pagi).' : 'Peringatan harian sudah wujud.';
+            })
+            .withFailureHandler(function (err) {
+              self.busy = false;
+              self.error = err && err.message ? err.message : 'Trigger tidak dapat dipasang.';
+            })
+            .installReviewReminderTriggerApi(this.sessionToken);
         },
         setState: function (periodId, state) {
           var self = this;

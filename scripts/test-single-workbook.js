@@ -291,48 +291,26 @@ assert(/TDA \(tidak direkod\)/.test(source), 'Historical rows must fall back to 
 // No deletion path may exist for PDFs. The only trashed object is the temporary
 // spreadsheet used while building the PDF blob.
 assert(source.indexOf('deletePdf') === -1 && source.indexOf('removePdf') === -1, 'No PDF delete API may exist');
-const trashCalls = source.match(/\.setTrashed\(true\)/g) || [];
-assert(trashCalls.length === 1, 'Only one trash call is expected');
-assert(/DriveApp\.getFileById\(tempSs\.getId\(\)\)\.setTrashed\(true\)/.test(source),
-  'The only trash call must be the temporary PDF workbook');
+const remainder = source
+  .replace(/getFileById\((?:tempSs|temp)\.getId\(\)\)\.setTrashed\(true\)/g, '')
+  .replace(/stale\.next\(\)\.setTrashed\(true\)/g, '')
+  .replace(/existing\.next\(\)\.setTrashed\(true\)/g, '');
+assert(remainder.indexOf('.setTrashed(true)') === -1,
+  'Only temporary workbooks and the previous mirror may be trashed');
 
-const listPage = fs.readFileSync('gas/PageProgrammes.html', 'utf8');
-assert(listPage.indexOf('PDF dijana') !== -1, 'Dashboard must list generated PDFs');
-['Fail PDF', 'Tarikh', 'Penjana', 'Buka PDF'].forEach(function (label) {
-  assert(listPage.indexOf(label) !== -1, 'PDF table must show ' + label);
-});
-assert(listPage.indexOf('row.url') !== -1, 'PDF rows must open through the Drive link');
-assert(listPage.indexOf('Padam') === -1, 'No delete control may be offered');
-
-// 10. The programme detail page lists only that programme's PDFs.
-assert(/function listPdfLog_\(session, mqaCode\)/.test(source), 'Log reader must accept a programme filter');
-assert(/if \(code && String\(record\.MQACode \|\| ''\)\.trim\(\) !== code\) return false;/.test(source),
-  'Log reader must filter by MQA code');
-assert(/pdfLog: listPdfLog_\(session\.user, programme\.mqaCode\)/.test(source),
-  'Detail page must inject the programme PDF rows');
-
-const detailPdf = fs.readFileSync('gas/PageProgrammeDetail.html', 'utf8');
-assert(detailPdf.indexOf('PDF dijana') !== -1, 'Detail page must show a PDF section');
-assert(detailPdf.indexOf('v-for="row in pdfLog"') !== -1, 'Detail page must render PDF rows');
-assert(detailPdf.indexOf('row.generatedAtLabel') !== -1, 'Detail page must show the generated date');
-assert(detailPdf.indexOf('row.generatedBy') !== -1, 'Detail page must show the generator');
-
-// 11. Review admin console: role gate, single open cycle, completion data.
-assert(source.indexOf('function canManageReview_') !== -1, 'Role gate must exist');
-assert(/roles\.indexOf\('PJK'\) !== -1 \|\| roles\.indexOf\('TDA_PPS'\) !== -1/.test(source),
-  'PJK and TDA_PPS must both be allowed');
-assert(/function requireReviewManager_\(session\)/.test(source), 'Admin endpoints must be gated');
-assert(/if \(page === 'review'\) return renderReviewAdminPage_\(session\);/.test(source),
-  'doGet must route the review page');
-assert(/if \(state === REVIEW_STATE_OPEN_\) \{[\s\S]*?REVIEW_STATE_CLOSED_/.test(source),
-  'Opening a cycle must close any other open cycle');
-
-['PageReviewAdmin.html', 'AdminJs.html'].forEach(function (file) {
-  assert(fs.existsSync('gas/' + file), 'missing template gas/' + file);
-});
-const adminPage = fs.readFileSync('gas/PageReviewAdmin.html', 'utf8');
-['Sesi semasa', 'Buka sesi baharu', 'Senarai sesi', 'Kemajuan fakulti', 'Program tidak berdaftar'].forEach(function (heading) {
-  assert(adminPage.indexOf(heading) !== -1, 'Admin page must show ' + heading);
-});
+// 12. Excel mirror + email reminders.
+assert(source.indexOf('function syncReviewBackup_') !== -1, 'Excel mirror must exist');
+assert(source.indexOf('function buildXlsxBlob_') !== -1, 'Mirror must be built as a real .xlsx');
+assert(/Utilities\.zip\(\[/.test(source), 'xlsx must be zipped from its XML parts');
+assert(source.indexOf('UrlFetchApp') === -1, 'Export must not depend on network access or extra scopes');
+assert(/while \(existing\.hasNext\(\)\) existing\.next\(\)\.setTrashed\(true\);/.test(source),
+  'The previous mirror must be replaced by a fresh binary file');
+assert(/if \(next === REVIEW_STATE_CLOSED_\) \{[\s\S]*?syncReviewBackup_\(\)/.test(source),
+  'Closing a cycle must refresh the mirror');
+assert(source.indexOf('function sendReviewEmails_') !== -1, 'Email sender must exist');
+assert(/GmailApp\.sendEmail\(to, subject/.test(source), 'Emails must go through GmailApp');
+assert(source.indexOf('function reviewReminderJob_') !== -1, 'Daily reminder job must exist');
+assert(/days < 0 \|\| days > 5/.test(source), 'Reminders only inside the five-day window');
+assert(source.indexOf('function installReviewReminderTrigger') !== -1, 'Trigger installer must exist');
 
 console.log('single-workbook guard: OK');

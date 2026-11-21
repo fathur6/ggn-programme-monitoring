@@ -123,4 +123,61 @@ function stub(app, options) {
   assert.strictEqual(state, 'Closed', 'Expired open periods must be treated as closed');
 }
 
+// 7. Email reminders: one per faculty contact, counts per faculty, dry-run safe.
+{
+  const app = makeApp();
+  const sent = [];
+  app.activeReviewPeriod_ = function () {
+    return { PeriodId: 'P2026-11-21', CutoffLabel: '21/11/2026', ClosesAt: new Date('2026-12-21T23:59:00+08:00'), State: 'Open' };
+  };
+  app.getProgrammes_ = function () {
+    return [
+      { mqaCode: 'MQA/FA1', faculty: 'FKI' },
+      { mqaCode: 'MQA/FA2', faculty: 'FKI' },
+      { mqaCode: 'MQA/FA3', faculty: 'FPP' }
+    ];
+  };
+  app.reviewSubmissions_ = function () {
+    return [{ PeriodId: 'P2026-11-21', MQACode: 'MQA/FA1' }];
+  };
+  app.userDirectoryEntries_ = function () {
+    return [
+      { faculty: 'FKI', name: 'Koordinator FKI', email: 'fki@unisza.edu.my' },
+      { faculty: 'FPP', name: 'Koordinator FPP', email: 'fpp@unisza.edu.my' },
+      { faculty: 'FUPL', name: 'Tiada program', email: 'fupl@unisza.edu.my' }
+    ];
+  };
+  app.reviewPeriods_ = function () { return []; };
+  app.ensureReviewPeriodColumns_ = function () { return { getDataRange: function () { return { getValues: function () { return [['PeriodId', 'ReminderSentAt']]; } }; }, getRange: function () { return { setValue: function () {} }; } }; };
+  app.reviewLinks_ = function () { return 'https://example.test/exec?page=programmes'; };
+  app.reviewDateLabel_ = function () { return '21/12/2026'; };
+  app.GmailApp = { sendEmail: function (to, subject, body) { sent.push({ to: to, subject: subject, body: body }); } };
+
+  const result = app.sendReviewEmails_('open', false, { email: 'admin@unisza.edu.my', name: 'Admin' });
+  assert.strictEqual(result.sent, 2, 'One email per faculty that has programmes');
+  assert.strictEqual(result.skipped, 1, 'Faculties without programmes are skipped');
+  assert.strictEqual(sent[0].to, 'fki@unisza.edu.my');
+  assert.ok(/Sesi semakan dibuka/.test(sent[0].subject), 'Subject must describe an opening');
+  assert.ok(/Program dikemaskini: 1 \/ 2/.test(sent[0].body), 'Body must carry that faculty\'s counts');
+  assert.ok(/Program dikemaskini: 0 \/ 1/.test(sent[1].body), 'Second faculty counts independently');
+
+  // Reminder skips a faculty whose programmes are all updated.
+  sent.length = 0;
+  app.reviewSubmissions_ = function () {
+    return [
+      { PeriodId: 'P2026-11-21', MQACode: 'MQA/FA1' },
+      { PeriodId: 'P2026-11-21', MQACode: 'MQA/FA2' }
+    ];
+  };
+  const reminder = app.sendReviewEmails_('reminder', false, { email: 'admin@unisza.edu.my', name: 'Admin' });
+  assert.strictEqual(reminder.sent, 1, 'Only the incomplete faculty is reminded');
+  assert.strictEqual(sent[0].to, 'fpp@unisza.edu.my');
+
+  // Dry run never emails a faculty address.
+  sent.length = 0;
+  app.sendReviewEmails_('open', true, { email: 'admin@unisza.edu.my', name: 'Admin' });
+  assert.ok(sent.every(function (mail) { return mail.to === 'admin@unisza.edu.my'; }),
+    'Dry run must route every message to the requester');
+}
+
 console.log('review status contract: OK');

@@ -67,12 +67,14 @@ var APP_SHORT_NAME_ = 'Pengurusan Akademik Pascasiswazah UniSZA';
 var REVIEW_PERIODS_SHEET_ = 'ReviewPeriods';
 var REVIEW_SUBMISSIONS_SHEET_ = 'ReviewSubmissions';
 var REVIEW_ROLES_SHEET_ = 'ReviewRoles';
-var REVIEW_PERIOD_HEADERS_ = ['PeriodId', 'Title', 'CutoffLabel', 'OpensAt', 'ClosesAt', 'State', 'Note', 'CreatedBy', 'CreatedAt', 'UpdatedBy', 'UpdatedAt'];
+var REVIEW_PERIOD_HEADERS_ = ['PeriodId', 'Title', 'CutoffLabel', 'OpensAt', 'ClosesAt', 'State', 'Note', 'CreatedBy', 'CreatedAt', 'UpdatedBy', 'UpdatedAt', 'ReminderSentAt'];
 var REVIEW_SUBMISSION_HEADERS_ = ['SubmissionId', 'PeriodId', 'MQACode', 'Faculty', 'StatusText', 'SubmittedBy', 'SubmittedByEmail', 'SubmittedAt', 'Source', 'Revision'];
 var REVIEW_ROLE_HEADERS_ = ['Email', 'Name', 'Role', 'Faculty', 'Active'];
 var REVIEW_STATE_OPEN_ = 'Open';
 var REVIEW_STATE_CLOSED_ = 'Closed';
 var REVIEW_MISSING_TEXT_ = 'Tidak dikemaskini';
+var REVIEW_BACKUP_FOLDER_ = 'GGN Review Backup';
+var REVIEW_BACKUP_PREFIX_ = 'Status Semakan Program (backup)';
 var USER_SESSION_PREFIX_ = 'mqf-programme-session:';
 var USER_SESSION_TTL_SECONDS_ = 21600;
 
@@ -664,7 +666,299 @@ function setReviewPeriodStateApi(periodId, state, sessionToken) {
   }
   if (!found) throw new Error('Sesi tidak ditemui.');
   SpreadsheetApp.flush();
+  if (next === REVIEW_STATE_CLOSED_) {
+    try { syncReviewBackup_(); } catch (err) {
+      console.error('Review backup failed: ' + (err && err.message ? err.message : err));
+    }
+  }
   return reviewAdminPayload_(session);
+}
+
+/** Folder that keeps the Excel mirror of the review register. */
+function reviewBackupFolder_() {
+  var ssFile = DriveApp.getFileById(PROGRAMME_SPREADSHEET_ID_);
+  var parents = ssFile.getParents();
+  var parent = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+  var existing = parent.getFoldersByName(REVIEW_BACKUP_FOLDER_);
+  if (existing.hasNext()) return existing.next();
+  return parent.createFolder(REVIEW_BACKUP_FOLDER_);
+}
+
+/** Column letter for a zero-based index (0 -> A, 26 -> AA). */
+function xlsxColumnName_(index) {
+  var n = index + 1;
+  var name = '';
+  while (n > 0) {
+    var remainder = (n - 1) % 26;
+    name = String.fromCharCode(65 + remainder) + name;
+    n = Math.floor((n - 1) / 26);
+  }
+  return name;
+}
+
+function xmlEscape_(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+}
+
+/**
+ * Builds a real .xlsx from a matrix with no network call, so the export needs no
+ * extra OAuth scope. Cells are written as inline strings.
+ */
+function buildXlsxBlob_(rows, sheetName) {
+  var sheetRows = rows.map(function (row, rowIndex) {
+    var cells = row.map(function (value, columnIndex) {
+      var ref = xlsxColumnName_(columnIndex) + (rowIndex + 1);
+      var text = xmlEscape_(value);
+      if (text === '') return '<c r="' + ref + '"/>';
+      return '<c r="' + ref + '" t="inlineStr"><is><t xml:space="preserve">' + text + '</t></is></c>';
+    }).join('');
+    return '<row r="' + (rowIndex + 1) + '">' + cells + '</row>';
+  }).join('');
+
+  var header = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  var sheetXml = header +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetData>' + sheetRows + '</sheetData></worksheet>';
+  var workbookXml = header +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<sheets><sheet name="' + xmlEscape_(sheetName || 'Sheet1') + '" sheetId="1" r:id="rId1"/></sheets></workbook>';
+  var workbookRels = header +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+    '</Relationships>';
+  var rootRels = header +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '</Relationships>';
+  var contentTypes = header +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+    '</Types>';
+
+  return Utilities.zip([
+    Utilities.newBlob(contentTypes, 'application/xml', '[Content_Types].xml'),
+    Utilities.newBlob(rootRels, 'application/xml', '_rels/.rels'),
+    Utilities.newBlob(workbookXml, 'application/xml', 'xl/workbook.xml'),
+    Utilities.newBlob(workbookRels, 'application/xml', 'xl/_rels/workbook.xml.rels'),
+    Utilities.newBlob(sheetXml, 'application/xml', 'xl/worksheets/sheet1.xml')
+  ], (sheetName || 'sheet') + '.xlsx').setContentType('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+
+/**
+ * Excel mirror. Our Google Sheet stays authoritative; this writes a fresh .xlsx
+ * (programmes × cycles) into the backup folder, replacing the previous copy.
+ */
+function syncReviewBackup_() {
+  // Remove temporary workbooks left by earlier export attempts.
+  try {
+    var stale = DriveApp.searchFiles('title contains "review-backup-" and trashed = false');
+    while (stale.hasNext()) stale.next().setTrashed(true);
+  } catch (err) {
+    console.error('Review backup cleanup failed: ' + (err && err.message ? err.message : err));
+  }
+
+  var programmes = getProgrammes_();
+  var periods = reviewPeriods_().slice().reverse();
+  var submissions = {};
+  reviewSubmissions_().forEach(function (row) {
+    var key = String(row.PeriodId || '') + '::' + String(row.MQACode || '');
+    var stamp = row.SubmittedAt instanceof Date ? row.SubmittedAt.getTime() : new Date(row.SubmittedAt).getTime();
+    if (!submissions[key] || (stamp || 0) >= submissions[key].stamp) {
+      submissions[key] = { row: row, stamp: stamp || 0 };
+    }
+  });
+
+  var header = ['MQA Code', 'Programme', 'Faculty', 'Level'];
+  periods.forEach(function (period) {
+    header.push(String(period.CutoffLabel || period.PeriodId) + ' — Status');
+    header.push('Dikemaskini oleh');
+    header.push('Tarikh');
+  });
+
+  var rows = [header];
+  programmes.forEach(function (programme) {
+    var line = [programme.mqaCode, programme.name, programme.faculty, programme.level];
+    periods.forEach(function (period) {
+      var hit = submissions[String(period.PeriodId) + '::' + programme.mqaCode];
+      var closed = reviewPeriodState_(period) === REVIEW_STATE_CLOSED_;
+      line.push(hit ? String(hit.row.StatusText || '') : (closed ? REVIEW_MISSING_TEXT_ : ''));
+      line.push(hit ? String(hit.row.SubmittedBy || '') : '');
+      line.push(hit && hit.row.SubmittedAt ? reviewDateLabel_(hit.row.SubmittedAt) : '');
+    });
+    rows.push(line);
+  });
+
+  var fileName = REVIEW_BACKUP_PREFIX_ + '.xlsx';
+  var blob = buildXlsxBlob_(rows, 'Semakan').setName(fileName);
+
+  var folder = reviewBackupFolder_();
+  var existing = folder.getFilesByName(fileName);
+  while (existing.hasNext()) existing.next().setTrashed(true); // keep one fresh binary copy
+  var file = folder.createFile(blob);
+  file.setName(fileName);
+
+  return {
+    ok: true,
+    fileId: file.getId(),
+    url: 'https://drive.google.com/file/d/' + file.getId() + '/view',
+    rows: rows.length - 1,
+    periods: periods.length
+  };
+}
+
+function syncReviewBackupApi(sessionToken) {
+  requireReviewManager_(requireLogin_(sessionToken));
+  return syncReviewBackup_();
+}
+
+function installReviewReminderTriggerApi(sessionToken) {
+  requireReviewManager_(requireLogin_(sessionToken));
+  return installReviewReminderTrigger();
+}
+
+/** Make sure late-added columns exist on an older sheet. */
+function ensureReviewPeriodColumns_() {
+  var sheet = ensureReviewTabs_().periods;
+  var lastRow = Math.max(sheet.getLastRow(), 1);
+  var headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), REVIEW_PERIOD_HEADERS_.length)).getValues()[0]
+    .map(function (value) { return String(value).trim(); });
+  var missing = [];
+  REVIEW_PERIOD_HEADERS_.forEach(function (name, index) {
+    if (headers.indexOf(name) === -1) missing.push({ name: name, column: index + 1 });
+  });
+  missing.forEach(function (item) {
+    sheet.getRange(1, item.column).setValue(item.name).setFontWeight('bold');
+    if (lastRow < 2) sheet.getRange(2, item.column).setValue('');
+  });
+  return sheet;
+}
+
+function reviewLinks_() {
+  return deploymentUrl_() + '?page=programmes';
+}
+
+/**
+ * Email each faculty contact about the open cycle. dryRun routes everything to
+ * the requester so the wording can be checked without emailing the faculties.
+ */
+function sendReviewEmails_(kind, dryRun, session) {
+  var period = activeReviewPeriod_();
+  if (!period) throw new Error('Tiada sesi semakan yang dibuka.');
+  var programmes = getProgrammes_();
+  var codeFaculty = {};
+  programmes.forEach(function (programme) { codeFaculty[programme.mqaCode] = programme.faculty; });
+  var totals = {};
+  programmes.forEach(function (programme) { totals[programme.faculty] = (totals[programme.faculty] || 0) + 1; });
+
+  var submitted = {};
+  reviewSubmissions_().forEach(function (row) {
+    if (String(row.PeriodId || '') !== String(period.PeriodId)) return;
+    var faculty = codeFaculty[String(row.MQACode || '')];
+    if (faculty) { submitted[faculty] = submitted[faculty] || {}; submitted[faculty][String(row.MQACode)] = true; }
+  });
+
+  var contacts = userDirectoryEntries_().filter(function (entry) { return !!entry.email; });
+  var link = reviewLinks_();
+  var cutoff = String(period.CutoffLabel || '');
+  var closes = period.ClosesAt ? reviewDateLabel_(period.ClosesAt) : '';
+  var sent = 0;
+  var skipped = 0;
+  var seen = {};
+
+  contacts.forEach(function (contact) {
+    var faculty = contact.faculty;
+    var total = totals[faculty] || 0;
+    if (!total) { skipped++; return; }
+    var done = Object.keys(submitted[faculty] || {}).length;
+    if (kind === 'reminder' && done >= total) { skipped++; return; }
+    if (seen[contact.email]) return;
+    seen[contact.email] = true;
+
+    var to = dryRun ? session.email : contact.email;
+    var subject = kind === 'reminder'
+      ? '[Pengurusan Akademik] Peringatan semakan program — ' + cutoff
+      : '[Pengurusan Akademik] Sesi semakan dibuka — ' + cutoff;
+    var lines = [
+      'Assalamualaikum dan salam sejahtera ' + (contact.name || '') + ',',
+      '',
+      kind === 'reminder'
+        ? 'Peringatan: sesi kemaskini status semakan program akan ditutup pada ' + (closes || cutoff) + '.'
+        : 'Sesi kemaskini status semakan program telah dibuka (cut-off ' + cutoff + ').',
+      '',
+      'Fakulti: ' + faculty,
+      'Program dikemaskini: ' + done + ' / ' + total,
+      'Baki: ' + Math.max(0, total - done),
+      '',
+      'Kemas kini melalui: ' + link,
+      '',
+      'Sekian, terima kasih.',
+      'Pusat Pengajian Siswazah'
+    ];
+    GmailApp.sendEmail(to, subject, lines.join('\n'), { name: 'Pusat Pengajian Siswazah UniSZA' });
+    sent++;
+  });
+
+  if (kind === 'reminder') {
+    var sheet = ensureReviewPeriodColumns_();
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0].map(function (value) { return String(value).trim(); });
+    var idCol = headers.indexOf('PeriodId');
+    var stampCol = headers.indexOf('ReminderSentAt');
+    if (stampCol > -1) {
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][idCol]).trim() === String(period.PeriodId)) {
+          sheet.getRange(i + 1, stampCol + 1).setValue(new Date());
+        }
+      }
+    }
+  }
+
+  return { ok: true, kind: kind, dryRun: !!dryRun, sent: sent, skipped: skipped };
+}
+
+function sendReviewEmailsApi(kind, dryRun, sessionToken) {
+  var session = requireReviewManager_(requireLogin_(sessionToken));
+  return sendReviewEmails_(String(kind || 'open'), !!dryRun, session);
+}
+
+/** Daily job: remind faculties when the open cycle is within five days of closing. */
+function reviewReminderJob_() {
+  var period = activeReviewPeriod_();
+  if (!period || !period.ClosesAt) return { ok: true, skipped: 'no open cycle with a closing date' };
+  var closes = new Date(period.ClosesAt);
+  if (isNaN(closes.getTime())) return { ok: true, skipped: 'invalid closing date' };
+  var days = Math.ceil((closes.getTime() - new Date().getTime()) / 86400000);
+  if (days < 0 || days > 5) return { ok: true, skipped: 'outside reminder window', days: days };
+
+  var last = period.ReminderSentAt ? new Date(period.ReminderSentAt) : null;
+  if (last && !isNaN(last.getTime())) {
+    var sameDay = Utilities.formatDate(last, TIME_ZONE_, 'yyyy-MM-dd') ===
+      Utilities.formatDate(new Date(), TIME_ZONE_, 'yyyy-MM-dd');
+    if (sameDay) return { ok: true, skipped: 'already reminded today' };
+  }
+
+  var session = { email: Session.getEffectiveUser().getEmail() || '', name: 'Pusat Pengajian Siswazah' };
+  return sendReviewEmails_('reminder', false, session);
+}
+
+/** Run once from the editor (or the admin page) to install the daily reminder. */
+function installReviewReminderTrigger() {
+  var existing = ScriptApp.getProjectTriggers().filter(function (trigger) {
+    return trigger.getHandlerFunction() === 'reviewReminderJob_';
+  });
+  if (existing.length) return { ok: true, created: 0, existing: existing.length };
+  ScriptApp.newTrigger('reviewReminderJob_').timeBased().everyDays(1).atHour(9).create();
+  return { ok: true, created: 1, existing: 0 };
 }
 
 function jsonResponse_(payload) {
