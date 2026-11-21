@@ -254,6 +254,7 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
     user: session.user,
     token: session.token,
     baseUrl: deploymentUrl_(),
+    pdfLog: listPdfLog_(session.user, programme.mqaCode),
     detail: {
       name: programme.name,
       nameMy: programme.nameMy,
@@ -343,9 +344,12 @@ function getPdfLogApi(sessionToken) {
   return listPdfLog_(session);
 }
 
-function listPdfLog_(session) {
+function listPdfLog_(session, mqaCode) {
+  var code = String(mqaCode || '').trim();
   var rows = pdfLogRows_().filter(function (record) {
-    return session.isAdmin || String(record.Faculty || '').trim() === session.faculty;
+    if (!session.isAdmin && String(record.Faculty || '').trim() !== session.faculty) return false;
+    if (code && String(record.MQACode || '').trim() !== code) return false;
+    return true;
   });
   return rows.map(function (record) {
     var created = record.GeneratedAt instanceof Date ? record.GeneratedAt : new Date(record.GeneratedAt);

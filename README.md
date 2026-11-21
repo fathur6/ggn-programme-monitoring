@@ -36,6 +36,8 @@ timestamp and the account that generated it.
   Historical files carry no author, so the faculty's Deputy Dean (Academic) is
   recorded as the stand-in author and `Source = backfill`.
 - Faculty see only their own faculty's rows; admins see everything.
+- The programmes page lists every PDF for the viewer's faculty; the programme
+  detail page lists only that programme's files.
 - Files are opened through the Drive `/view` link in a new tab (the same pattern
   as `ggn-meeting-management`). There is no delete action anywhere in the app.
 - Access is controlled on the **Drive folder**, not per file: `DriveApp.setSharing`

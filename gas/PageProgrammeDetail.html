@@ -113,6 +113,40 @@
           </div>
         </section>
 
+        <section v-if="pdfLog.length" class="section-card">
+          <div class="section-heading">
+            <h3>PDF dijana</h3>
+            <div class="section-heading-actions">
+              <span class="count">{{ pdfLog.length }} fail</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th scope="col">Fail PDF</th>
+                  <th scope="col">Tarikh</th>
+                  <th scope="col">Penjana</th>
+                  <th scope="col" class="action-cell"><span class="sr-only">Buka</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in pdfLog" :key="row.fileId">
+                  <td><code>{{ row.fileName }}</code></td>
+                  <td>{{ row.generatedAtLabel }}</td>
+                  <td>
+                    {{ row.generatedBy }}
+                    <span v-if="row.generatedByEmail" class="text-muted text-sm"> · {{ row.generatedByEmail }}</span>
+                  </td>
+                  <td class="action-cell">
+                    <a class="btn btn-outline btn-sm" :href="row.url" target="_blank" rel="noopener noreferrer">Buka PDF</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
     <div v-if="editor.open" class="modal-backdrop" @click.self="closeEdit">
       <section class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-record-title">
         <header class="modal-header">

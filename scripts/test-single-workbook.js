@@ -271,8 +271,8 @@ assert(appJs.indexOf('this.detail.faculty)') !== -1, 'Client must pass the facul
 assert(source.indexOf("var PDF_LOG_SHEET_NAME_ = 'PDF_Log'") !== -1, 'PDF log sheet must be defined');
 assert(/recordPdfInLog_\(file, programme, session, 'generate'\)/.test(source), 'Generation must write a log row');
 assert(source.indexOf('setSharing(') === -1, 'Sharing must be managed on the Drive folder, not per file');
-assert(/function listPdfLog_\(session\)/.test(source), 'Log reader must exist');
-assert(/session\.isAdmin \|\| String\(record\.Faculty \|\| ''\)\.trim\(\) === session\.faculty/.test(source),
+assert(/function listPdfLog_\(session(, mqaCode)?\)/.test(source), 'Log reader must exist');
+assert(/if \(!session\.isAdmin && String\(record\.Faculty \|\| ''\)\.trim\(\) !== session\.faculty\) return false;/.test(source),
   'Faculty must only see their own PDF rows');
 assert(source.indexOf('function backfillPdfLog_') !== -1, 'Historical backfill must exist');
 assert(/TDA \(tidak direkod\)/.test(source), 'Historical rows must fall back to the faculty TDA');
@@ -292,5 +292,18 @@ assert(listPage.indexOf('PDF dijana') !== -1, 'Dashboard must list generated PDF
 });
 assert(listPage.indexOf('row.url') !== -1, 'PDF rows must open through the Drive link');
 assert(listPage.indexOf('Padam') === -1, 'No delete control may be offered');
+
+// 10. The programme detail page lists only that programme's PDFs.
+assert(/function listPdfLog_\(session, mqaCode\)/.test(source), 'Log reader must accept a programme filter');
+assert(/if \(code && String\(record\.MQACode \|\| ''\)\.trim\(\) !== code\) return false;/.test(source),
+  'Log reader must filter by MQA code');
+assert(/pdfLog: listPdfLog_\(session\.user, programme\.mqaCode\)/.test(source),
+  'Detail page must inject the programme PDF rows');
+
+const detailPdf = fs.readFileSync('gas/PageProgrammeDetail.html', 'utf8');
+assert(detailPdf.indexOf('PDF dijana') !== -1, 'Detail page must show a PDF section');
+assert(detailPdf.indexOf('v-for="row in pdfLog"') !== -1, 'Detail page must render PDF rows');
+assert(detailPdf.indexOf('row.generatedAtLabel') !== -1, 'Detail page must show the generated date');
+assert(detailPdf.indexOf('row.generatedBy') !== -1, 'Detail page must show the generator');
 
 console.log('single-workbook guard: OK');
