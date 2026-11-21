@@ -101,6 +101,8 @@
       border-radius: var(--radius-md); padding: 16px 20px;
     }
 
+    /* Programme rows are links: keep the card box instead of the browser's inline link styling. */
+    a.programme-card { display: block; text-decoration: none; color: inherit; }
     .programme-card { padding: 16px 20px; margin-bottom: 8px; transition: box-shadow 0.15s ease, border-color 0.15s ease; }
     .programme-card:hover { border-color: var(--action-blue); box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
     .cursor-pointer { cursor: pointer; }
