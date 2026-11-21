@@ -50,6 +50,7 @@
     .brand-logo { width: 44px; height: 44px; border-radius: var(--radius-sm); object-fit: cover; }
     .header-title { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 18px; font-weight: 500; margin: 0; line-height: 1.2; }
     .header-subtitle { font-size: 12px; color: var(--muted); margin-top: -2px; }
+    .header-user { font-size: 12px; color: var(--slate); text-align: right; max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 1.6px; color: var(--action-blue); text-transform: uppercase; margin: 0 0 4px; }
     .page-title { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 30px; font-weight: 600; letter-spacing: -0.4px; margin: 0; }
@@ -238,42 +239,30 @@
           <div class="header-subtitle">Programme information</div>
         </div>
       </div>
+      <div v-if="currentUser" class="header-user" :title="currentUser.email">{{ userLabel }}</div>
     </header>
 
-    <div v-if="login.open" class="modal-backdrop">
-      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+    <div v-if="access.open" class="modal-backdrop">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="access-title">
         <header class="modal-header">
           <div>
-            <h2 id="login-title" class="modal-title">Log Masuk</h2>
-            <p class="modal-subtitle">Sila sahkan maklumat anda berdasarkan direktori PPS.</p>
+            <h2 id="access-title" class="modal-title">{{ access.checking ? 'Menyemak akaun Google…' : access.title }}</h2>
+            <p class="modal-subtitle">Sistem ini menggunakan akaun Google UniSZA (@unisza.edu.my).</p>
           </div>
         </header>
-        <form class="modal-body" @submit.prevent="submitLogin">
-          <div v-if="login.error" class="alert alert-error">{{ login.error }}</div>
-          <div class="form-field">
-            <label for="login-faculty">Fakulti</label>
-            <select id="login-faculty" v-model="login.faculty" @change="resetLoginUser" :disabled="login.loading || login.submitting" required>
-              <option value="" disabled>Pilih fakulti</option>
-              <option v-for="entry in login.directory" :key="entry.faculty" :value="entry.faculty">{{ entry.faculty }}</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="login-user">Pengguna</label>
-            <select id="login-user" v-model="login.user" :disabled="!login.faculty || login.loading || login.submitting" required>
-              <option value="" disabled>Pilih pengguna</option>
-              <option v-for="user in loginUsers" :key="user.name" :value="user.name">{{ user.name }}</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="login-username">Username emel</label>
-            <input id="login-username" v-model.trim="login.username" type="text" autocomplete="username" placeholder="Tanpa @unisza.edu.my" :disabled="login.loading || login.submitting" required>
-            <p class="form-help">Masukkan username emel sahaja, tanpa @unisza.edu.my.</p>
-          </div>
-          <div class="modal-actions">
-            <button type="button" class="btn btn-outline" @click="clearLogin" :disabled="login.submitting">Batal</button>
-            <button type="submit" class="btn btn-primary" :disabled="login.loading || login.submitting">{{ login.submitting ? 'Mengesahkan...' : 'Log Masuk' }}</button>
-          </div>
-        </form>
+        <div class="modal-body">
+          <p v-if="access.checking" class="form-help">Mengesahkan identiti melalui sesi Google anda…</p>
+          <template v-else>
+            <div class="alert alert-error">{{ access.error || access.message }}</div>
+            <p v-if="access.email" class="form-help" style="margin-top:12px">Akaun dikesan: <strong>{{ access.email }}</strong></p>
+            <p class="form-help" style="margin-top:12px">
+              Pastikan pelayar ini sudah log masuk dengan akaun UniSZA, kemudian tekan Cuba lagi.
+            </p>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-primary" @click="checkGoogleSession">Cuba lagi</button>
+            </div>
+          </template>
+        </div>
       </section>
     </div>
 
@@ -575,7 +564,8 @@
           pdf: { open: false, generating: false, ready: false, error: null, filename: '', url: '', fileId: '', email: '', emailForm: false, sending: false, sent: false },
           editor: { open: false, type: '', draft: {} },
           sessionToken: '',
-          login: { open: true, loading: true, submitting: false, error: null, directory: [], faculty: '', user: '', username: '' },
+          currentUser: null,
+          access: { open: true, checking: true, title: 'Akses diperlukan', error: null, message: '', email: '', reason: '' },
           mqfDomains: [
             { code: 'MQF 1', label: 'MQF1 — Knowledge and Understanding' },
             { code: 'MQF 2', label: 'MQF2 — Cognitive Skills' },
@@ -657,11 +647,9 @@
               return skill.mqfDomains.indexOf(compact) > -1;
             });
           },
-          loginUsers: function () {
-            for (var i = 0; i < this.login.directory.length; i++) {
-              if (this.login.directory[i].faculty === this.login.faculty) return this.login.directory[i].users;
-            }
-            return [];
+          userLabel: function () {
+            if (!this.currentUser) return '';
+            return this.currentUser.name + ' — ' + this.currentUser.faculty;
           }
         },
         methods: {
@@ -731,52 +719,35 @@
             this.$set(this.detail, 'peos', result.peos || []);
             this.$set(this.detail, 'plos', result.plos || []);
           },
-          resetLoginUser: function () {
-            this.login.user = '';
-            this.login.error = null;
-          },
-          clearLogin: function () {
-            if (this.login.submitting) return;
-            this.login.faculty = '';
-            this.login.user = '';
-            this.login.username = '';
-            this.login.error = null;
-          },
-          loadLoginDirectory: function () {
+          checkGoogleSession: function () {
             var self = this;
-            this.login.loading = true;
+            this.access.checking = true;
+            this.access.open = true;
+            this.access.error = null;
+            this.access.message = '';
+            this.access.email = '';
+            this.access.reason = '';
+            this.access.title = 'Akses diperlukan';
             google.script.run
               .withSuccessHandler(function (result) {
-                self.login.directory = result || [];
-                self.login.loading = false;
-              })
-              .withFailureHandler(function (err) {
-                self.login.error = err && err.message ? err.message : 'Direktori pengguna tidak dapat dimuatkan.';
-                self.login.loading = false;
-              })
-              .getLoginDirectoryApi();
-          },
-          submitLogin: function () {
-            var self = this;
-            this.login.submitting = true;
-            this.login.error = null;
-            google.script.run
-              .withSuccessHandler(function (result) {
-                if (!result || !result.token) {
-                  self.login.error = 'Log masuk tidak dapat disahkan.';
-                  self.login.submitting = false;
+                self.access.checking = false;
+                if (!result || !result.ok) {
+                  self.access.title = result && result.reason === 'not_registered' ? 'Akaun belum berdaftar' : 'Akses diperlukan';
+                  self.access.reason = result && result.reason || 'error';
+                  self.access.email = result && result.email || '';
+                  self.access.message = result && result.message || 'Sesi Google tidak dapat disahkan.';
                   return;
                 }
                 self.sessionToken = result.token;
-                self.login.open = false;
-                self.login.submitting = false;
+                self.currentUser = result.user;
+                self.access.open = false;
                 self.loadProgrammes();
               })
               .withFailureHandler(function (err) {
-                self.login.error = err && err.message ? err.message : 'Maklumat log masuk tidak sah.';
-                self.login.submitting = false;
+                self.access.checking = false;
+                self.access.error = err && err.message ? err.message : 'Sesi Google tidak dapat disahkan.';
               })
-              .loginApi(this.login.faculty, this.login.user, this.login.username);
+              .getGoogleSessionApi();
           },
           addRecord: function (type) {
             var self = this;
@@ -897,7 +868,7 @@
           }
         },
         mounted: function () {
-          this.loadLoginDirectory();
+          this.checkGoogleSession();
         }
       });
     }

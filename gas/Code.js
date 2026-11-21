@@ -49,7 +49,11 @@ var TF_CODES_BY_MQF_DOMAIN_ = {
 var MAX_PLO_COUNT_ = 11;
 var PROGRAMME_SPREADSHEET_ID_ = '1w5xrwoLJ7HpSZ_emgwqoGr-YcRVb7Zuq3KuDSmhUf6o';
 var PDF_FOLDER_ID_ = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
-var USER_DIRECTORY_SPREADSHEET_ID_ = '1CZyEFe7VqEWp8V4UYnQ-6fQMATDF0X0JUN09XbWmfrQ';
+/**
+ * Single-workbook rule: programme records, PDF storage and the USER/ADMIN login
+ * directory all live in PROGRAMME_SPREADSHEET_ID_. Do not introduce a second
+ * spreadsheet ID — one workbook is the only source of truth.
+ */
 var USER_DIRECTORY_SHEET_NAME_ = 'USER';
 var ADMIN_DIRECTORY_SHEET_NAME_ = 'ADMIN';
 var USER_SESSION_PREFIX_ = 'mqf-programme-session:';
@@ -192,49 +196,62 @@ function programmeSpreadsheet_() {
   return SpreadsheetApp.openById(PROGRAMME_SPREADSHEET_ID_);
 }
 
-function getLoginDirectoryApi() {
-  var entries = userDirectoryEntries_();
-  var usersByFaculty = {};
-  entries.forEach(function(entry) {
-    if (!usersByFaculty[entry.faculty]) usersByFaculty[entry.faculty] = [];
-    var exists = usersByFaculty[entry.faculty].some(function(user) { return user.name === entry.name; });
-    if (!exists) usersByFaculty[entry.faculty].push({ name: entry.name, position: entry.position });
-  });
-  var directory = Object.keys(usersByFaculty).sort().map(function(faculty) {
-    return {
-      faculty: faculty,
-      users: usersByFaculty[faculty].sort(function(a, b) { return a.name.localeCompare(b.name); })
-    };
-  });
-  var adminUsers = adminDirectoryEntries_().map(function(entry) {
-    return { name: entry.name, position: entry.position };
-  });
-  if (adminUsers.length) directory.push({ faculty: 'ADMIN', users: adminUsers });
-  return directory;
+/**
+ * Google sign-in.
+ *
+ * The web app is deployed for the UniSZA domain only, so the signed-in Google
+ * account is the identity. No password, no directory dropdown, no OAuth client
+ * secret is stored anywhere.
+ */
+function signedInEmail_() {
+  var email = '';
+  try { email = Session.getActiveUser().getEmail(); } catch (e) { email = ''; }
+  return String(email || '').trim().toLowerCase();
 }
 
-function loginApi(faculty, userName, emailUsername) {
-  var selectedFaculty = String(faculty || '').trim();
-  var selectedUser = String(userName || '').trim();
-  var username = String(emailUsername || '').trim().toLowerCase();
-  if (!selectedFaculty || !selectedUser || !username) throw new Error('Sila lengkapkan fakulti, pengguna dan username emel.');
-  if (username.indexOf('@') !== -1) throw new Error('Masukkan username emel tanpa @unisza.edu.my.');
+function findDirectoryEntryByEmail_(email) {
+  var target = String(email || '').trim().toLowerCase();
+  if (!target) return null;
+  var admins = adminDirectoryEntries_().filter(function (entry) { return entry.email === target; });
+  if (admins.length) {
+    return { email: target, name: admins[0].name, position: admins[0].position, faculty: 'ADMIN', isAdmin: true };
+  }
+  var users = userDirectoryEntries_().filter(function (entry) { return entry.email === target; });
+  if (users.length) {
+    return { email: target, name: users[0].name, position: users[0].position, faculty: users[0].faculty, isAdmin: false };
+  }
+  return null;
+}
 
-  var isAdmin = selectedFaculty === 'ADMIN';
-  var entry = null;
-  (isAdmin ? adminDirectoryEntries_() : userDirectoryEntries_()).some(function(candidate) {
-    if (candidate.faculty === selectedFaculty && candidate.name === selectedUser && candidate.username === username) {
-      entry = candidate;
-      return true;
-    }
-    return false;
-  });
-  if (!entry) throw new Error('Maklumat log masuk tidak sepadan dengan direktori USER.');
-
+function issueSession_(session) {
   var token = Utilities.getUuid() + Utilities.getUuid().replace(/-/g, '');
-  var session = { faculty: entry.faculty, name: entry.name, position: entry.position, isAdmin: isAdmin };
   CacheService.getScriptCache().put(USER_SESSION_PREFIX_ + token, JSON.stringify(session), USER_SESSION_TTL_SECONDS_);
-  return { token: token, user: session };
+  return token;
+}
+
+function getGoogleSessionApi() {
+  var email = signedInEmail_();
+  if (!email) {
+    return {
+      ok: false,
+      reason: 'no_google_session',
+      message: 'Pelayar ini tidak memberikan identiti Google. Buka pautan sistem dalam pelayar yang sudah log masuk dengan akaun @unisza.edu.my.'
+    };
+  }
+  if (!/@unisza\.edu\.my$/.test(email)) {
+    return { ok: false, reason: 'wrong_domain', email: email, message: 'Akaun ' + email + ' bukan akaun @unisza.edu.my.' };
+  }
+  var user = findDirectoryEntryByEmail_(email);
+  if (!user) {
+    return {
+      ok: false,
+      reason: 'not_registered',
+      email: email,
+      message: 'Akaun ' + email + ' belum didaftarkan dalam direktori. Hubungi PPS untuk didaftarkan dalam sheet USER atau ADMIN.'
+    };
+  }
+  var session = { faculty: user.faculty, name: user.name, position: user.position, isAdmin: user.isAdmin, email: user.email };
+  return { ok: true, token: issueSession_(session), user: session };
 }
 
 function requireLogin_(token) {
@@ -245,7 +262,7 @@ function requireLogin_(token) {
 }
 
 function userDirectoryEntries_() {
-  var sheet = SpreadsheetApp.openById(USER_DIRECTORY_SPREADSHEET_ID_).getSheetByName(USER_DIRECTORY_SHEET_NAME_);
+  var sheet = programmeSpreadsheet_().getSheetByName(USER_DIRECTORY_SHEET_NAME_);
   if (!sheet) throw new Error('Sheet USER tidak ditemui dalam direktori pengguna.');
   var data = sheet.getDataRange().getValues();
   var header = data[0] || [];
@@ -265,6 +282,7 @@ function userDirectoryEntries_() {
     entries.push({
       faculty: faculty,
       name: name,
+      email: email,
       username: email.split('@')[0],
       position: positionColumn < 0 ? '' : String(row[positionColumn] || '').trim()
     });
@@ -273,7 +291,7 @@ function userDirectoryEntries_() {
 }
 
 function adminDirectoryEntries_() {
-  var sheet = SpreadsheetApp.openById(USER_DIRECTORY_SPREADSHEET_ID_).getSheetByName(ADMIN_DIRECTORY_SHEET_NAME_);
+  var sheet = programmeSpreadsheet_().getSheetByName(ADMIN_DIRECTORY_SHEET_NAME_);
   if (!sheet) throw new Error('Sheet ADMIN tidak ditemui dalam direktori pengguna.');
   var data = sheet.getDataRange().getValues();
   var header = data[0] || [];
@@ -289,6 +307,7 @@ function adminDirectoryEntries_() {
     entries.push({
       faculty: 'ADMIN',
       name: name,
+      email: email,
       username: email.split('@')[0],
       position: positionColumn < 0 ? '' : String(row[positionColumn] || '').trim()
     });

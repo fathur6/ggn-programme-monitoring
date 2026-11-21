@@ -1,8 +1,18 @@
-/** Config.gs — Configuration (DO NOT COMMIT real values) */
-
-var CONFIG = {
-  SHEET_ID: 'YOUR_SPREADSHEET_ID',
-  GOOGLE_CLIENT_ID: 'YOUR_CLIENT_ID.apps.googleusercontent.com',
-  GOOGLE_CLIENT_SECRET: 'YOUR_CLIENT_SECRET',
-  DRIVE_FOLDER_ID: 'YOUR_DRIVE_FOLDER_ID',
-};
+/**
+ * Config.gs.example — reference only.
+ *
+ * This application no longer reads a CONFIG object and no longer needs OAuth
+ * client credentials. Sign-in uses the Google Workspace session of the signed-in
+ * account, which requires the deployment setting:
+ *
+ *   "webapp": { "executeAs": "USER_DEPLOYING", "access": "DOMAIN" }
+ *
+ * Deployment-specific identifiers are plain constants in gas/Code.js:
+ *
+ *   PROGRAMME_SPREADSHEET_ID_ = the PPS programme workbook
+ *                               (programme records + USER/ADMIN directory)
+ *   PDF_FOLDER_ID_            = Drive folder that receives generated PDFs
+ *
+ * Do not add a second spreadsheet ID. If a credential ever needs to exist, put
+ * it in Apps Script Properties and never in a file that can be pushed or synced.
+ */

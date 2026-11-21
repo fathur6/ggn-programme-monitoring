@@ -58,9 +58,10 @@ Do not commit `gas/Config.gs` or `gas/.clasp.json`. They contain deployment-spec
 
 ## Required Deployment Configuration
 
-Create the ignored files locally from the examples:
+The application now has **one workbook and no client secrets**:
 
-- `gas/Config.gs` must define `SHEET_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `DRIVE_FOLDER_ID` with values supplied by the system owner.
+- `gas/Code.js` holds `PROGRAMME_SPREADSHEET_ID_` (the PPS programme workbook) and `PDF_FOLDER_ID_`. Programme records, the `PDF` destination and the `USER`/`ADMIN` login directory all live in that single workbook; do not introduce a second spreadsheet ID.
+- Sign-in uses the Google Workspace session of the signed-in account. The deployment must be `executeAs: USER_DEPLOYING` with `access: DOMAIN`, which limits access to `@unisza.edu.my` accounts and supplies their email to `Session.getActiveUser()`. No OAuth client ID or secret is required or stored.
 - `gas/.clasp.json` must identify the Apps Script project and use `rootDir` pointing to `gas/` when clasp is run from the repository root, or an empty `rootDir` when run from `gas/`.
 - The deploying Google account must have Apps Script project access, spreadsheet access, Drive access, and permission to manage the intended deployment.
 
