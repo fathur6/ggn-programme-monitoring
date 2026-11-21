@@ -225,6 +225,7 @@ function doGet(e) {
       if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
       return jsonResponse_(backfillPdfLog_());
     }
+    if (page === 'review') return renderReviewAdminPage_(session);
     if (page === 'detail') {
       var mqaCode = String(params.mqaCode || '').trim();
       if (mqaCode) {
@@ -250,7 +251,8 @@ function renderProgrammeListPage_(session) {
     token: session.token,
     baseUrl: deploymentUrl_(),
     programmes: getProgrammesApi(session.token),
-    pdfLog: listPdfLog_(session.user)
+    pdfLog: listPdfLog_(session.user),
+    canManageReview: canManageReview_(session.user)
   });
 }
 
@@ -481,6 +483,190 @@ function submitReviewStatusApi(mqaCode, text, sessionToken, faculty) {
   return reviewPayloadFor_(programme, session);
 }
 
+/** Who may open/close a review cycle: PJK, the PPS deputy dean, and admins. */
+function reviewRolesFor_(email) {
+  var target = String(email || '').trim().toLowerCase();
+  if (!target) return [];
+  return reviewRows_(REVIEW_ROLES_SHEET_).filter(function (row) {
+    return String(row.Email || '').trim().toLowerCase() === target &&
+      String(row.Active || 'Yes').trim().toLowerCase() !== 'no';
+  }).map(function (row) { return String(row.Role || '').trim(); });
+}
+
+function canManageReview_(session) {
+  if (!session) return false;
+  if (session.isAdmin) return true;
+  var roles = reviewRolesFor_(session.email);
+  return roles.indexOf('PJK') !== -1 || roles.indexOf('TDA_PPS') !== -1;
+}
+
+function requireReviewManager_(session) {
+  if (!canManageReview_(session)) {
+    throw new Error('Hanya Penyelaras Jaminan Kualiti atau TDA PPS boleh mengurus sesi semakan.');
+  }
+  return session;
+}
+
+function reviewAdminPayload_(session) {
+  var programmes = getProgrammes_();
+  var codeFaculty = {};
+  programmes.forEach(function (programme) { if (!codeFaculty[programme.mqaCode]) codeFaculty[programme.mqaCode] = programme.faculty; });
+
+  var submissions = reviewSubmissions_();
+  var periods = reviewPeriods_();
+  var active = activeReviewPeriod_();
+  var focus = active || periods[0] || null;
+  var focusId = focus ? String(focus.PeriodId) : '';
+
+  var perPeriod = {};
+  submissions.forEach(function (row) {
+    var periodId = String(row.PeriodId || '');
+    perPeriod[periodId] = perPeriod[periodId] || {};
+    perPeriod[periodId][String(row.MQACode || '')] = true;
+  });
+
+  var facultyTotals = {};
+  programmes.forEach(function (programme) {
+    facultyTotals[programme.faculty] = (facultyTotals[programme.faculty] || 0) + 1;
+  });
+  var updatedByFaculty = {};
+  Object.keys(perPeriod[focusId] || {}).forEach(function (code) {
+    var faculty = codeFaculty[code];
+    if (faculty) updatedByFaculty[faculty] = (updatedByFaculty[faculty] || 0) + 1;
+  });
+
+  var faculties = Object.keys(facultyTotals).sort().map(function (faculty) {
+    var total = facultyTotals[faculty];
+    var updated = updatedByFaculty[faculty] || 0;
+    return {
+      faculty: faculty,
+      total: total,
+      updated: updated,
+      missing: Math.max(0, total - updated),
+      percent: total ? Math.round((updated / total) * 100) : 0
+    };
+  });
+
+  var unregistered = submissions.filter(function (row) {
+    return !codeFaculty[String(row.MQACode || '')];
+  }).map(function (row) {
+    return {
+      mqaCode: String(row.MQACode || ''),
+      faculty: String(row.Faculty || ''),
+      periodId: String(row.PeriodId || ''),
+      statusText: String(row.StatusText || ''),
+      submittedBy: String(row.SubmittedBy || '')
+    };
+  });
+
+  return {
+    canManage: canManageReview_(session),
+    roles: reviewRolesFor_(session.email),
+    active: reviewPeriodModel_(active),
+    focusPeriodId: focusId,
+    periods: periods.map(function (period) {
+      var model = reviewPeriodModel_(period);
+      var updated = Object.keys(perPeriod[model.periodId] || {}).filter(function (code) { return codeFaculty[code]; }).length;
+      model.updated = updated;
+      model.total = programmes.length;
+      return model;
+    }),
+    faculties: faculties,
+    programmesTotal: programmes.length,
+    unregistered: unregistered
+  };
+}
+
+function getReviewAdminApi(sessionToken) {
+  var session = requireReviewManager_(requireLogin_(sessionToken));
+  return reviewAdminPayload_(session);
+}
+
+/**
+ * Create or update a cycle. Opening a cycle closes any other open cycle so
+ * faculties always see exactly one deadline.
+ */
+function saveReviewPeriodApi(payload, sessionToken) {
+  var session = requireReviewManager_(requireLogin_(sessionToken));
+  var input = payload || {};
+  var cutoff = String(input.cutoffDate || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cutoff)) throw new Error('Tarikh tutup (cut-off) tidak sah.');
+  var closes = String(input.closesDate || '').trim();
+  if (closes && !/^\d{4}-\d{2}-\d{2}$/.test(closes)) throw new Error('Tarikh tutup sesi tidak sah.');
+
+  var periodId = String(input.periodId || '').trim() || 'P' + cutoff;
+  var sheet = ensureReviewTabs_().periods;
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0].map(function (value) { return String(value).trim(); });
+  var col = function (name) { return headers.indexOf(name) + 1; };
+
+  var cutoffLabel = reviewDateLabel_(new Date(cutoff + 'T12:00:00+08:00'));
+  var title = String(input.title || '').trim() || ('Status semakan setakat ' + cutoffLabel);
+  var closesAt = closes ? new Date(closes + 'T23:59:00+08:00') : '';
+  var state = String(input.state || REVIEW_STATE_OPEN_).trim();
+
+  var rowIndex = -1;
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][col('PeriodId') - 1]).trim() === periodId) { rowIndex = i + 1; break; }
+  }
+
+  if (rowIndex === -1) {
+    sheet.appendRow([periodId, title, cutoffLabel, '', closesAt, state, '', session.name || '', new Date(), session.name || '', new Date()]);
+  } else {
+    sheet.getRange(rowIndex, col('Title')).setValue(title);
+    sheet.getRange(rowIndex, col('CutoffLabel')).setValue(cutoffLabel);
+    sheet.getRange(rowIndex, col('ClosesAt')).setValue(closesAt);
+    sheet.getRange(rowIndex, col('State')).setValue(state);
+    sheet.getRange(rowIndex, col('UpdatedBy')).setValue(session.name || '');
+    sheet.getRange(rowIndex, col('UpdatedAt')).setValue(new Date());
+  }
+
+  if (state === REVIEW_STATE_OPEN_) {
+    var fresh = sheet.getDataRange().getValues();
+    var head = fresh[0].map(function (value) { return String(value).trim(); });
+    var idCol = head.indexOf('PeriodId') + 1;
+    var stateCol = head.indexOf('State') + 1;
+    for (var j = 1; j < fresh.length; j++) {
+      var other = String(fresh[j][idCol - 1]).trim();
+      if (other && other !== periodId && String(fresh[j][stateCol - 1]).trim() === REVIEW_STATE_OPEN_) {
+        sheet.getRange(j + 1, stateCol).setValue(REVIEW_STATE_CLOSED_);
+      }
+    }
+  }
+
+  SpreadsheetApp.flush();
+  return reviewAdminPayload_(session);
+}
+
+function setReviewPeriodStateApi(periodId, state, sessionToken) {
+  var session = requireReviewManager_(requireLogin_(sessionToken));
+  var target = String(periodId || '').trim();
+  var next = String(state || '').trim() === REVIEW_STATE_OPEN_ ? REVIEW_STATE_OPEN_ : REVIEW_STATE_CLOSED_;
+  if (!target) throw new Error('Sesi tidak sah.');
+  var sheet = ensureReviewTabs_().periods;
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0].map(function (value) { return String(value).trim(); });
+  var idCol = headers.indexOf('PeriodId') + 1;
+  var stateCol = headers.indexOf('State') + 1;
+  var updatedCol = headers.indexOf('UpdatedBy') + 1;
+  var updatedAtCol = headers.indexOf('UpdatedAt') + 1;
+  var found = false;
+  for (var i = 1; i < data.length; i++) {
+    var id = String(data[i][idCol - 1]).trim();
+    if (next === REVIEW_STATE_OPEN_ && id !== target && String(data[i][stateCol - 1]).trim() === REVIEW_STATE_OPEN_) {
+      sheet.getRange(i + 1, stateCol).setValue(REVIEW_STATE_CLOSED_);
+    }
+    if (id !== target) continue;
+    sheet.getRange(i + 1, stateCol).setValue(next);
+    if (updatedCol > 0) sheet.getRange(i + 1, updatedCol).setValue(session.name || '');
+    if (updatedAtCol > 0) sheet.getRange(i + 1, updatedAtCol).setValue(new Date());
+    found = true;
+  }
+  if (!found) throw new Error('Sesi tidak ditemui.');
+  SpreadsheetApp.flush();
+  return reviewAdminPayload_(session);
+}
+
 function jsonResponse_(payload) {
   return ContentService.createTextOutput(JSON.stringify(payload, null, 2))
     .setMimeType(ContentService.MimeType.JSON);
@@ -662,9 +848,29 @@ function setupSharedProgrammeRoleColumn() {
   return { ok: true, rows: counts, codes: Object.keys(firstRowByCode).length };
 }
 
+function renderReviewAdminPage_(session) {
+  if (!canManageReview_(session.user)) {
+    return renderAccessPage_({
+      reason: 'forbidden',
+      title: 'Akses terhad',
+      message: 'Halaman ini hanya untuk Penyelaras Jaminan Kualiti dan TDA PPS.',
+      email: session.user.email
+    });
+  }
+  return renderPage_('PageReviewAdmin', APP_SHORT_NAME_ + ' — Sesi Semakan', {
+    page: 'review',
+    user: session.user,
+    token: session.token,
+    baseUrl: deploymentUrl_(),
+    review: reviewAdminPayload_(session.user),
+    appJs: 'AdminJs'
+  });
+}
+
 function renderPage_(pageFile, title, bootstrap) {
   var template = HtmlService.createTemplateFromFile('Index');
   template.pageFile = pageFile;
+  template.appJsFile = bootstrap && bootstrap.appJs ? bootstrap.appJs : 'AppJs';
   template.bootstrap = jsonForScript_(bootstrap);
   return template.evaluate()
     .setTitle(title)

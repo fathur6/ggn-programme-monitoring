@@ -20,6 +20,7 @@
         baseUrl: BOOT.baseUrl || '',
         programmes: BOOT.programmes || [],
         pdfLog: BOOT.pdfLog || [],
+        canManageReview: !!BOOT.canManageReview,
         review: Object.assign({
           open: false, active: null, canSubmit: false, currentText: '',
           history: [], missingLabel: 'Tidak dikemaskini',
@@ -71,6 +72,9 @@
       computed: {
         listUrl: function () {
           return this.baseUrl + '?page=programmes';
+        },
+        reviewUrl: function () {
+          return this.baseUrl + '?page=review';
         },
         filtered: function () {
           if (!this.search) return this.programmes;

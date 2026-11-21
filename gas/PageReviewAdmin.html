@@ -1,0 +1,161 @@
+        <div class="page-intro compact-intro">
+          <p class="eyebrow">PENTADBIRAN</p>
+          <h2 class="page-title">Sesi semakan program</h2>
+          <p class="page-lede">
+            Buka dan tutup sesi kemaskini status semakan. Hanya satu sesi boleh dibuka pada satu masa;
+            membuka sesi baharu akan menutup sesi sebelumnya.
+          </p>
+        </div>
+
+        <div v-if="error" class="alert alert-error">{{ error }}</div>
+        <div v-if="notice" class="alert alert-success">{{ notice }}</div>
+
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>Sesi semasa</h3>
+            <div class="section-heading-actions">
+              <span class="state-chip" :class="{ 'chip-shared': review.active, 'chip-warn': !review.active }">
+                {{ review.active ? 'Dibuka' : 'Tiada sesi dibuka' }}
+              </span>
+            </div>
+          </div>
+          <template v-if="review.active">
+            <p class="review-headline">{{ review.active.title }}</p>
+            <p class="text-sm text-muted">
+              Cut-off: {{ review.active.cutoffLabel }}
+              <span v-if="review.active.closesAtLabel"> · Tutup: {{ review.active.closesAtLabel }}</span>
+            </p>
+            <div class="modal-actions" style="justify-content:flex-start">
+              <button type="button" class="btn btn-outline" @click="setState(review.active.periodId, 'Closed')" :disabled="busy">
+                Tutup sesi sekarang
+              </button>
+            </div>
+          </template>
+          <p v-else class="empty-note">Buka sesi baharu di bawah untuk membenarkan fakulti mengemas kini.</p>
+        </section>
+
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>Buka sesi baharu</h3>
+          </div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="cutoff-date">Tarikh cut-off (label sesi)</label>
+              <input id="cutoff-date" type="date" v-model="form.cutoffDate">
+            </div>
+            <div class="form-field">
+              <label for="closes-date">Tarikh tutup kemaskini</label>
+              <input id="closes-date" type="date" v-model="form.closesDate">
+            </div>
+            <div class="form-field">
+              <label for="session-title">Tajuk (pilihan)</label>
+              <input id="session-title" type="text" v-model.trim="form.title" placeholder="Status semakan setakat …">
+            </div>
+          </div>
+          <div class="modal-actions" style="justify-content:flex-start">
+            <button type="button" class="btn btn-primary" @click="openPeriod" :disabled="busy || !form.cutoffDate">
+              {{ busy ? 'Menyimpan…' : 'Buka sesi' }}
+            </button>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>Senarai sesi</h3>
+            <div class="section-heading-actions">
+              <span class="count">{{ review.periods.length }} sesi</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th scope="col">Sesi</th>
+                  <th scope="col">Cut-off</th>
+                  <th scope="col">Tutup</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Dikemaskini</th>
+                  <th scope="col" class="action-cell"><span class="sr-only">Tindakan</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="period in review.periods" :key="period.periodId">
+                  <td>{{ period.title }}</td>
+                  <td>{{ period.cutoffLabel }}</td>
+                  <td>{{ period.closesAtLabel || '—' }}</td>
+                  <td>
+                    <span class="state-chip" :class="period.state === 'Open' ? 'chip-shared' : ''">{{ period.state === 'Open' ? 'Dibuka' : 'Ditutup' }}</span>
+                  </td>
+                  <td>{{ period.updated }} / {{ period.total }}</td>
+                  <td class="action-cell">
+                    <button v-if="period.state === 'Open'" type="button" class="btn btn-outline btn-sm" @click="setState(period.periodId, 'Closed')" :disabled="busy">Tutup</button>
+                    <button v-else type="button" class="btn btn-outline btn-sm" @click="setState(period.periodId, 'Open')" :disabled="busy">Buka</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>Kemajuan fakulti</h3>
+            <div class="section-heading-actions">
+              <span class="count">{{ review.programmesTotal }} program</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th scope="col">Fakulti</th>
+                  <th scope="col">Program</th>
+                  <th scope="col">Dikemaskini</th>
+                  <th scope="col">Belum</th>
+                  <th scope="col">Peratus</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in review.faculties" :key="row.faculty">
+                  <td>{{ row.faculty }}</td>
+                  <td>{{ row.total }}</td>
+                  <td>{{ row.updated }}</td>
+                  <td :class="{ 'review-missing': row.missing > 0 }">{{ row.missing }}</td>
+                  <td>{{ row.percent }}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section v-if="review.unregistered.length" class="section-card">
+          <div class="section-heading">
+            <h3>Program tidak berdaftar</h3>
+            <div class="section-heading-actions">
+              <span class="count">{{ review.unregistered.length }} entri</span>
+            </div>
+          </div>
+          <p class="text-sm text-muted" style="margin:0 0 12px">
+            Entri sejarah bagi kod yang tiada dalam sheet Programme — disimpan untuk penjejakan.
+          </p>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th scope="col">Kod MQA</th>
+                  <th scope="col">Fakulti</th>
+                  <th scope="col">Sesi</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="entry in review.unregistered" :key="entry.mqaCode + entry.periodId">
+                  <td><code>{{ entry.mqaCode }}</code></td>
+                  <td>{{ entry.faculty }}</td>
+                  <td>{{ entry.periodId }}</td>
+                  <td>{{ entry.statusText }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>

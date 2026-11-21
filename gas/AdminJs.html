@@ -1,0 +1,89 @@
+<script>
+  /* Admin console for the review cycle. BOOT is injected by Index.html. */
+  var ADMIN_BOOT = window.BOOT || {};
+
+  function adminDate(offsetDays) {
+    var date = new Date();
+    if (offsetDays) date.setDate(date.getDate() + offsetDays);
+    var month = ('0' + (date.getMonth() + 1)).slice(-2);
+    var day = ('0' + date.getDate()).slice(-2);
+    return date.getFullYear() + '-' + month + '-' + day;
+  }
+
+  function initAdminApp() {
+    new Vue({
+      el: '#app',
+      data: {
+        page: ADMIN_BOOT.page || 'review',
+        currentUser: ADMIN_BOOT.user || null,
+        sessionToken: ADMIN_BOOT.token || '',
+        review: ADMIN_BOOT.review || { active: null, periods: [], faculties: [], unregistered: [], programmesTotal: 0 },
+        form: { cutoffDate: adminDate(0), closesDate: adminDate(30), title: '' },
+        busy: false,
+        error: null,
+        notice: null
+      },
+      computed: {
+        userLabel: function () {
+          if (!this.currentUser) return '';
+          return this.currentUser.name + ' — ' + this.currentUser.faculty;
+        }
+      },
+      methods: {
+        closeEdit: function () {},
+        apply: function (payload) {
+          if (!payload) return;
+          this.$set(this.review, 'active', payload.active || null);
+          this.$set(this.review, 'periods', payload.periods || []);
+          this.$set(this.review, 'faculties', payload.faculties || []);
+          this.$set(this.review, 'unregistered', payload.unregistered || []);
+          this.$set(this.review, 'programmesTotal', payload.programmesTotal || 0);
+        },
+        openPeriod: function () {
+          var self = this;
+          if (this.busy || !this.form.cutoffDate) return;
+          this.busy = true;
+          this.error = null;
+          this.notice = null;
+          google.script.run
+            .withSuccessHandler(function (payload) {
+              self.busy = false;
+              self.apply(payload);
+              self.notice = 'Sesi dibuka. Fakulti kini boleh mengemas kini status.';
+            })
+            .withFailureHandler(function (err) {
+              self.busy = false;
+              self.error = err && err.message ? err.message : 'Sesi tidak dapat dibuka.';
+            })
+            .saveReviewPeriodApi({
+              cutoffDate: this.form.cutoffDate,
+              closesDate: this.form.closesDate,
+              title: this.form.title,
+              state: 'Open'
+            }, this.sessionToken);
+        },
+        setState: function (periodId, state) {
+          var self = this;
+          if (this.busy) return;
+          this.busy = true;
+          this.error = null;
+          this.notice = null;
+          google.script.run
+            .withSuccessHandler(function (payload) {
+              self.busy = false;
+              self.apply(payload);
+              self.notice = state === 'Open' ? 'Sesi dibuka.' : 'Sesi ditutup.';
+            })
+            .withFailureHandler(function (err) {
+              self.busy = false;
+              self.error = err && err.message ? err.message : 'Status sesi tidak dapat diubah.';
+            })
+            .setReviewPeriodStateApi(periodId, state, this.sessionToken);
+        }
+      },
+      mounted: function () {}
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initAdminApp);
+</script>

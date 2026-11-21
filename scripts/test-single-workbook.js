@@ -205,7 +205,9 @@ const index = fs.readFileSync('gas/Index.html', 'utf8');
 assert(index.indexOf("include(pageFile)") !== -1, 'Index.html must include the routed page');
 assert(index.indexOf('<?!= bootstrap ?>') !== -1, 'Index.html must inject the bootstrap payload');
 assert(index.indexOf("include('Styles')") !== -1, 'Index.html must include Styles.html');
-assert(index.indexOf("include('AppJs')") !== -1, 'Index.html must include AppJs.html');
+assert(index.indexOf('include(appJsFile)') !== -1, 'Index.html must include the page client script');
+assert(/template\.appJsFile = bootstrap && bootstrap\.appJs \? bootstrap\.appJs : 'AppJs';/.test(source),
+  'Server must default the client script to AppJs');
 
 const appJs = fs.readFileSync('gas/AppJs.html', 'utf8');
 assert(appJs.indexOf('currentView') === -1, 'Client must not switch views in memory');
@@ -314,5 +316,23 @@ assert(detailPdf.indexOf('PDF dijana') !== -1, 'Detail page must show a PDF sect
 assert(detailPdf.indexOf('v-for="row in pdfLog"') !== -1, 'Detail page must render PDF rows');
 assert(detailPdf.indexOf('row.generatedAtLabel') !== -1, 'Detail page must show the generated date');
 assert(detailPdf.indexOf('row.generatedBy') !== -1, 'Detail page must show the generator');
+
+// 11. Review admin console: role gate, single open cycle, completion data.
+assert(source.indexOf('function canManageReview_') !== -1, 'Role gate must exist');
+assert(/roles\.indexOf\('PJK'\) !== -1 \|\| roles\.indexOf\('TDA_PPS'\) !== -1/.test(source),
+  'PJK and TDA_PPS must both be allowed');
+assert(/function requireReviewManager_\(session\)/.test(source), 'Admin endpoints must be gated');
+assert(/if \(page === 'review'\) return renderReviewAdminPage_\(session\);/.test(source),
+  'doGet must route the review page');
+assert(/if \(state === REVIEW_STATE_OPEN_\) \{[\s\S]*?REVIEW_STATE_CLOSED_/.test(source),
+  'Opening a cycle must close any other open cycle');
+
+['PageReviewAdmin.html', 'AdminJs.html'].forEach(function (file) {
+  assert(fs.existsSync('gas/' + file), 'missing template gas/' + file);
+});
+const adminPage = fs.readFileSync('gas/PageReviewAdmin.html', 'utf8');
+['Sesi semasa', 'Buka sesi baharu', 'Senarai sesi', 'Kemajuan fakulti', 'Program tidak berdaftar'].forEach(function (heading) {
+  assert(adminPage.indexOf(heading) !== -1, 'Admin page must show ' + heading);
+});
 
 console.log('single-workbook guard: OK');

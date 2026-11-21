@@ -45,6 +45,11 @@ no user. Entries are captured in `docs/import/review-history-2026-08.json`.
 PJK and TDA PPS open and close each cycle from the admin page; a programme with no
 submission when the cycle closes is reported as "Tidak dikemaskini".
 
+The admin console lives at `?page=review` (PJK, TDA PPS or an admin only). It opens
+and closes cycles — opening one closes any other — sets the cut-off and closing
+dates, and shows completion per faculty plus any submission whose MQA code has no
+row in the `Programme` sheet.
+
 On the programme page the register appears as a collapsed **Status Semakan**
 accordion below the generated-PDF table: the current cycle with a free-text box
 (any coordinator, PIC or deputy dean of that faculty, while the cycle is open),
