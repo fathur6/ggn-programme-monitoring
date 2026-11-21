@@ -396,6 +396,17 @@ function reviewDateLabel_(value) {
   return Utilities.formatDate(date, TIME_ZONE_, 'dd/MM/yyyy');
 }
 
+/** Malay long date used for cycle titles, e.g. "15 Disember 2026". */
+function reviewLongDateLabel_(value) {
+  var date = value instanceof Date ? value : new Date(value);
+  if (isNaN(date.getTime())) return '';
+  var months = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun',
+    'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+  return Utilities.formatDate(date, TIME_ZONE_, 'd') + ' ' +
+    months[Number(Utilities.formatDate(date, TIME_ZONE_, 'M')) - 1] + ' ' +
+    Utilities.formatDate(date, TIME_ZONE_, 'yyyy');
+}
+
 /**
  * One row per cycle for a programme, newest first. A closed cycle with no
  * submission is reported as "Tidak dikemaskini" so gaps stay visible.
@@ -602,8 +613,9 @@ function saveReviewPeriodApi(payload, sessionToken) {
   var headers = data[0].map(function (value) { return String(value).trim(); });
   var col = function (name) { return headers.indexOf(name) + 1; };
 
-  var cutoffLabel = reviewDateLabel_(new Date(cutoff + 'T12:00:00+08:00'));
-  var title = String(input.title || '').trim() || ('Status semakan setakat ' + cutoffLabel);
+  var cutoffDate = new Date(cutoff + 'T12:00:00+08:00');
+  var cutoffLabel = reviewDateLabel_(cutoffDate);
+  var title = String(input.title || '').trim() || ('Status semakan setakat ' + reviewLongDateLabel_(cutoffDate));
   var closesAt = closes ? new Date(closes + 'T23:59:00+08:00') : '';
   var state = String(input.state || REVIEW_STATE_OPEN_).trim();
 
