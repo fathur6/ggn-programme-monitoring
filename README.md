@@ -32,8 +32,10 @@ owns the shared content; every other row is a partner with its own content.
 - **Sheet columns** on `Programme`: `J = Peranan` (`Pemilik` / `Berkongsi`) and
   `K = Fakulti Pemilik`. Blank values fall back to "first row owns it", so the app
   keeps working before the columns are filled.
-- **Tabs**: the owner keeps `MQAFA5589`; a partner stores its own content in
-  `MQAFA5589__<FACULTY>` (for example `MQAFA5589__ESERI`).
+- **Tabs**: the owner keeps the MQA tab (`MQA/FA5589`); a partner stores its own
+  content in `<MQA code>__<FACULTY>` (for example `MQA/FA5589__ESERI`). Sheet
+  names legitimately contain `/`; `.xlsx` exports strip it, so check names in the
+  spreadsheet UI rather than in an export.
 - **Partner flow**: on its first access the partner's tab is created automatically
   by cloning the owner tab (serialised with `LockService`, idempotent, never
   overwrites an existing tab). The partner then edits its own tab freely — the
