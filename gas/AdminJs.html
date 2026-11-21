@@ -98,23 +98,6 @@
             })
             .sendReviewEmailsApi(kind, dryRun, this.sessionToken);
         },
-        installTrigger: function () {
-          var self = this;
-          if (this.busy) return;
-          this.busy = true;
-          this.error = null;
-          this.notice = null;
-          google.script.run
-            .withSuccessHandler(function (result) {
-              self.busy = false;
-              self.notice = result && result.created ? 'Peringatan harian dipasang (9 pagi).' : 'Peringatan harian sudah wujud.';
-            })
-            .withFailureHandler(function (err) {
-              self.busy = false;
-              self.error = err && err.message ? err.message : 'Trigger tidak dapat dipasang.';
-            })
-            .installReviewReminderTriggerApi(this.sessionToken);
-        },
         setState: function (periodId, state) {
           var self = this;
           if (this.busy) return;

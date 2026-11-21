@@ -218,6 +218,8 @@ function doGet(e) {
     return renderAccessPage_(session);
   }
 
+  maybeSendReviewReminder_(session.user);
+
   try {
     if (String(params.setup || '') === 'sharedrole') {
       if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
@@ -833,11 +835,6 @@ function syncReviewBackupApi(sessionToken) {
   return syncReviewBackup_();
 }
 
-function installReviewReminderTriggerApi(sessionToken) {
-  requireReviewManager_(requireLogin_(sessionToken));
-  return installReviewReminderTrigger();
-}
-
 /** Make sure late-added columns exist on an older sheet. */
 function ensureReviewPeriodColumns_() {
   var sheet = ensureReviewTabs_().periods;
@@ -866,11 +863,19 @@ function reviewLinks_() {
 function sendReviewEmails_(kind, dryRun, session) {
   var period = activeReviewPeriod_();
   if (!period) throw new Error('Tiada sesi semakan yang dibuka.');
+  // Faculty labels come from two sheets; normalise so invisible whitespace or
+  // casing differences cannot silently drop every recipient.
+  var facultyKey_ = function (value) {
+    return String(value || '').replace(/[\s\u00A0]+/g, '').toUpperCase();
+  };
   var programmes = getProgrammes_();
   var codeFaculty = {};
-  programmes.forEach(function (programme) { codeFaculty[programme.mqaCode] = programme.faculty; });
+  programmes.forEach(function (programme) { codeFaculty[programme.mqaCode] = facultyKey_(programme.faculty); });
   var totals = {};
-  programmes.forEach(function (programme) { totals[programme.faculty] = (totals[programme.faculty] || 0) + 1; });
+  programmes.forEach(function (programme) {
+    var key = facultyKey_(programme.faculty);
+    totals[key] = (totals[key] || 0) + 1;
+  });
 
   var submitted = {};
   reviewSubmissions_().forEach(function (row) {
@@ -889,9 +894,9 @@ function sendReviewEmails_(kind, dryRun, session) {
 
   contacts.forEach(function (contact) {
     var faculty = contact.faculty;
-    var total = totals[faculty] || 0;
+    var total = totals[facultyKey_(faculty)] || 0;
     if (!total) { skipped++; return; }
-    var done = Object.keys(submitted[faculty] || {}).length;
+    var done = Object.keys(submitted[facultyKey_(faculty)] || {}).length;
     if (kind === 'reminder' && done >= total) { skipped++; return; }
     if (seen[contact.email]) return;
     seen[contact.email] = true;
@@ -943,34 +948,29 @@ function sendReviewEmailsApi(kind, dryRun, sessionToken) {
   return sendReviewEmails_(String(kind || 'open'), !!dryRun, session);
 }
 
-/** Daily job: remind faculties when the open cycle is within five days of closing. */
-function reviewReminderJob_() {
-  var period = activeReviewPeriod_();
-  if (!period || !period.ClosesAt) return { ok: true, skipped: 'no open cycle with a closing date' };
-  var closes = new Date(period.ClosesAt);
-  if (isNaN(closes.getTime())) return { ok: true, skipped: 'invalid closing date' };
-  var days = Math.ceil((closes.getTime() - new Date().getTime()) / 86400000);
-  if (days < 0 || days > 5) return { ok: true, skipped: 'outside reminder window', days: days };
+/**
+ * Lazy reminder: runs when someone opens the app, so it needs no trigger
+ * permission. Sends at most once per day and only inside the last five days of
+ * the open cycle.
+ */
+function maybeSendReviewReminder_(session) {
+  try {
+    var period = activeReviewPeriod_();
+    if (!period || !period.ClosesAt) return;
+    var closes = new Date(period.ClosesAt);
+    if (isNaN(closes.getTime())) return;
+    var days = Math.ceil((closes.getTime() - new Date().getTime()) / 86400000);
+    if (days < 0 || days > 5) return;
 
-  var last = period.ReminderSentAt ? new Date(period.ReminderSentAt) : null;
-  if (last && !isNaN(last.getTime())) {
-    var sameDay = Utilities.formatDate(last, TIME_ZONE_, 'yyyy-MM-dd') ===
-      Utilities.formatDate(new Date(), TIME_ZONE_, 'yyyy-MM-dd');
-    if (sameDay) return { ok: true, skipped: 'already reminded today' };
+    var last = period.ReminderSentAt ? new Date(period.ReminderSentAt) : null;
+    if (last && !isNaN(last.getTime())) {
+      var today = Utilities.formatDate(new Date(), TIME_ZONE_, 'yyyy-MM-dd');
+      if (Utilities.formatDate(last, TIME_ZONE_, 'yyyy-MM-dd') === today) return;
+    }
+    sendReviewEmails_('reminder', false, session || { email: '', name: '' });
+  } catch (err) {
+    console.error('Review reminder failed: ' + (err && err.message ? err.message : err));
   }
-
-  var session = { email: Session.getEffectiveUser().getEmail() || '', name: 'Pusat Pengajian Siswazah' };
-  return sendReviewEmails_('reminder', false, session);
-}
-
-/** Run once from the editor (or the admin page) to install the daily reminder. */
-function installReviewReminderTrigger() {
-  var existing = ScriptApp.getProjectTriggers().filter(function (trigger) {
-    return trigger.getHandlerFunction() === 'reviewReminderJob_';
-  });
-  if (existing.length) return { ok: true, created: 0, existing: existing.length };
-  ScriptApp.newTrigger('reviewReminderJob_').timeBased().everyDays(1).atHour(9).create();
-  return { ok: true, created: 1, existing: 0 };
 }
 
 function jsonResponse_(payload) {

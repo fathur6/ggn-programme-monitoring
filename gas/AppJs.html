@@ -21,8 +21,9 @@
         programmes: BOOT.programmes || [],
         pdfLog: BOOT.pdfLog || [],
         canManageReview: !!BOOT.canManageReview,
+        sections: { peo: true, plo: true, pdf: true },
         review: Object.assign({
-          open: false, active: null, canSubmit: false, currentText: '',
+          open: true, active: null, canSubmit: false, currentText: '',
           history: [], missingLabel: 'Tidak dikemaskini',
           draft: '', submitting: false, error: null, notice: null
         }, BOOT.review || {}),

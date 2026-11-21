@@ -309,8 +309,18 @@ assert(/if \(next === REVIEW_STATE_CLOSED_\) \{[\s\S]*?syncReviewBackup_\(\)/.te
   'Closing a cycle must refresh the mirror');
 assert(source.indexOf('function sendReviewEmails_') !== -1, 'Email sender must exist');
 assert(/GmailApp\.sendEmail\(to, subject/.test(source), 'Emails must go through GmailApp');
-assert(source.indexOf('function reviewReminderJob_') !== -1, 'Daily reminder job must exist');
 assert(/days < 0 \|\| days > 5/.test(source), 'Reminders only inside the five-day window');
-assert(source.indexOf('function installReviewReminderTrigger') !== -1, 'Trigger installer must exist');
+assert(source.indexOf('function maybeSendReviewReminder_') !== -1, 'Lazy reminder must exist');
+assert(/maybeSendReviewReminder_\(session\.user\);/.test(source), 'Reminder check must run on page load');
+
+// 13. Detail sections are accordions, open by default.
+const detailMarkup2 = fs.readFileSync('gas/PageProgrammeDetail.html', 'utf8');
+['sections.peo', 'sections.plo', 'sections.pdf'].forEach(function (key) {
+  assert(detailMarkup2.indexOf('@click="' + key + ' = !' + key + '"') !== -1, key + ' must toggle');
+});
+assert((detailMarkup2.match(/v-show="sections\./g) || []).length === 3, 'Each section body must be collapsible');
+assert(/sections: \{ peo: true, plo: true, pdf: true \}/.test(appJs), 'Sections must start expanded');
+assert(/open: true, active: null/.test(appJs), 'Review accordion must start expanded');
+assert(/section-toggle/.test(fs.readFileSync('gas/Styles.html', 'utf8')), 'Accordion styling must exist');
 
 console.log('single-workbook guard: OK');

@@ -26,13 +26,16 @@
 
         <section class="section-card">
           <div class="section-heading">
-            <h3>PEO — Programme Educational Objectives</h3>
+            <button type="button" class="section-toggle" @click="sections.peo = !sections.peo" :aria-expanded="sections.peo">
+              <h3>PEO — Programme Educational Objectives</h3>
+              <span class="review-chevron">{{ sections.peo ? '▲' : '▼' }}</span>
+            </button>
             <div class="section-heading-actions">
               <span class="count">{{ detail.peos.length }} records</span>
               <button class="btn btn-outline btn-sm" @click="addRecord('peo')" :disabled="adding">+ Add PEO</button>
             </div>
           </div>
-          <div class="table-wrap">
+          <div v-show="sections.peo" class="table-wrap">
             <table class="detail-table">
               <thead>
                 <tr>
@@ -68,13 +71,16 @@
 
         <section class="section-card">
           <div class="section-heading">
-            <h3>PLO — Programme Learning Outcomes</h3>
+            <button type="button" class="section-toggle" @click="sections.plo = !sections.plo" :aria-expanded="sections.plo">
+              <h3>PLO — Programme Learning Outcomes</h3>
+              <span class="review-chevron">{{ sections.plo ? '▲' : '▼' }}</span>
+            </button>
             <div class="section-heading-actions">
               <span class="count">{{ detail.plos.length }}/11 records</span>
               <button class="btn btn-outline btn-sm" @click="addRecord('plo')" :disabled="adding || detail.plos.length >= 11">+ Add PLO</button>
             </div>
           </div>
-          <div class="table-wrap">
+          <div v-show="sections.plo" class="table-wrap">
             <table class="detail-table">
               <thead>
                 <tr>
@@ -115,12 +121,15 @@
 
         <section v-if="pdfLog.length" class="section-card">
           <div class="section-heading">
-            <h3>PDF dijana</h3>
+            <button type="button" class="section-toggle" @click="sections.pdf = !sections.pdf" :aria-expanded="sections.pdf">
+              <h3>PDF dijana</h3>
+              <span class="review-chevron">{{ sections.pdf ? '▲' : '▼' }}</span>
+            </button>
             <div class="section-heading-actions">
               <span class="count">{{ pdfLog.length }} fail</span>
             </div>
           </div>
-          <div class="table-wrap">
+          <div v-show="sections.pdf" class="table-wrap">
             <table class="detail-table">
               <thead>
                 <tr>
