@@ -173,4 +173,45 @@ assert.deepStrictEqual(
   'USER and ADMIN must be read from the same workbook as the programme data'
 );
 
+// 6. Multi-page routing: real URLs, server-resolved session, no SPA view switch.
+assert(
+  /if \(page === 'detail'\)/.test(source) && /renderProgrammeDetailPage_/.test(source),
+  'doGet must route the detail page'
+);
+assert(
+  /if \(!session\.ok\) return renderAccessPage_\(session\)/.test(source),
+  'doGet must render the access page before any data work'
+);
+assert(
+  source.indexOf('function renderAccessPage_') !== -1,
+  'AccessDenied page renderer must exist'
+);
+
+const templates = ['Index.html', 'Styles.html', 'AppJs.html', 'PageProgrammes.html', 'PageProgrammeDetail.html', 'AccessDenied.html'];
+templates.forEach(function(file) {
+  assert(fs.existsSync('gas/' + file), 'missing template gas/' + file);
+});
+
+const index = fs.readFileSync('gas/Index.html', 'utf8');
+assert(index.indexOf("include(pageFile)") !== -1, 'Index.html must include the routed page');
+assert(index.indexOf('<?!= bootstrap ?>') !== -1, 'Index.html must inject the bootstrap payload');
+assert(index.indexOf("include('Styles')") !== -1, 'Index.html must include Styles.html');
+assert(index.indexOf("include('AppJs')") !== -1, 'Index.html must include AppJs.html');
+
+const appJs = fs.readFileSync('gas/AppJs.html', 'utf8');
+assert(appJs.indexOf('currentView') === -1, 'Client must not switch views in memory');
+assert(appJs.indexOf('loginApi') === -1, 'Client must not call the removed login');
+assert(appJs.indexOf('?page=detail') !== -1, 'Client must link to the detail page URL');
+assert(appJs.indexOf('?page=programmes') !== -1, 'Client must link back to the list URL');
+
+const programmesPage = fs.readFileSync('gas/PageProgrammes.html', 'utf8');
+assert(programmesPage.indexOf(':href="detailUrl(p)"') !== -1, 'Programme rows must be real links');
+const detailPage = fs.readFileSync('gas/PageProgrammeDetail.html', 'utf8');
+assert(detailPage.indexOf(':href="listUrl"') !== -1, 'Detail page must link back to the list');
+
+// 7. Injected JSON must not be able to break out of the script tag.
+const breakout = app.jsonForScript_({ name: '</script><script>alert(1)</script>' });
+assert(breakout.indexOf('</script') === -1, 'jsonForScript_ must escape closing script tags');
+assert(breakout.indexOf('\\u003c') !== -1, 'jsonForScript_ must emit unicode escapes');
+
 console.log('single-workbook guard: OK');

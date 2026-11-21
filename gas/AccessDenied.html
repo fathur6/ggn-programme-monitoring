@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MQF 2.0 — Akses</title>
+  <?!= include('Styles') ?>
+</head>
+<body>
+  <div class="min-h-screen">
+    <header class="header">
+      <div class="brand-lockup">
+        <img src="https://i.postimg.cc/L6bJj0H1/GS-logo-color-cropped.png" alt="Graduate School" class="brand-logo">
+        <div>
+          <h1 class="header-title">MQF 2.0 (2024)</h1>
+          <div class="header-subtitle">Programme information</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <div class="page-intro">
+        <p class="eyebrow">AKSES</p>
+        <h2 class="page-title"><?= title ?></h2>
+      </div>
+
+      <div class="card-soft" style="max-width:640px">
+        <p style="margin:0 0 12px"><?= message ?></p>
+        <? if (email) { ?>
+          <p class="text-sm text-muted" style="margin:0 0 16px">Akaun dikesan: <strong><?= email ?></strong></p>
+        <? } ?>
+        <p class="text-sm text-muted" style="margin:0 0 20px">
+          Pastikan pelayar ini sudah log masuk dengan akaun @unisza.edu.my, kemudian tekan Cuba lagi.
+        </p>
+        <a class="btn btn-primary" href="<?= retryUrl ?>">Cuba lagi</a>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

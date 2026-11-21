@@ -180,12 +180,114 @@ function resolveProgrammeColumns_(sheet, data) {
  * tab. Intentionally no LockService on read paths.
  */
 
+/**
+ * Page router. Every page has a real URL (?page=programmes|detail) so faculty can
+ * bookmark or share a programme and the browser back button works. The Google
+ * session and the page data are resolved on the server, so each page paints
+ * complete without a second round trip.
+ */
 function doGet(e) {
+  var params = (e && e.parameter) || {};
+  var page = String(params.page || 'programmes').toLowerCase();
+
+  var session = resolveGoogleSession_();
+  if (!session.ok) return renderAccessPage_(session);
+
+  try {
+    if (page === 'detail') {
+      var mqaCode = String(params.mqaCode || '').trim();
+      if (mqaCode) return renderProgrammeDetailPage_(session, mqaCode);
+    }
+    return renderProgrammeListPage_(session);
+  } catch (err) {
+    console.error('doGet failed: ' + (err && err.message ? err.message : err));
+    return renderAccessPage_({
+      reason: 'error',
+      title: 'Sistem tidak dapat dimuatkan',
+      message: 'Ralat semasa memuatkan halaman: ' + (err && err.message ? err.message : err),
+      email: session.user && session.user.email
+    });
+  }
+}
+
+function renderProgrammeListPage_(session) {
+  return renderPage_('PageProgrammes', 'MQF 2.0 — Programmes', {
+    page: 'programmes',
+    user: session.user,
+    token: session.token,
+    baseUrl: deploymentUrl_(),
+    programmes: getProgrammesApi(session.token)
+  });
+}
+
+function renderProgrammeDetailPage_(session, mqaCode) {
+  var programmes = getProgrammesApi(session.token);
+  var meta = null;
+  for (var i = 0; i < programmes.length; i++) {
+    if (programmes[i].mqaCode === mqaCode) { meta = programmes[i]; break; }
+  }
+  if (!meta) {
+    return renderAccessPage_({
+      reason: 'not_found',
+      title: 'Program tidak ditemui',
+      message: 'Program ' + mqaCode + ' tiada dalam skop akses akaun anda.',
+      email: session.user.email
+    });
+  }
+  var detail = getProgrammeDetailApi(mqaCode, session.token);
+  return renderPage_('PageProgrammeDetail', 'MQF 2.0 — ' + meta.name, {
+    page: 'detail',
+    user: session.user,
+    token: session.token,
+    baseUrl: deploymentUrl_(),
+    detail: {
+      name: meta.name,
+      nameMy: meta.nameMy,
+      mqaCode: meta.mqaCode,
+      progCode: meta.progCode,
+      level: meta.level,
+      faculty: meta.faculty,
+      facultyFull: meta.facultyFull,
+      peos: detail.peos || [],
+      plos: detail.plos || []
+    }
+  });
+}
+
+function renderPage_(pageFile, title, bootstrap) {
   var template = HtmlService.createTemplateFromFile('Index');
+  template.pageFile = pageFile;
+  template.bootstrap = jsonForScript_(bootstrap);
   return template.evaluate()
-    .setTitle('MQF 2.0 — Programme Information')
+    .setTitle(title)
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function renderAccessPage_(state) {
+  var template = HtmlService.createTemplateFromFile('AccessDenied');
+  template.title = state.title ||
+    (state.reason === 'not_registered' ? 'Akaun belum berdaftar' : 'Akses diperlukan');
+  template.message = state.message || 'Sesi Google tidak dapat disahkan.';
+  template.email = state.email || '';
+  template.retryUrl = deploymentUrl_() + '?page=programmes';
+  return template.evaluate()
+    .setTitle('MQF 2.0 — Akses')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function deploymentUrl_() {
+  return ScriptApp.getService().getUrl();
+}
+
+function jsonForScript_(value) {
+  return JSON.stringify(value === undefined ? null : value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }
 
 function include(file) {
@@ -229,7 +331,7 @@ function issueSession_(session) {
   return token;
 }
 
-function getGoogleSessionApi() {
+function resolveGoogleSession_() {
   var email = signedInEmail_();
   if (!email) {
     return {
@@ -252,6 +354,10 @@ function getGoogleSessionApi() {
   }
   var session = { faculty: user.faculty, name: user.name, position: user.position, isAdmin: user.isAdmin, email: user.email };
   return { ok: true, token: issueSession_(session), user: session };
+}
+
+function getGoogleSessionApi() {
+  return resolveGoogleSession_();
 }
 
 function requireLogin_(token) {

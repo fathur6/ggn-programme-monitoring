@@ -8,6 +8,22 @@ The lightweight branch (`lightweight/v34-sdg-plo-mapping`) replaces the modular 
 
 ![MQF 2.0 (2024) Mapping](https://i.postimg.cc/3JfpSBdh/MQF_2.0_%282024%29_Mapping.png)
 
+## Pages and routing
+
+The web app is multi-page: `doGet` routes on `?page=` and resolves the Google
+session plus the page data on the server, so each page arrives already populated.
+
+| Route | Template | Purpose |
+|---|---|---|
+| `?page=programmes` (default) | `PageProgrammes.html` | Programme directory, grouped by level and faculty |
+| `?page=detail&mqaCode=MQA/FA5589` | `PageProgrammeDetail.html` | PEO/PLO records, editor and PDF for one programme |
+| any page without a valid session | `AccessDenied.html` | Domain / registration / access message with a retry link |
+
+Shared files: `Index.html` (shell), `Styles.html` (CSS), `AppJs.html` (one Vue
+instance for both pages, reading the server-injected `BOOT` payload).
+Programme rows and the "Back to programmes" control are real links, so a detail
+page can be bookmarked or shared.
+
 ## Local Project
 
 The deployable source is under `gas/`. It includes the recovered unsanitized local configuration and clasp metadata, which are intentionally ignored by Git. The matching Apps Script project ID is stored in `gas/.clasp.json`.

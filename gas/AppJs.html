@@ -1,0 +1,288 @@
+<script>
+  /* Shared client for both pages. BOOT is injected by Index.html (server side). */
+  var BOOT = window.BOOT || {};
+
+  function emptyDetail() {
+    return { name: '', mqaCode: '', progCode: '', level: '', faculty: '', facultyFull: '', peos: [], plos: [] };
+  }
+
+  function emptyPdf() {
+    return { open: false, generating: false, ready: false, error: null, filename: '', url: '', fileId: '', email: '', emailForm: false, sending: false, sent: false };
+  }
+
+  function initApp() {
+    new Vue({
+      el: '#app',
+      data: {
+        page: BOOT.page || 'programmes',
+        currentUser: BOOT.user || null,
+        sessionToken: BOOT.token || '',
+        baseUrl: BOOT.baseUrl || '',
+        programmes: BOOT.programmes || [],
+        detail: BOOT.detail || emptyDetail(),
+        search: '',
+        open: {},
+        loading: false,
+        error: null,
+        notice: null,
+        detailError: null,
+        saving: false,
+        editError: null,
+        adding: false,
+        pdf: emptyPdf(),
+        editor: { open: false, type: '', draft: {} },
+          mqfDomains: [
+            { code: 'MQF 1', label: 'MQF1 — Knowledge and Understanding' },
+            { code: 'MQF 2', label: 'MQF2 — Cognitive Skills' },
+            { code: 'MQF 3a', label: 'MQF3a — Practical Skills' },
+            { code: 'MQF 3b', label: 'MQF3b — Interpersonal Skills' },
+            { code: 'MQF 3c', label: 'MQF3c — Communication Skills' },
+            { code: 'MQF 3d', label: 'MQF3d — Digital Skills' },
+            { code: 'MQF 3e', label: 'MQF3e — Numeracy Skills' },
+            { code: 'MQF 3f', label: 'MQF3f — Leadership, Autonomy and Responsibility' },
+            { code: 'MQF 4a', label: 'MQF4a — Personal Skills' },
+            { code: 'MQF 4b', label: 'MQF4b — Entrepreneurial Skills' },
+            { code: 'MQF 5', label: 'MQF5 — Ethics and Professionalism' }
+          ],
+          taxonomyGroups: [
+            { label: 'C — Cognitive', levels: [{ code: 'C1', label: 'Remember' }, { code: 'C2', label: 'Understand' }, { code: 'C3', label: 'Apply' }, { code: 'C4', label: 'Analyse' }, { code: 'C5', label: 'Evaluate' }, { code: 'C6', label: 'Create' }] },
+            { label: 'A — Affective', levels: [{ code: 'A1', label: 'Receive' }, { code: 'A2', label: 'Respond' }, { code: 'A3', label: 'Value' }, { code: 'A4', label: 'Organise' }, { code: 'A5', label: 'Characterise' }] },
+            { label: 'P — Psychomotor', levels: [{ code: 'P1', label: 'Imitation' }, { code: 'P2', label: 'Manipulation' }, { code: 'P3', label: 'Precision' }, { code: 'P4', label: 'Articulation' }, { code: 'P5', label: 'Naturalisation' }] }
+          ],
+          sdgs: [
+            { code: 'SDG1', label: 'No Poverty' }, { code: 'SDG2', label: 'Zero Hunger' }, { code: 'SDG3', label: 'Good Health and Well-being' }, { code: 'SDG4', label: 'Quality Education' }, { code: 'SDG5', label: 'Gender Equality' }, { code: 'SDG6', label: 'Clean Water and Sanitation' }, { code: 'SDG7', label: 'Affordable and Clean Energy' }, { code: 'SDG8', label: 'Decent Work and Economic Growth' }, { code: 'SDG9', label: 'Industry, Innovation and Infrastructure' }, { code: 'SDG10', label: 'Reduced Inequalities' }, { code: 'SDG11', label: 'Sustainable Cities and Communities' }, { code: 'SDG12', label: 'Responsible Consumption and Production' }, { code: 'SDG13', label: 'Climate Action' }, { code: 'SDG14', label: 'Life Below Water' }, { code: 'SDG15', label: 'Life on Land' }, { code: 'SDG16', label: 'Peace, Justice and Strong Institutions' }, { code: 'SDG17', label: 'Partnerships for the Goals' }
+          ],
+          sustainabilityCompetencies: [
+            { code: 'SC1', label: 'Systems-thinking' }, { code: 'SC2', label: 'Anticipatory' }, { code: 'SC3', label: 'Critical thinking' }, { code: 'SC4', label: 'Strategic' }, { code: 'SC5', label: 'Collaboration' }, { code: 'SC6', label: 'Integrated problem-solving' }, { code: 'SC7', label: 'Self-awareness' }, { code: 'SC8', label: 'Normative' }
+          ],
+          transversalFutureSkills: [
+            { code: 'TF1', label: 'Knowledge and Understanding', mqfDomains: ['MQF1', 'MQF4A'] },
+            { code: 'TF2', label: 'Practical and Cognitive Skills', mqfDomains: ['MQF2', 'MQF3D', 'MQF3E'] },
+            { code: 'TF3', label: 'Communication and Social Skills', mqfDomains: ['MQF3A', 'MQF3B', 'MQF3C', 'MQF3F'] },
+            { code: 'TF4', label: 'Professional and Ethical Practice', mqfDomains: ['MQF4B', 'MQF5'] }
+          ]
+      },
+      computed: {
+        listUrl: function () {
+          return this.baseUrl + '?page=programmes';
+        },
+        filtered: function () {
+          if (!this.search) return this.programmes;
+          var q = this.search.toLowerCase();
+          return this.programmes.filter(function (p) {
+            return (p.name || '').toLowerCase().indexOf(q) > -1 ||
+                   (p.nameMy || '').toLowerCase().indexOf(q) > -1 ||
+                   (p.mqaCode || '').toLowerCase().indexOf(q) > -1 ||
+                   (p.progCode || '').toLowerCase().indexOf(q) > -1 ||
+                   (p.facultyFull || '').toLowerCase().indexOf(q) > -1;
+          });
+        },
+        grouped: function () {
+          var order = ['Doctorate', 'Masters', 'Other'];
+          var map = {};
+          this.filtered.forEach(function (p) {
+            var level = order.indexOf(p.level) === -1 ? 'Other' : p.level;
+            if (!map[level]) map[level] = {};
+            if (!map[level][p.faculty]) map[level][p.faculty] = [];
+            map[level][p.faculty].push(p);
+          });
+
+          return order.reduce(function (result, level) {
+            if (!map[level]) return result;
+            var facultyKeys = Object.keys(map[level]).sort();
+            var faculties = facultyKeys.map(function (key) {
+              var programmes = map[level][key].sort(function (a, b) {
+                return (a.name || '').localeCompare(b.name || '');
+              });
+              var first = programmes[0] || {};
+              return {
+                title: first.facultyFull || key || 'Unknown',
+                key: level + '::' + key,
+                count: programmes.length,
+                programmes: programmes
+              };
+            });
+            var count = faculties.reduce(function (n, f) { return n + f.count; }, 0);
+            result.push({ title: level, key: level, count: count, faculties: faculties });
+            return result;
+          }, []);
+        },
+        availableTFs: function () {
+          var compact = String(this.editor.draft.mqfDomain || '').replace(/\s+/g, '').toUpperCase();
+          return this.transversalFutureSkills.filter(function (skill) {
+            return skill.mqfDomains.indexOf(compact) > -1;
+          });
+        },
+        userLabel: function () {
+          if (!this.currentUser) return '';
+          return this.currentUser.name + ' — ' + this.currentUser.faculty;
+        }
+      },
+      methods: {
+        detailUrl: function (programme) {
+          return this.baseUrl + '?page=detail&mqaCode=' + encodeURIComponent(programme.mqaCode);
+        },
+        toggleFaculty: function (faculty) {
+          this.$set(this.open, faculty.key, !this.open[faculty.key]);
+        },
+        openOwnFaculty: function () {
+          if (!this.currentUser || !this.currentUser.faculty) return;
+          var self = this;
+          this.grouped.forEach(function (level) {
+            level.faculties.forEach(function (faculty) {
+              var owns = faculty.programmes.some(function (p) { return p.faculty === self.currentUser.faculty; });
+              if (owns) self.$set(self.open, faculty.key, true);
+            });
+          });
+        },
+        normalizeMQFDomain: function (value) {
+          var compact = String(value || '').replace(/\s+/g, '').toUpperCase();
+          for (var i = 0; i < this.mqfDomains.length; i++) {
+            if (this.mqfDomains[i].code.replace(/\s+/g, '').toUpperCase() === compact) return this.mqfDomains[i].code;
+          }
+          return String(value || '').trim();
+        },
+        clearTF: function () {
+          this.editor.draft.tf = '';
+        },
+        isSDGEligiblePLO: function (ploCode) {
+          var programmeCode = String(this.detail.mqaCode || '').trim().toUpperCase();
+          var eligible = (programmeCode === 'MQA/FA5573' || programmeCode === 'MQA/FA5574')
+            ? ['PLO1', 'PLO9', 'PLO10']
+            : ['PLO1', 'PLO9', 'PLO11'];
+          return eligible.indexOf(String(ploCode || '').replace(/\s+/g, '').toUpperCase().replace(/^PLO0+(\d+)$/, 'PLO$1')) > -1;
+        },
+        isSCEligiblePLO: function (ploCode) {
+          var programmeCode = String(this.detail.mqaCode || '').trim().toUpperCase();
+          var eligible = (programmeCode === 'MQA/FA5573' || programmeCode === 'MQA/FA5574')
+            ? ['PLO2', 'PLO4', 'PLO9', 'PLO10']
+            : ['PLO2', 'PLO4', 'PLO9', 'PLO11'];
+          return eligible.indexOf(String(ploCode || '').replace(/\s+/g, '').toUpperCase().replace(/^PLO0+(\d+)$/, 'PLO$1')) > -1;
+        },
+        openEdit: function (type, record) {
+          this.editError = null;
+          this.editor = {
+            open: true,
+            type: type,
+            draft: {
+              code: record.code,
+              statement: record.statement || '',
+              parentPEO: record.parentPEO || '',
+              mqfDomain: this.normalizeMQFDomain(record.mqfDomain),
+              taxonomy: String(record.taxonomy || '').toUpperCase(),
+              sdg: this.isSDGEligiblePLO(record.code) ? String(record.sdg || '').replace(/\s+/g, '').toUpperCase() : '',
+              sc: this.isSCEligiblePLO(record.code) ? String(record.sc || '').replace(/\s+/g, '').toUpperCase() : '',
+              tf: String(record.tf || '').replace(/\s+/g, '').toUpperCase()
+            }
+          };
+        },
+        closeEdit: function () {
+          if (this.saving) return;
+          this.editor = { open: false, type: '', draft: {} };
+          this.editError = null;
+        },
+        applyDetail: function (result) {
+          this.$set(this.detail, 'peos', result.peos || []);
+          this.$set(this.detail, 'plos', result.plos || []);
+        },
+        addRecord: function (type) {
+          var self = this;
+          this.adding = true;
+          this.detailError = null;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.applyDetail(result || {});
+              self.notice = (type === 'peo' ? 'PEO' : 'PLO') + ' added.';
+              self.adding = false;
+            })
+            .withFailureHandler(function (err) {
+              self.detailError = err && err.message ? err.message : 'Unable to add ' + type.toUpperCase() + '.';
+              self.adding = false;
+            })
+            .addProgrammeRecordApi(this.detail.mqaCode, type, this.sessionToken);
+        },
+        generatePdf: function () {
+          var self = this;
+          this.pdf = Object.assign(emptyPdf(), { open: true, generating: true });
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.pdf.generating = false;
+              if (!result || !result.fileId) {
+                self.pdf.error = 'PDF could not be generated.';
+                return;
+              }
+              self.pdf.ready = true;
+              self.pdf.filename = result.filename;
+              self.pdf.url = result.url;
+              self.pdf.fileId = result.fileId;
+            })
+            .withFailureHandler(function (err) {
+              self.pdf.generating = false;
+              self.pdf.error = err && err.message ? err.message : 'Unable to generate the PDF.';
+            })
+            .generatePdfApi(this.detail.mqaCode, this.sessionToken);
+        },
+        downloadPdf: function () {
+          if (this.pdf.url) window.open(this.pdf.url, '_blank');
+        },
+        showEmailForm: function () {
+          this.pdf.emailForm = true;
+          this.pdf.ready = false;
+          this.pdf.error = null;
+        },
+        backToPdf: function () {
+          this.pdf.emailForm = false;
+          this.pdf.ready = true;
+          this.pdf.error = null;
+        },
+        sendPdfEmail: function () {
+          var self = this;
+          if (!this.pdf.email) { this.pdf.error = 'Enter a valid email address.'; return; }
+          this.pdf.sending = true;
+          this.pdf.error = null;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.pdf.sending = false;
+              if (!result || !result.sent) {
+                self.pdf.error = 'Email could not be sent.';
+                return;
+              }
+              self.pdf.emailForm = false;
+              self.pdf.sent = true;
+            })
+            .withFailureHandler(function (err) {
+              self.pdf.sending = false;
+              self.pdf.error = err && err.message ? err.message : 'Unable to send the email.';
+            })
+            .sendPdfEmailApi(self.detail.mqaCode, this.pdf.email, this.pdf.fileId, this.sessionToken);
+        },
+        closePdf: function () {
+          if (this.pdf.sending || this.pdf.generating) return;
+          this.pdf = emptyPdf();
+        },
+        saveEdit: function () {
+          var self = this;
+          this.saving = true;
+          this.editError = null;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.applyDetail(result || {});
+              self.notice = (self.editor.type === 'peo' ? 'PEO' : 'PLO') + ' updated.';
+              self.saving = false;
+              self.closeEdit();
+            })
+            .withFailureHandler(function (err) {
+              self.editError = err && err.message ? err.message : 'Unable to save this record.';
+              self.saving = false;
+            })
+            .saveProgrammeRecordApi(this.detail.mqaCode, this.editor.type, this.editor.draft, this.sessionToken);
+        }
+      },
+      mounted: function () {
+        if (this.page === 'programmes') this.openOwnFaculty();
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initApp);
+</script>

@@ -4,7 +4,11 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const server = fs.readFileSync(path.join(root, 'gas', 'Code.js'), 'utf8');
-const client = fs.readFileSync(path.join(root, 'gas', 'Index.html'), 'utf8');
+// Client logic is split across templates; concatenate so the contract holds no
+// matter which file a rule lives in.
+const client = ['Index.html', 'AppJs.html', 'PageProgrammes.html', 'PageProgrammeDetail.html']
+  .map((file) => fs.readFileSync(path.join(root, 'gas', file), 'utf8'))
+  .join('\n');
 
 assert.match(server, /SDG_ELIGIBLE_PLO_CODES_ = \['PLO1', 'PLO9', 'PLO11'\]/);
 assert.match(server, /'MQA\/FA5573': \['PLO1', 'PLO9', 'PLO10'\]/);

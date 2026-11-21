@@ -1,0 +1,227 @@
+        <div class="detail-head">
+          <div>
+            <p class="eyebrow">PROGRAMME DETAIL</p>
+            <h2 class="detail-title">{{ detail.name }}</h2>
+            <div class="detail-meta">
+              <span class="code-cell">{{ detail.mqaCode }}</span>
+              <span v-if="detail.progCode" class="code-cell">{{ detail.progCode }}</span>
+              <span class="code-cell">{{ detail.level }}</span>
+              <span class="code-cell">{{ detail.facultyFull || detail.faculty }}</span>
+            </div>
+          </div>
+          <div class="detail-actions">
+            <button class="btn btn-primary" @click="generatePdf" :disabled="pdf.generating">{{ pdf.generating ? 'Generating PDF…' : 'Download PDF' }}</button>
+            <a class="btn btn-outline" :href="listUrl">← Back to programmes</a>
+          </div>
+        </div>
+
+        <div v-if="detailError" class="alert alert-error">{{ detailError }}</div>
+        <div v-if="notice" class="alert alert-success">{{ notice }}</div>
+
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>PEO — Programme Educational Objectives</h3>
+            <div class="section-heading-actions">
+              <span class="count">{{ detail.peos.length }} records</span>
+              <button class="btn btn-outline btn-sm" @click="addRecord('peo')" :disabled="adding">+ Add PEO</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col">PEO statement</th>
+                  <th scope="col">MQF domain</th>
+                  <th scope="col" class="action-cell"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="peo in detail.peos" :key="peo.code">
+                  <td><code>{{ peo.code }}</code></td>
+                  <td>{{ peo.statement }}</td>
+                  <td>
+                    <div v-if="peo.mqfDomains && peo.mqfDomains.length" class="mqf-list">
+                      <span v-for="domain in peo.mqfDomains" :key="domain" class="state-chip">{{ domain }}</span>
+                    </div>
+                    <span v-else>—</span>
+                  </td>
+                  <td class="action-cell">
+                    <button type="button" class="icon-button" @click="openEdit('peo', peo)" :aria-label="'Edit ' + peo.code" title="Edit PEO">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="detail.peos.length === 0">
+                  <td colspan="4" class="empty-note">No PEO records yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>PLO — Programme Learning Outcomes</h3>
+            <div class="section-heading-actions">
+              <span class="count">{{ detail.plos.length }}/11 records</span>
+              <button class="btn btn-outline btn-sm" @click="addRecord('plo')" :disabled="adding || detail.plos.length >= 11">+ Add PLO</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col">PLO statement</th>
+                  <th scope="col">Parent PEO</th>
+                  <th scope="col">MQF domain</th>
+                  <th scope="col">Taxonomy</th>
+                  <th scope="col">SDG</th>
+                  <th scope="col">SC</th>
+                  <th scope="col">TF</th>
+                  <th scope="col" class="action-cell"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="plo in detail.plos" :key="plo.code">
+                  <td><code>{{ plo.code }}</code></td>
+                  <td>{{ plo.statement }}</td>
+                  <td>{{ plo.parentPEO || '—' }}</td>
+                  <td>{{ plo.mqfDomain || '—' }}</td>
+                  <td>{{ plo.taxonomy || '—' }}</td>
+                  <td>{{ isSDGEligiblePLO(plo.code) ? (plo.sdg || '—') : '' }}</td>
+                  <td>{{ isSCEligiblePLO(plo.code) ? (plo.sc || '—') : '' }}</td>
+                  <td>{{ plo.tf || '—' }}</td>
+                  <td class="action-cell">
+                    <button type="button" class="icon-button" @click="openEdit('plo', plo)" :aria-label="'Edit ' + plo.code" title="Edit PLO">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="detail.plos.length === 0">
+                  <td colspan="9" class="empty-note">No PLO records yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+    <div v-if="editor.open" class="modal-backdrop" @click.self="closeEdit">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-record-title">
+        <header class="modal-header">
+          <div>
+            <h2 id="edit-record-title" class="modal-title">Edit {{ editor.type === 'peo' ? 'PEO' : 'PLO' }} — {{ editor.draft.code }}</h2>
+            <p class="modal-subtitle">{{ editor.type === 'peo' ? 'The MQF domain is derived from this PEO\'s child PLOs.' : 'Set the nested PEO, MQF domain, Bloom taxonomy, SDG, SC, and TF for this PLO.' }}</p>
+          </div>
+          <button type="button" class="modal-close" @click="closeEdit" :disabled="saving" aria-label="Close edit dialog">×</button>
+        </header>
+        <form class="modal-body" @submit.prevent="saveEdit">
+          <div v-if="editError" class="alert alert-error">{{ editError }}</div>
+          <div class="form-field">
+            <label for="record-statement">{{ editor.type === 'peo' ? 'PEO statement' : 'PLO statement' }}</label>
+            <textarea id="record-statement" v-model.trim="editor.draft.statement" required></textarea>
+          </div>
+
+          <template v-if="editor.type === 'plo'">
+            <div class="form-field">
+              <label for="parent-peo">Parent PEO</label>
+              <select id="parent-peo" v-model="editor.draft.parentPEO" required>
+                <option value="" disabled>Select parent PEO</option>
+                <option v-for="peo in detail.peos" :key="peo.code" :value="peo.code">{{ peo.code }}</option>
+              </select>
+              <p class="form-help">This establishes the nesting used to derive the parent PEO's MQF domains.</p>
+            </div>
+            <div class="form-field">
+              <label for="mqf-domain">MQF domain</label>
+              <select id="mqf-domain" v-model="editor.draft.mqfDomain" @change="clearTF" required>
+                <option value="" disabled>Select MQF domain</option>
+                <option v-for="domain in mqfDomains" :key="domain.code" :value="domain.code">{{ domain.label }}</option>
+              </select>
+            </div>
+            <div v-if="isSDGEligiblePLO(editor.draft.code)" class="form-field">
+              <label for="sdg">Sustainable Development Goal (SDG)</label>
+              <select id="sdg" v-model="editor.draft.sdg" required>
+                <option value="" disabled>Select SDG</option>
+                <option v-for="sdg in sdgs" :key="sdg.code" :value="sdg.code">{{ sdg.code }} - {{ sdg.label }}</option>
+              </select>
+            </div>
+            <div v-if="isSCEligiblePLO(editor.draft.code)" class="form-field">
+              <label for="sc">Sustainability competency (SC)</label>
+              <select id="sc" v-model="editor.draft.sc" required>
+                <option value="" disabled>Select sustainability competency</option>
+                <option v-for="competency in sustainabilityCompetencies" :key="competency.code" :value="competency.code">{{ competency.code }} - {{ competency.label }}</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="tf">Transversal future skill (TF)</label>
+              <select id="tf" v-model="editor.draft.tf" :disabled="availableTFs.length === 0" required>
+                <option value="" disabled>{{ availableTFs.length ? 'Select transversal future skill' : 'Select an MQF domain first' }}</option>
+                <option v-for="skill in availableTFs" :key="skill.code" :value="skill.code">{{ skill.code }} - {{ skill.label }}</option>
+              </select>
+              <p class="form-help">Options are limited to skills mapped to the selected MQF domain.</p>
+            </div>
+            <div class="form-field">
+              <label for="taxonomy">Bloom taxonomy</label>
+              <select id="taxonomy" v-model="editor.draft.taxonomy" required>
+                <option value="" disabled>Select taxonomy level</option>
+                <optgroup v-for="group in taxonomyGroups" :key="group.label" :label="group.label">
+                  <option v-for="level in group.levels" :key="level.code" :value="level.code">{{ level.code }} — {{ level.label }}</option>
+                </optgroup>
+              </select>
+            </div>
+          </template>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" @click="closeEdit" :disabled="saving">Cancel</button>
+            <button type="submit" class="btn btn-primary" :disabled="saving">{{ saving ? 'Saving...' : 'Save changes' }}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div v-if="pdf.open" class="modal-backdrop" @click.self="closePdf">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="pdf-modal-title">
+        <header class="modal-header">
+          <div>
+            <h2 id="pdf-modal-title" class="modal-title">PDF — {{ detail.name }}</h2>
+            <p class="modal-subtitle">Generate a PDF of this programme's PEO and PLO records.</p>
+          </div>
+          <button type="button" class="modal-close" @click="closePdf" :disabled="pdf.generating" aria-label="Close PDF dialog">×</button>
+        </header>
+        <div class="modal-body">
+          <div v-if="pdf.error" class="alert alert-error">{{ pdf.error }}</div>
+
+          <div v-if="pdf.generating" class="loading-panel">Generating PDF…</div>
+
+          <template v-else-if="pdf.ready">
+            <div class="alert alert-success">PDF is ready.</div>
+            <p class="form-help" style="margin:10px 0 0">File: <strong>{{ pdf.filename }}</strong></p>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-outline" @click="closePdf">Close</button>
+              <button type="button" class="btn btn-primary" @click="downloadPdf">Download PDF</button>
+              <button type="button" class="btn btn-outline" @click="showEmailForm">Email</button>
+            </div>
+          </template>
+
+          <template v-else-if="pdf.emailForm">
+            <div class="form-field">
+              <label for="pdf-email">Send to email address</label>
+              <input id="pdf-email" v-model.trim="pdf.email" type="email" placeholder="name@example.com" required>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-outline" @click="backToPdf">Back</button>
+              <button type="button" class="btn btn-outline" @click="closePdf">Close</button>
+              <button type="button" class="btn btn-primary" @click="sendPdfEmail" :disabled="pdf.sending || !pdf.email">{{ pdf.sending ? 'Sending…' : 'Send' }}</button>
+            </div>
+          </template>
+
+          <template v-else-if="pdf.sent">
+            <div class="alert alert-success">PDF sent to {{ pdf.email }}.</div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-primary" @click="closePdf">Done</button>
+            </div>
+          </template>
+        </div>
+      </section>
+    </div>

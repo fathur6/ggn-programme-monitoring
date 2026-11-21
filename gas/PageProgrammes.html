@@ -1,0 +1,39 @@
+        <div class="page-intro compact-intro">
+          <p class="eyebrow">PROGRAMME DIRECTORY</p>
+          <h2 class="page-title">Your programmes</h2>
+          <p class="page-lede">Select a programme to continue its MQF 2.0 completion workflow.</p>
+          <input v-model="search" type="text" placeholder="Search programmes..." class="search-input" aria-label="Search programmes">
+        </div>
+
+        <div v-if="loading" class="loading-panel">Loading programmes...</div>
+        <div v-if="error" class="alert alert-error">{{ error }}</div>
+
+        <div v-if="!loading && !error && grouped.length === 0" class="loading-panel">No programmes found.</div>
+
+        <template v-for="level in grouped">
+          <div :key="'level-' + level.key" class="mb-6">
+            <div class="level-header">
+              <h2>{{ level.title }}</h2>
+              <span class="level-count">{{ level.count }} programmes</span>
+            </div>
+
+            <div v-for="faculty in level.faculties" :key="faculty.key">
+              <div class="faculty-accordion" :aria-expanded="open[faculty.key]" role="button" tabindex="0" @click="toggleFaculty(faculty)" @keydown.enter="toggleFaculty(faculty)">
+                <span class="faculty-label">{{ faculty.title }}</span>
+                <span class="faculty-accordion-count">{{ faculty.count }} programmes</span>
+                <span class="faculty-chevron">{{ open[faculty.key] ? '▲' : '▼' }}</span>
+              </div>
+              <div v-show="open[faculty.key]" class="faculty-programmes">
+                <a v-for="p in faculty.programmes" :key="p.mqaCode" :href="detailUrl(p)" class="card-soft cursor-pointer programme-card">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="font-medium">{{ p.name }}</div>
+                      <div class="text-sm text-muted mt-1">{{ p.mqaCode }} · {{ p.progCode || '—' }}</div>
+                    </div>
+                    <span class="state-chip">{{ p.level }}</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </template>
