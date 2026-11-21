@@ -62,8 +62,17 @@ var PROGRAMME_PARTNER_TAB_SEPARATOR_ = '__';
 var PDF_LOG_SHEET_NAME_ = 'PDF_Log';
 var PDF_LOG_HEADERS_ = ['FileId', 'FileName', 'MQACode', 'Faculty', 'GeneratedBy', 'GeneratedByEmail', 'GeneratedAt', 'Source'];
 var TIME_ZONE_ = 'Asia/Kuala_Lumpur';
-var APP_NAME_ = 'Maklumat, Pemetaan dan Semakan Program Akademik Pascasiswazah UniSZA';
-var APP_SHORT_NAME_ = 'Program Akademik Pascasiswazah UniSZA';
+var APP_NAME_ = 'Pengurusan Akademik Pascasiswazah UniSZA';
+var APP_SHORT_NAME_ = 'Pengurusan Akademik Pascasiswazah UniSZA';
+var REVIEW_PERIODS_SHEET_ = 'ReviewPeriods';
+var REVIEW_SUBMISSIONS_SHEET_ = 'ReviewSubmissions';
+var REVIEW_ROLES_SHEET_ = 'ReviewRoles';
+var REVIEW_PERIOD_HEADERS_ = ['PeriodId', 'Title', 'CutoffLabel', 'OpensAt', 'ClosesAt', 'State', 'Note', 'CreatedBy', 'CreatedAt', 'UpdatedBy', 'UpdatedAt'];
+var REVIEW_SUBMISSION_HEADERS_ = ['SubmissionId', 'PeriodId', 'MQACode', 'Faculty', 'StatusText', 'SubmittedBy', 'SubmittedByEmail', 'SubmittedAt', 'Source', 'Revision'];
+var REVIEW_ROLE_HEADERS_ = ['Email', 'Name', 'Role', 'Faculty', 'Active'];
+var REVIEW_STATE_OPEN_ = 'Open';
+var REVIEW_STATE_CLOSED_ = 'Closed';
+var REVIEW_MISSING_TEXT_ = 'Tidak dikemaskini';
 var USER_SESSION_PREFIX_ = 'mqf-programme-session:';
 var USER_SESSION_TTL_SECONDS_ = 21600;
 
@@ -290,6 +299,45 @@ function checkPdfFolderAccess() {
   var folder = DriveApp.getFolderById(PDF_FOLDER_ID_);
   console.log('PDF folder: ' + folder.getName() + ' (' + folder.getId() + ')');
   return folder.getName();
+}
+
+/**
+ * Review-status register. Periods are opened and closed by the PPS quality
+ * coordinator (PJK) or the PPS deputy dean (TDA); faculties submit free-text
+ * updates per programme. Submissions are append-only so the history is kept.
+ */
+function reviewSheet_(name, headers) {
+  var ss = programmeSpreadsheet_();
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function ensureReviewTabs_() {
+  return {
+    periods: reviewSheet_(REVIEW_PERIODS_SHEET_, REVIEW_PERIOD_HEADERS_),
+    submissions: reviewSheet_(REVIEW_SUBMISSIONS_SHEET_, REVIEW_SUBMISSION_HEADERS_),
+    roles: reviewSheet_(REVIEW_ROLES_SHEET_, REVIEW_ROLE_HEADERS_)
+  };
+}
+
+function reviewRows_(name) {
+  var sheet = programmeSpreadsheet_().getSheetByName(name);
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+  var headers = data[0].map(function (value) { return String(value).trim(); });
+  return data.slice(1).filter(function (row) {
+    return row.some(function (cell) { return String(cell || '').trim() !== ''; });
+  }).map(function (row) {
+    var record = {};
+    headers.forEach(function (header, index) { if (header) record[header] = row[index]; });
+    return record;
+  });
 }
 
 function jsonResponse_(payload) {

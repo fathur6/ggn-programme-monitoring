@@ -1,0 +1,1477 @@
+{
+ "source": "Status Semakan Maklumat Program Akademik Siswazah.xlsx (tab Penyelidikan, lajur X–AB)",
+ "periods": [
+  {
+   "periodId": "P2025-03-13",
+   "title": "Status semakan setakat 13 Mac 2025",
+   "cutoffLabel": "13/03/2025",
+   "date": "2025-03-13"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "title": "Status semakan setakat 17 Jun 2025",
+   "cutoffLabel": "17/06/2025",
+   "date": "2025-06-17"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "title": "Status semakan setakat 15 Disember 2025",
+   "cutoffLabel": "15/12/2025",
+   "date": "2025-12-15"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "title": "Status semakan setakat 15 Mac 2026",
+   "cutoffLabel": "15/03/2026",
+   "date": "2026-03-15"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "title": "Status semakan setakat 15 Ogos 2026",
+   "cutoffLabel": "15/08/2026",
+   "date": "2026-08-15"
+  }
+ ],
+ "submissions": [
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA REFERENCE CODE",
+   "text": "STATUS SEMAKAN PROGRAM \n(SETAKAT 13 MAC 2025)"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA REFERENCE CODE",
+   "text": "STATUS SEMAKAN PROGRAM \n(SETAKAT 17 JUN 2025)"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA REFERENCE CODE",
+   "text": "STATUS SEMAKAN PROGRAM \n(SETAKAT 15 DISEMBER 2025)"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA REFERENCE CODE",
+   "text": "STATUS SEMAKAN PROGRAM \n(SETAKAT 15 MAC 2026)"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA REFERENCE CODE",
+   "text": "STATUS SEMAKAN PROGRAM \n(SETAKAT 15 OGOS 2026)"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5581",
+   "text": "telah masuk pra jkpau, sekarang dalam proses pemurnian dan akan masuk jkpau"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5581",
+   "text": "telah masuk pra jkpau, sekarang dalam proses pemurnian dan akan masuk jkpau"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5581",
+   "text": "telah masuk jkpau, sedang mengemaskini pembetulan dan tambahan data sebagaimana disarankan oleh JKPAU"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5581",
+   "text": "pemurnian telah dibuat oleh penyelaras program akademik, semakan dan penambahbaikan akan dibuat dalam bengkel hujung April 2026."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5582",
+   "text": "telah masuk pra jkpau, sekarang dalam proses pemurnian dan akan masuk jkpau"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5582",
+   "text": "telah masuk pra jkpau, sekarang dalam proses pemurnian dan akan masuk jkpau"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5582",
+   "text": "telah masuk jkpau, sedang mengemaskini pembetulan dan tambahan data sebagaimana disarankan oleh JKPAU. BOK program baru dikeluarkan, penyemak sedang menyemak semula keperluan tambahan mengikut BOK baru"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5582",
+   "text": "pemurnian telah dibuat oleh penyelaras program akademik, semakan dan penambahbaikan akan dibuat dalam bengkel hujung April 2026."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5582",
+   "text": "pemurnian telah dibuat oleh penyelaras program akademik, semakan dan penambahan telah dilakukan.sedang dalam proses semakan terakhir dari segi pembetulan format,lampiran,dan beberapa maklumat yang terkini yang perlu dikemaskini sebelum dibentangkan semula dalam JKPAU"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5584",
+   "text": "Semakan kurikulum telah selesai sepenuhnya dan telah dibentangkan di peringkat JKPT pada 24 Februari 2026. Fakulti sedang menunggu surat kelulusan JKPT.\n\nAudit Pematuhan telah selesai pada 11 & 12 Februari 2026. Pihak Fakulti masih menunggu laporan penuh dari pihak MQA."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5585",
+   "text": "telah masuk pra jkpau, sekarang dalam proses pemurnian dan akan masuk jkpau"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5585",
+   "text": "telah masuk pra jkpau, sekarang dalam proses pemurnian dan akan masuk jkpau"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5585",
+   "text": "telah masuk jkpau, sedang mengemaskini pembetulan dan tambahan data sebagaimana disarankan oleh JKPAU"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5585",
+   "text": "pemurnian telah dibuat oleh penyelaras program akademik, semakan dan penambahbaikan akan dibuat dalam bengkel hujung April 2026."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA14263",
+   "text": "Dalam proses pemurniaan untuk pembentangan bagi pra jkpau, sekarang dalam proses pemurnian dan akan dibentangkan dalam pra jkpau"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA14263",
+   "text": "Dalam proses pemurniaan untuk pembentangan bagi pra jkpau, sekarang dalam proses pemurnian dan akan dibentangkan dalam pra jkpau"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA14263",
+   "text": "sedang mengemaskini pembetulan dan tambahan data sebagaimana disarankan oleh JKPAU. BOK program baru dikeluarkan, penyemak sedang menyemak semula keperluan tambahan mengikut BOK baru"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA14263",
+   "text": "pemurnian telah dibuat oleh penyelaras program akademik, semakan dan penambahbaikan akan dibuat dalam bengkel hujung April 2026."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA14263",
+   "text": "pemurnian telah dibuat oleh penyelaras program akademik, semakan dan penambahan telah dilakukan.sedang dalam proses semakan terakhir dari segi pembetulan format,lampiran,dan beberapa maklumat yang terkini yang perlu dikemaskini sebelum dibentangkan semula dalam pra JKPAU"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5586",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5586",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5586",
+   "text": "Pemurnian KC semakan.\nBengkel Pelarasan semakan program akan diadakan pada 17 December 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5586",
+   "text": "Proses akhir pemurnian KC Semakan Kurikulum Program di peringkat fakulti."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5586",
+   "text": "Audit pematuhan telah selesai pada Februari 2026. Bengkel pemurnian dan penambahbaikan KC Semakan Kurikulum Program akan dibuat di peringkat fakulti. Juga kemaskini KC untuk pemetaan kepada MQF2.0."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA12015",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA12015",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA12015",
+   "text": "Pemurnian KC semakan.\nBengkel Pelarasan semakan program akan diadakan pada 17 December 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA12015",
+   "text": "Proses akhir pemurnian KC Semakan Kurikulum Program di peringkat fakulti."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA12015",
+   "text": "Audit pematuhan telah selesai pada Februari 2026. Bengkel pemurnian dan penambahbaikan KC Semakan Kurikulum Program akan dibuat di peringkat fakulti. Juga kemaskini KC untuk pemetaan kepada MQF2.0."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10911",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10911",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10911",
+   "text": "Pemurnian KC semakan.\nBengkel Pelarasan semakan program akan diadakan pada 17 December 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10911",
+   "text": "Proses akhir pemurnian KC Semakan Kurikulum Program di peringkat fakulti."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA10911",
+   "text": "Audit pematuhan telah selesai pada Februari 2026. Bengkel pemurnian dan penambahbaikan KC Semakan Kurikulum Program akan dibuat di peringkat fakulti. Juga kemaskini KC untuk pemetaan kepada MQF2.0."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10912",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10912",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10912",
+   "text": "Pemurnian KC semakan.\nBengkel Pelarasan semakan program akan diadakan pada 17 December 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10912",
+   "text": "Proses akhir pemurnian KC Semakan Kurikulum Program di peringkat fakulti."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA10912",
+   "text": "Audit pematuhan telah selesai pada Februari 2026. Bengkel pemurnian dan penambahbaikan KC Semakan Kurikulum Program akan dibuat di peringkat fakulti. Juga kemaskini KC untuk pemetaan kepada MQF2.0."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10899",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10899",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10899",
+   "text": "Pemurnian KC semakan.\nBengkel Pelarasan semakan program akan diadakan pada 17 December 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10899",
+   "text": "Proses akhir pemurnian KC Semakan Kurikulum Program di peringkat fakulti."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA10899",
+   "text": "Audit pematuhan telah selesai pada Februari 2026. Bengkel pemurnian dan penambahbaikan KC Semakan Kurikulum Program akan dibuat di peringkat fakulti. Juga kemaskini KC untuk pemetaan kepada MQF2.0."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5587",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5587",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5587",
+   "text": "Pemurnian KC semakan.\nBengkel Pelarasan semakan program akan diadakan pada 17 December 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5587",
+   "text": "Proses akhir pemurnian KC Semakan Kurikulum Program di peringkat fakulti."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5587",
+   "text": "Audit pematuhan telah selesai pada Februari 2026. Bengkel pemurnian dan penambahbaikan KC Semakan Kurikulum Program akan dibuat di peringkat fakulti. Juga kemaskini KC untuk pemetaan kepada MQF2.0."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA12016",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA12016",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA12016",
+   "text": "Pemurnian KC semakan.\nBengkel Pelarasan semakan program akan diadakan pada 17 December 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA12016",
+   "text": "Proses akhir pemurnian KC Semakan Kurikulum Program di peringkat fakulti."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA12016",
+   "text": "Audit pematuhan telah selesai pada Februari 2026. Bengkel pemurnian dan penambahbaikan KC Semakan Kurikulum Program akan dibuat di peringkat fakulti. Juga kemaskini KC untuk pemetaan kepada MQF2.0."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10901",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10901",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10901",
+   "text": "Pemurnian KC semakan.\nBengkel Pelarasan semakan program akan diadakan pada 17 December 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10901",
+   "text": "Proses akhir pemurnian KC Semakan Kurikulum Program di peringkat fakulti."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA10901",
+   "text": "Audit pematuhan telah selesai pada Februari 2026. Bengkel pemurnian dan penambahbaikan KC Semakan Kurikulum Program akan dibuat di peringkat fakulti. Juga kemaskini KC untuk pemetaan kepada MQF2.0."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA12017",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA12017",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA12017",
+   "text": "Pemurnian KC semakan.\nBengkel Pelarasan semakan program akan diadakan pada 17 December 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA12017",
+   "text": "Proses akhir pemurnian KC Semakan Kurikulum Program di peringkat fakulti."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA12017",
+   "text": "Audit pematuhan telah selesai pada Februari 2026. Bengkel pemurnian dan penambahbaikan KC Semakan Kurikulum Program akan dibuat di peringkat fakulti. Juga kemaskini KC untuk pemetaan kepada MQF2.0."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10900",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10900",
+   "text": "Pemurnian KC semakan.\nKajian pasaran: tunggu maklum balas. \nBengkel Siri 2: (7 Julai 2025)"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10900",
+   "text": "Pemurnian KC semakan.\nBengkel Pelarasan semakan program akan diadakan pada 17 December 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10900",
+   "text": "Proses akhir pemurnian KC Semakan Kurikulum Program di peringkat fakulti."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA10900",
+   "text": "Audit pematuhan telah selesai pada Februari 2026. Bengkel pemurnian dan penambahbaikan KC Semakan Kurikulum Program akan dibuat di peringkat fakulti. Juga kemaskini KC untuk pemetaan kepada MQF2.0."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5592",
+   "text": "Bengkel dengan Penasihat Luar telah dibuat. Sedang mengemaskini Kertas Cadangan"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5592",
+   "text": "Bengkel dengan Penasihat Luar telah dibuat. Sedang mengemaskini Kertas Cadangan"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5592",
+   "text": "Semakan kurikulum telah selesai dan telah lulus Senat pada 26 November 2025.  Dokumen telah dihantar ke Comaei untuk kelulusan JKPT.  Dijangka lawatan MQA ke UniSZA utk Audit Pematuhan pada 11&12 Februari 2026"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5592",
+   "text": "Semakan kurikulum telah selesai sepenuhnya dan telah dibentangkan di peringkat JKPT pada 24 Februari 2026. Fakulti sedang menunggu surat kelulusan JKPT.\n\nAudit Pematuhan telah selesai pada 11 & 12 Februari 2026. Pihak Fakulti masih menunggu laporan penuh dari pihak MQA."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5593",
+   "text": "Bengkel dengan Penasihat Luar telah dibuat. Sedang mengemaskini Kertas Cadangan"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5593",
+   "text": "Bengkel dengan Penasihat Luar telah dibuat. Sedang mengemaskini Kertas Cadangan"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5593",
+   "text": "Semakan kurikulum telah selesai dan telah lulus Senat pada 30 Julai 2025.  Dokumen telah dihantar sedang menunggu untuk dibentangkan di mesyuarat JKPT dalam masa terdekat.  Dijangka lawatan MQA ke UniSZA utk Audit Pematuhan pada 11&12 Februari 2026"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5593",
+   "text": "Semakan kurikulum telah selesai sepenuhnya dan telah dibentangkan di peringkat JKPT pada 24 Februari 2026. Fakulti sedang menunggu surat kelulusan JKPT.\n\nAudit Pematuhan telah selesai pada 11 & 12 Februari 2026. Pihak Fakulti masih menunggu laporan penuh dari pihak MQA."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5048",
+   "text": "Bengkel dengan Penasihat Luar telah dibuat. Sedang mengemaskini Kertas Cadangan"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5048",
+   "text": "Bengkel dengan Penasihat Luar telah dibuat. Sedang mengemaskini Kertas Cadangan"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5048",
+   "text": "Semakan kurikulum telah selesai dan telah lulus Senat pada 30 Julai 2025.  Dokumen telah dihantar sedang menunggu untuk dibentangkan di mesyuarat JKPT dalam masa terdekat.  Dijangka lawatan MQA ke UniSZA utk Audit Pematuhan pada 11&12 Februari 2026"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5048",
+   "text": "Semakan kurikulum telah selesai sepenuhnya dan telah dibentangkan di peringkat JKPT pada 24 Februari 2026. Fakulti sedang menunggu surat kelulusan JKPT.\n\nAudit Pematuhan telah selesai pada 11 & 12 Februari 2026. Pihak Fakulti masih menunggu laporan penuh dari pihak MQA."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10523",
+   "text": "Phd Hubungan Antarabangsa di bawah FSSG"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10523",
+   "text": "Phd Hubungan Antarabangsa di bawah FSSG"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10523",
+   "text": "Phd Hubungan Antarabangsa di bawah FSSG"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10523",
+   "text": "Phd Hubungan Antarabangsa di bawah FSSG"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA10523",
+   "text": "Semakan kurikulum telah selesai sepenuhnya dan telah dibentangkan di peringkat JKPT pada 24 Februari 2026. Fakulti sedang menunggu surat kelulusan JKPT.\n\nAudit Pematuhan telah selesai pada 11 & 12 Februari 2026. Pihak Fakulti masih menunggu laporan penuh dari pihak MQA."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA6149",
+   "text": "FA mempunyai syarat khusus iaitu melaksanakan semakan kurikulum Bengkel dengan Penasihat Luar telah dibuat. Tarikh siap oleh MQA: Julai 2025"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA6149",
+   "text": "FA mempunyai syarat khusus iaitu melaksanakan semakan kurikulum Bengkel dengan Penasihat Luar telah dibuat. Tarikh siap oleh MQA: Julai 2025"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA6149",
+   "text": "Semakan kurikulum telah selesai dan telah lulus Senat pada 23 Jun 2025.  Memandangkan semakan ini adalah syarat khusus akrediatasi penuh, dokumen telah dihantar pada MQA untuk penilaian. MQA seterusnya telah memperakukan pematuhan syarat khusus dan mengekalkan akreditasi penuh pada 30 September 2025. Dokumen akan dihantar pada JKPT untuk makluman."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5571",
+   "text": "Sedang dalam peringkat pemurnian KC dan pengemaskinian bahagian Analisis Pemegang Taruh sebelum dibentangkan dalam Mesyuarat Pra JKPAU"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5571",
+   "text": "Sedang dalam peringkat pemurnian KC dan pengemaskinian bahagian Analisis Pemegang Taruh sebelum dibentangkan dalam Mesyuarat Pra JKPAU"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5571",
+   "text": "KC telah dibentangkan dalam Mesyuarat JKPAU. Perlu beberapa pemurnian sebelum dibentangkan semula."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5571",
+   "text": "KC dalam proses pemurnian untuk dibentang semula dalam Mesyuarat JKPAU."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5571",
+   "text": "KC akan ditambah baik mengikut laporan MQA selepas penilaian pematuhan akreditasi penuh dan kelulusan MQF 2.0. KC dalam proses pemurnian untuk dibentang semula dalam Mesyuarat JKPAU."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5572",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang dalam peringkat pemurnian KC dan pengemaskinian bahagian Analisis Pemegang Taruh sebelum dibentangkan dalam Mesyuarat JKPAU"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5572",
+   "text": "Telah hantar KC semakan untuk dibentangkan dalam Mesyuarat JKPAU"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5572",
+   "text": "KC telah dibentangkan dalam Mesyuarat JKPAU. Perlu beberapa pemurnian sebelum dibentangkan semula."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5572",
+   "text": "KC dalam proses pemurnian untuk dibentang semula dalam Mesyuarat JKPAU."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5572",
+   "text": "KC akan ditambah baik mengikut laporan MQA selepas penilaian pematuhan akreditasi penuh dan kelulusan MQF 2.0. KC dalam proses pemurnian untuk dibentang semula dalam Mesyuarat JKPAU."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5573",
+   "text": "Sedang dalam peringkat pemurnian KC dan pengemaskinian bahagian Analisis Pemegang Taruh sebelum dibentangkan dalam Mesyuarat Pra JKPAU"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5573",
+   "text": "Sedang dalam peringkat pemurnian KC dan pengemaskinian bahagian Analisis Pemegang Taruh sebelum dibentangkan dalam Mesyuarat Pra JKPAU"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5573",
+   "text": "KC telah dibentangkan dalam Mesyuarat JKPAU. Perlu beberapa pemurnian sebelum dibentangkan semula."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5573",
+   "text": "KC dalam proses pemurnian untuk dibentang semula dalam Mesyuarat JKPAU."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5573",
+   "text": "KC akan ditambah baik mengikut laporan MQA selepas penilaian pematuhan akreditasi penuh dan kelulusan MQF 2.0. KC dalam proses pemurnian untuk dibentang semula dalam Mesyuarat JKPAU."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5574",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang dalam peringkat pemurnian KC dan pengemaskinian bahagian Analisis Pemegang Taruh sebelum dibentangkan dalam Mesyuarat JKPAU"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5574",
+   "text": "Telah hantar KC semakan untuk dibentangkan dalam Mesyuarat JKPAU"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5574",
+   "text": "KC telah dibentangkan dalam Mesyuarat JKPAU. Perlu beberapa pemurnian sebelum dibentangkan semula."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5574",
+   "text": "KC dalam proses pemurnian untuk dibentang semula dalam Mesyuarat JKPAU."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5574",
+   "text": "KC akan ditambah baik mengikut laporan MQA selepas penilaian pematuhan akreditasi penuh dan kelulusan MQF 2.0. KC dalam proses pemurnian untuk dibentang semula dalam Mesyuarat JKPAU."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10914",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10914",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10914",
+   "text": "KC lantikan penasihat luar menunggu perakuan dari JAPSU, sekarang baru peringkat JKPS"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10914",
+   "text": "Sedang dalam proses penyediaan KC semakan kurikulum. Bengkel dengan penasihat luar telah berlaku."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5588",
+   "text": "Not applicaple"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5588",
+   "text": "Remark: Program owner di FBIM"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5588",
+   "text": "Not applicaple"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5588",
+   "text": "Not applicaple"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5029",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5029",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5029",
+   "text": "KC lantikan penasihat luar menunggu perakuan dari JAPSU, sekarang baru peringkat JKPS"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5029",
+   "text": "KC semakan kurikulum program telah dibentangkan di peringkat fakulti dan akan dibawa ke JKPAU dalam masa terdekat"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10916",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10916",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10916",
+   "text": "KC lantikan penasihat luar menunggu perakuan dari JAPSU, sekarang baru peringkat JKPS"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10916",
+   "text": "Semakan kurikulum program, dalam proses mengadakan bengkel bersama penasihat luar."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10915",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10915",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10915",
+   "text": "KC lantikan penasihat luar menunggu perakuan dari JAPSU, sekarang baru peringkat JKPS"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10915",
+   "text": "Sedang dalam proses penyediaan KC semakan kurikulum. Bengkel dengan penasihat luar telah berlaku."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5589",
+   "text": "Not applicaple"
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5589",
+   "text": "Remark: Program owner di FBIM"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5589",
+   "text": "Not applicaple"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5589",
+   "text": "Not applicaple"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10913",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10913",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10913",
+   "text": "KC lantikan penasihat luar menunggu perakuan dari JAPSU, sekarang baru peringkat JKPS"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10913",
+   "text": "KC semakan kurikulum program telah dibentangkan di peringkat fakulti dan akan dibawa ke JKPAU dalam masa terdekat"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10917",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10917",
+   "text": "FRIT baru sahaja mendapat FA untuk program ini."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10917",
+   "text": "KC lantikan penasihat luar menunggu perakuan dari JAPSU, sekarang baru peringkat JKPS"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10917",
+   "text": "Semakan kurikulum program, dalam proses mengadakan bengkel bersama penasihat luar."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5575",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5575",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5575",
+   "text": "Dalam proses akhir pemurnian KC Semakan Kurikulum Program"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5575",
+   "text": "Telah mendapat maklumbalas Pra JKPAU, akan bawa KC ke JKPAU dalam masa terdekat."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10908",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10908",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10908",
+   "text": "Dalam proses akhir pemurnian KC Semakan Kurikulum Program"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10908",
+   "text": "Telah mendapat maklumbalas Pra JKPAU, akan bawa KC ke JKPAU dalam masa terdekat."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5576",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5576",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5576",
+   "text": "Dalam proses akhir pemurnian KC Semakan Kurikulum Program"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5576",
+   "text": "Telah mendapat maklumbalas Pra JKPAU, akan bawa KC ke JKPAU dalam masa terdekat."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10910",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10910",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10910",
+   "text": "Dalam proses akhir pemurnian KC Semakan Kurikulum Program"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10910",
+   "text": "Telah mendapat maklumbalas Pra JKPAU, akan bawa KC ke JKPAU dalam masa terdekat."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10909",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10909",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10909",
+   "text": "Dalam proses akhir pemurnian KC Semakan Kurikulum Program"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10909",
+   "text": "Telah mendapat maklumbalas Pra JKPAU, akan bawa KC ke JKPAU dalam masa terdekat."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5588",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5588",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5588",
+   "text": "KC semakan telah lengkap dan dalam proses penghantaran ke PRA JKPAU"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5588",
+   "text": "KC semakan akan dihantar ke PRA JKPAU April 2026"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5588",
+   "text": "KC Semakan Kurikulum telah dihantar ke JKPAU pada Ogos 2026"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA12018",
+   "text": "KC Semakan Kurikulum ini telah mendapat kelulusan JAPSU."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA12018",
+   "text": "KC Semakan Kurikulum ini telah mendapat kelulusan JAPSU."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA12018",
+   "text": "KC Semakan Kurikulum ini telah mendapat kelulusan JAPSU."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA12018",
+   "text": "KC Semakan Kurikulum ini telah mendapat kelulusan JAPSU."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA12018",
+   "text": "KC Semakan Kurikulum ini telah mendapat kelulusan JAPSU."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA15710",
+   "text": "KC Semakan Kurikulum ini telah mendapat kelulusan JAPSU."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA15710",
+   "text": "KC Semakan Kurikulum ini telah mendapat kelulusan JAPSU."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA15710",
+   "text": "KC Semakan Kurikulum ini telah mendapat kelulusan JAPSU."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA15710",
+   "text": "KC Semakan Kurikulum ini telah mendapat kelulusan JAPSU."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA15710",
+   "text": "KC Semakan Kurikulum ini telah mendapat kelulusan JAPSU."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5594",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5594",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5594",
+   "text": "KC semakan telah lengkap dan dalam proses penghantaran ke PRA JKPAU"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5594",
+   "text": "KC semakan akan dihantar ke PRA JKPAU April 2026"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5594",
+   "text": "KC Semakan Kurikulum telah dihantar ke JKPAU pada Ogos 2026"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5589",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5589",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5589",
+   "text": "KC semakan telah lengkap dan dalam proses penghantaran ke PRA JKPAU"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5589",
+   "text": "KC semakan akan dihantar ke PRA JKPAU April 2026"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5589",
+   "text": "KC Semakan Kurikulum telah dihantar ke JKPAU pada Ogos 2026"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA12019",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA12019",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA12019",
+   "text": "KC semakan telah lengkap dan dalam proses penghantaran ke PRA JKPAU"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA12019",
+   "text": "KC semakan akan dihantar ke PRA JKPAU April 2026"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA12019",
+   "text": "KC Semakan Kurikulum telah dihantar ke JKPAU pada Ogos 2026"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/PA12020",
+   "text": "Belum mendapat FA. Telah mendapat kelulusan pelanjutan PA sehingga Disember 2025."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/PA12020",
+   "text": "Belum mendapat FA. Telah mendapat kelulusan pelanjutan PA sehingga Disember 2025."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/PA12020",
+   "text": "Belum mendapat FA. Telah mendapat kelulusan pelanjutan PA sehingga Disember 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/PA12020",
+   "text": "Belum mendapat FA. Telah mendapat kelulusan pelanjutan PA sehingga Disember 2027"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/PA12020",
+   "text": "Dalam proses penyediaan dokumen MQA-02"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5595",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5595",
+   "text": "Telah selesai Bengkel Semakan Kurikulum program. Dalam proses penyediaan KC Semakan Kurikulum Program."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5595",
+   "text": "KC semakan telah lengkap dan dalam proses penghantaran ke PRA JKPAU"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5595",
+   "text": "KC semakan akan dihantar ke PRA JKPAU April 2026"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5595",
+   "text": "KC Semakan Kurikulum telah dihantar ke JKPAU pada Ogos 2026"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5590",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5590",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan. Akan hantar KC ke JKPAU bulan Jun 2025"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5590",
+   "text": "Senat telah meluluskan KC semakan. Dokumen telah dihantar ke MQA untuk penilaian. Dijangka lawatan MQA ke UniSZA pada 11&12 Februari 2026"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5590",
+   "text": "MQA telah datang pada 11 &12 Feb 2026. Menunggu laporan rasmi audit"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5590",
+   "text": "Laporan MQA telah diterima. \nStatus: Memuaskan"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/PA09374",
+   "text": "Telah menghantar pemohonan pelanjutan tempoh perakuan akreditasi sementara ke-3 ke MQA. \nDalam proses migrasi ke MQF02."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/PA09374",
+   "text": "Dalam proses migrasi ke MQF02."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/PA09374",
+   "text": "Dalam proses migrasi ke MQF02. Pelanjutan telah diluluskan sehingga 14 Jun 2027."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/PA09374",
+   "text": "Dalam proses migrasi ke MQF02. Pelanjutan telah diluluskan sehingga 14 Jun 2027."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/PA09374",
+   "text": "Penyediaan dokumen untuk dihantar ke Sparqm bagi permohonan  FA. pelajar dijangka menghantar NoS pada Februari 2027"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5591",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5591",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan. Akan hantar KC ke JKPAU bulan Jun 2025"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5591",
+   "text": "Senat telah meluluskan KC semakan. Dokumen telah dihantar ke MQA untuk penilaian. Dijangka lawatan MQA ke UniSZA pada 11&12 Februari 2026"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5591",
+   "text": "MQA telah datang pada 11 &12 Feb 2026. Menunggu laporan rasmi audit"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5591",
+   "text": "Laporan MQA telah diterima. \nStatus: Memuaskan"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/PA09375",
+   "text": "Dalam proses migrasi ke MQF02."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/PA09375",
+   "text": "Dalam proses migrasi ke MQF02."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/PA09375",
+   "text": "Dalam proses migrasi ke MQF02. Permohonan pelanjutan telah dilakukan sehingga 14 Jun 2029."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/PA09375",
+   "text": "Dalam proses migrasi ke MQF02. Permohonan pelanjutan telah dilakukan sehingga 14 Jun 2029. Masih menunggu keputusan kelulusan."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/PA09375",
+   "text": "Permohonan pelanjutan PA diluluskan sehingga 14 Jun 2029"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5590",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5590",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan. Akan hantar KC ke JKPAU bulan Jun 2025"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5590",
+   "text": "Senat telah meluluskan KC semakan. Dokumen telah dihantar ke MQA untuk penilaian. Dijangka lawatan MQA ke UniSZA pada 11&12 Februari 2026"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5590",
+   "text": "MQA telah datang pada 11 &12 Feb 2026. Menunggu laporan rasmi audit"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10906",
+   "text": "Bengkel semakan kurikulum program Sarjana Sains Sukan dan Doktor Falsafah (NEC1014) bersama penasihat luar telah dilaksanakan pada 23-24 Oktober 2024. Komen daripada penasihat luar telah diterima dan akan disertakan bersama kertas cadangan untuk persediaan audit daripada pihak MQA. KC semakan telah dihantar untuk dibentangkan ke peringkat Pra-JKPAU pada 19 Mac 2025."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10906",
+   "text": "Kertas cadangan telah dibentangkan ke Mesyuarat JKPAU pada 12 Jun 2025 dan memerlukan penambahbaikan. Kertas cadangan tersebut akan dihantar semula ke urusetia JKPAU sebelum 30 Jun 2025."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10906",
+   "text": "Kertas cadangan semakan kurikulum telah dihantar kepada urusetia Senat pada 18 Disember 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10906",
+   "text": "Kertas cadangan telah dihantar untuk pertimbangan mesyuarat JKPT bagi permohonan kelulusan cadangan semakan kurikulum program Sarjana dan Doktor Falsafah dalam Sains Sukan melalui surat bertarikh 18 Mac 2026"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5591",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5591",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan. Akan hantar KC ke JKPAU bulan Jun 2025"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5591",
+   "text": "Senat telah meluluskan KC semakan. Dokumen telah dihantar ke MQA untuk penilaian. Dijangka lawatan MQA ke UniSZA pada 11&12 Februari 2026"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5591",
+   "text": "MQA telah datang pada 11 &12 Feb 2026. Menunggu laporan rasmi audit"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10907",
+   "text": "Bengkel semakan kurikulum program Sarjana Sains Sukan dan Doktor Falsafah (NEC1014) bersama penasihat luar telah dilaksanakan pada 23-24 Oktober 2024. Komen daripada penasihat luar telah diterima dan akan disertakan bersama kertas cadangan untuk persediaan audit daripada pihak MQA. KC semakan telah dihantar untuk dibentangkan ke peringkat Pra-JKPAU pada 19 Mac 2025."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10907",
+   "text": "Kertas cadangan telah dibentangkan ke Mesyuarat JKPAU pada 12 Jun 2025 dan memerlukan penambahbaikan. Kertas cadangan tersebut akan dihantar semula ke urusetia JKPAU sebelum 30 Jun 2025."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10907",
+   "text": "Kertas cadangan semakan kurikulum telah dihantar kepada urusetia Senat pada 18 Disember 2025."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10907",
+   "text": "Kertas cadangan telah dihantar untuk pertimbangan mesyuarat JKPT bagi permohonan kelulusan cadangan semakan kurikulum program Sarjana dan Doktor Falsafah dalam Sains Sukan melalui surat bertarikh 18 Mac 2026"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5583",
+   "text": "Kertas Cadangan (KC) telah hantar ke comaei untuk semakan dan pra jkpau pada 9 Mac 2025 yang lalu."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5583",
+   "text": "Kertas Cadangan telah dibentangkan dalam JKPAU Jun 2025 tetapi perlu pemurnian untuk dibentangkan sekali lagi dalam JKPAU akan datang"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5583",
+   "text": "Kertas cadangan telah lulus di peringkat Senat bulan Ogos 2025 dan sedang menunggu mesyuarat peringkat JKPT"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5583",
+   "text": "Kertas cadangan telah lulus di peringkat JKPT pada 24 februari 2026 (Bil 1/2026)"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5583",
+   "text": "Semakan kurikulum telah selesai sepenuhnya dan telah dibentangkan di peringkat JKPT pada 24 Februari 2026. Fakulti sedang menunggu surat kelulusan JKPT.\n\nAudit Pematuhan telah selesai pada 11 & 12 Februari 2026. Pihak Fakulti masih menunggu laporan penuh dari pihak MQA."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10902",
+   "text": "Dalam proses semakan terakhir di peringkat fakulti."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10902",
+   "text": "Dalam proses semakan terakhir di peringkat fakulti."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10902",
+   "text": "Kertas cadangan telah lulus di peringkat Senat bulan Disember 2025"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10902",
+   "text": "Kertas cadangan telah lulus di peringkat Senat bulan Disember 2025 dan sedang menunggu mesyuarat peringkat JKPT"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA10902",
+   "text": "Audit Pematuhan telah selesai pada 11 & 12 Februari 2026. Pihak Fakulti masih menunggu laporan penuh dari pihak MQA."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10904",
+   "text": "Kertas Cadangan (KC) telah hantar ke comaei untuk semakan dan pra jkpau pada 9 Mac 2025 yang lalu."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10904",
+   "text": "Kertas Cadangan telah dibentangkan dalam JKPAU Jun 2025 tetapi perlu pemurnian untuk dibentangkan sekali lagi dalam JKPAU akan datang"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10904",
+   "text": "Kertas cadangan telah lulus di peringkat Senat bulan Ogos 2025 dan sedang menunggu mesyuarat peringkat JKPT"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10904",
+   "text": "Kertas cadangan telah lulus di peringkat JKPT pada 24 februari 2026 (Bil 1/2026)"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA10904",
+   "text": "Semakan kurikulum telah selesai sepenuhnya dan telah dibentangkan di peringkat JKPT pada 24 Februari 2026. Fakulti sedang menunggu surat kelulusan JKPT.\n\nAudit Pematuhan telah selesai pada 11 & 12 Februari 2026. Pihak Fakulti masih menunggu laporan penuh dari pihak MQA."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10523",
+   "text": "Kertas Cadangan (KC) telah hantar ke comaei untuk semakan dan pra jkpau pada 9 Mac 2025 yang lalu."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10523",
+   "text": "Kertas Cadangan telah dibentangkan dalam JKPAU Jun 2025 tetapi perlu pemurnian untuk dibentangkan sekali lagi dalam JKPAU akan datang"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10523",
+   "text": "Kertas cadangan telah lulus di peringkat Senat bulan Ogos 2025 dan sedang menunggu mesyuarat peringkat JKPT"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10523",
+   "text": "Kertas cadangan telah lulus di peringkat JKPT pada 24 februari 2026 (Bil 1/2026)"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA10523",
+   "text": "Semakan kurikulum telah selesai sepenuhnya dan telah dibentangkan di peringkat JKPT pada 24 Februari 2026. Fakulti sedang menunggu surat kelulusan JKPT.\n\nAudit Pematuhan telah selesai pada 11 & 12 Februari 2026. Pihak Fakulti masih menunggu laporan penuh dari pihak MQA."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10903",
+   "text": "Dalam proses semakan terakhir di peringkat fakulti."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10903",
+   "text": "Dalam proses semakan terakhir di peringkat fakulti."
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10903",
+   "text": "Kertas cadangan telah lulus JKPAU dan akan dibentangkan sekali lagi dalam Senat Januari 2026."
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10903",
+   "text": "Kertas cadangan telah lulus di peringkat Senat bulan Januari 2026 dan sedang menunggu mesyuarat peringkat JKPT"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA10903",
+   "text": "Audit Pematuhan telah selesai pada 11 & 12 Februari 2026. Pihak Fakulti masih menunggu laporan penuh dari pihak MQA."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA10905",
+   "text": "Kertas Cadangan (KC) telah hantar ke comaei untuk semakan dan pra jkpau pada 9 Mac 2025 yang lalu."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA10905",
+   "text": "Kertas Cadangan telah dibentangkan dalam JKPAU Jun 2025 tetapi perlu pemurnian untuk dibentangkan sekali lagi dalam JKPAU akan datang"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA10905",
+   "text": "Kertas cadangan telah lulus di peringkat Senat bulan Ogos 2025 dan sedang menunggu mesyuarat peringkat JKPT"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA10905",
+   "text": "Kertas cadangan telah lulus di peringkat JKPT pada 24 februari 2026 (Bil 1/2026)"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA10905",
+   "text": "Semakan kurikulum telah selesai sepenuhnya dan telah dibentangkan di peringkat JKPT pada 24 Februari 2026. Fakulti sedang menunggu surat kelulusan JKPT.\n\nAudit Pematuhan telah selesai pada 11 & 12 Februari 2026. Pihak Fakulti masih menunggu laporan penuh dari pihak MQA."
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5590",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5590",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan. Akan hantar KC ke JKPAU bulan Jun 2025"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5590",
+   "text": "Senat telah meluluskan KC semakan. Dokumen telah dihantar ke MQA untuk penilaian. Dijangka lawatan MQA ke UniSZA pada 11&12 Februari 2026"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5590",
+   "text": "MQA telah datang pada 11 &12 Feb 2026. Menunggu laporan rasmi audit"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5590",
+   "text": "Laporan MQA telah diterima. \nStatus: Memuaskan"
+  },
+  {
+   "periodId": "P2025-03-13",
+   "mqa": "MQA/FA5591",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan."
+  },
+  {
+   "periodId": "P2025-06-17",
+   "mqa": "MQA/FA5591",
+   "text": "Telah hantar dan bentang KC semakan di peringkat PRA-JKPAU. Sedang menunggu update PPS berkenaan MQF/Attribute utk tesis dan viva. Maklumat akan dimasukkan dalam KC untuk dihantar ke SPARQM untuk tujuan semakan. Akan hantar KC ke JKPAU bulan Jun 2025"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA5591",
+   "text": "Senat telah meluluskan KC semakan. Dokumen telah dihantar ke MQA untuk penilaian. Dijangka lawatan MQA ke UniSZA pada 11&12 Februari 2026"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA5591",
+   "text": "MQA telah datang pada 11 &12 Feb 2026. Menunggu laporan rasmi audit"
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA5591",
+   "text": "Laporan MQA telah diterima. \nStatus: Memuaskan"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA7492",
+   "text": "Semakan program telah diadakan pada 22 Oktober 2025"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA7492",
+   "text": "Audit Pematuhan telah selesai pada 4 & 5 Februari 2026. Pihak Institut masih menunggu laporan penuh dari pihak MQA.\nPost-Bengkel Semakan akan dilaksanakan pada Mei 2026 bagi melaksanakan penambahbaikan pada kaedah penilaian pelajar sebagaimana yang dicadangkan oleh panel penasihat program."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA7492",
+   "text": "Laporan Audit MQA telah diterima. \nStatus: Lulus Pematuhan"
+  },
+  {
+   "periodId": "P2025-12-15",
+   "mqa": "MQA/FA7493",
+   "text": "Semakan program telah diadakan pada 22 Oktober 2025"
+  },
+  {
+   "periodId": "P2026-03-15",
+   "mqa": "MQA/FA7493",
+   "text": "Audit Pematuhan telah selesai pada 4 & 5 Februari 2026. Pihak Institut masih menunggu laporan penuh dari pihak MQA.\nPost-Bengkel Semakan akan dilaksanakan pada Mei 2026 bagi melaksanakan penambahbaikan pada kaedah penilaian pelajar sebagaimana yang dicadangkan oleh panel penasihat program."
+  },
+  {
+   "periodId": "P2026-08-15",
+   "mqa": "MQA/FA7493",
+   "text": "Laporan Audit MQA telah diterima. \nStatus: Lulus Pematuhan"
+  }
+ ]
+}

@@ -1,4 +1,4 @@
-# Maklumat, Pemetaan dan Semakan Program Akademik Pascasiswazah UniSZA
+# Pengurusan Akademik Pascasiswazah UniSZA
 
 GGN MQF 2.0 programme information and mapping module.
 
@@ -25,6 +25,25 @@ Shared files: `Index.html` (shell), `Styles.html` (CSS), `AppJs.html` (one Vue
 instance for both pages, reading the server-injected `BOOT` payload).
 Programme rows and the "Back to programmes" control are real links, so a detail
 page can be bookmarked or shared.
+
+## Review status (semakan program)
+
+A periodic review cycle (every 4–6 months) where each faculty reports the status
+of its programmes. Data lives in the same workbook:
+
+| Tab | Purpose |
+|---|---|
+| `ReviewPeriods` | One row per cycle: `PeriodId`, title, cut-off label, open/close window, state |
+| `ReviewSubmissions` | Append-only history: period, programme, faculty, free-text status, author, timestamp |
+| `ReviewRoles` | Explicit authority: `PJK` (quality coordinator) and `TDA_PPS` (deputy dean, backup) |
+
+History from the legacy `Status Semakan Maklumat Program Akademik Siswazah.xlsx`
+(five cut-off dates, 13/03/2025 to 15/08/2026, 282 entries) was imported with the
+faculty's Deputy Dean (Academic) recorded as the author, because those rows carry
+no user. Entries are captured in `docs/import/review-history-2026-08.json`.
+
+PJK and TDA PPS will open and close each cycle from the admin page; a programme
+with no submission when the cycle closes is reported as "Tidak dikemaskini".
 
 ## Generated PDFs
 
