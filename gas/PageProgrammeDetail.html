@@ -26,6 +26,54 @@
 
         <section class="section-card">
           <div class="section-heading">
+            <h3>Maklumat Program</h3>
+          </div>
+          <div class="cv-grid">
+            <div class="cv-item">
+              <span class="cv-label">Nama Program (BM)</span>
+              <span class="cv-value">{{ detail.nameMy || '—' }}</span>
+            </div>
+            <div class="cv-item">
+              <span class="cv-label">Program Name (EN)</span>
+              <span class="cv-value">{{ detail.name || '—' }}</span>
+            </div>
+            <div class="cv-item">
+              <span class="cv-label">Kod Rujukan MQA</span>
+              <span class="cv-value"><code>{{ detail.mqaCode }}</code></span>
+            </div>
+            <div class="cv-item">
+              <span class="cv-label">Kod Program</span>
+              <span class="cv-value">{{ detail.progCode || '—' }}</span>
+            </div>
+            <div class="cv-item">
+              <span class="cv-label">Fakulti / Institut</span>
+              <span class="cv-value">{{ detail.facultyFull || detail.faculty }}</span>
+            </div>
+            <div class="cv-item">
+              <span class="cv-label">Tahap Pengajian</span>
+              <span class="cv-value">{{ detail.level }}</span>
+            </div>
+            <div class="cv-item">
+              <span class="cv-label">NEC 2020</span>
+              <span class="cv-value">{{ detail.nec || '—' }}</span>
+            </div>
+            <div class="cv-item">
+              <span class="cv-label">Tarikh Kelulusan Akreditasi</span>
+              <span class="cv-value">{{ detail.accreditation || '—' }}</span>
+            </div>
+            <div v-if="detail.isSharedCode" class="cv-item">
+              <span class="cv-label">Peranan Fakulti</span>
+              <span class="cv-value">{{ detail.role === 'Pemilik' ? 'Pemilik program' : 'Berkongsi kod' }}</span>
+            </div>
+            <div v-if="detail.isSharedCode" class="cv-item">
+              <span class="cv-label">Fakulti / Institut Pemilik</span>
+              <span class="cv-value">{{ detail.ownerFaculty }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <div class="section-heading">
             <button type="button" class="section-toggle" @click="sections.peo = !sections.peo" :aria-expanded="sections.peo">
               <h3>PEO — Programme Educational Objectives</h3>
               <span class="review-chevron">{{ sections.peo ? '▲' : '▼' }}</span>

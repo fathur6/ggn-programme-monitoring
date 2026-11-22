@@ -284,6 +284,8 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
       nameMy: programme.nameMy,
       mqaCode: programme.mqaCode,
       progCode: programme.progCode,
+      nec: programme.nee || '',
+      accreditation: programme.accreditation || '',
       level: programme.level,
       faculty: programme.faculty,
       facultyFull: programme.facultyFull,
@@ -1465,7 +1467,7 @@ function getProgrammes_() {
       mqaCode: mqaCode,
       nee: String(row[3] || '').trim(),
       progCode: String(row[4] || '').trim(),
-      accreditation: String(row[5] || '').trim(),
+      accreditation: formatAccreditation_(row[5]),
       facultyFull: String(row[6] || '').trim(),
       faculty: String(row[7] || '').trim(),
       sharing: String(row[8] || '').trim(),
@@ -2020,6 +2022,18 @@ function applyPEOMQFRollup_(peos, plos) {
     peo.mqfDomains = domains;
     peo.mqfDomain = domains.join(', ');
   });
+}
+
+/** Accreditations arrive either as text ("5 Jun 2013") or as an Excel serial. */
+function formatAccreditation_(value) {
+  if (value === null || value === undefined || value === '') return '';
+  if (typeof value === 'number' && isFinite(value)) {
+    var millis = Math.round(value) * 86400000;
+    var date = new Date(Date.UTC(1899, 11, 30) + millis);
+    if (isNaN(date.getTime())) return '';
+    return reviewLongDateLabel_(date);
+  }
+  return String(value).trim();
 }
 
 function detectLevel_(name) {
