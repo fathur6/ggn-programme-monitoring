@@ -16,8 +16,8 @@
             </div>
           </div>
           <div class="detail-actions">
-            <button class="btn btn-primary" @click="generatePdf" :disabled="pdf.generating">{{ pdf.generating ? 'Generating PDF…' : 'Download PDF' }}</button>
-            <a class="btn btn-outline" :href="listUrl">← Back to programmes</a>
+            <button class="btn btn-primary" @click="generatePdf" :disabled="pdf.generating">{{ pdf.generating ? t('review_submitting') : t('download_pdf') }}</button>
+            <a class="btn btn-outline" :href="listUrl">← {{ t('back_programmes') }}</a>
           </div>
         </div>
 
@@ -26,47 +26,47 @@
 
         <section class="section-card">
           <div class="section-heading">
-            <h3>Maklumat Program</h3>
+            <h3>{{ t('programme_info') }}</h3>
           </div>
           <div class="cv-grid">
             <div class="cv-item">
-              <span class="cv-label">Nama Program (BM)</span>
+              <span class="cv-label">{{ t('lbl_name_bm') }}</span>
               <span class="cv-value">{{ detail.nameMy || '—' }}</span>
             </div>
             <div class="cv-item">
-              <span class="cv-label">Program Name (EN)</span>
+              <span class="cv-label">{{ t('lbl_name_en') }}</span>
               <span class="cv-value">{{ detail.name || '—' }}</span>
             </div>
             <div class="cv-item">
-              <span class="cv-label">Kod Rujukan MQA</span>
+              <span class="cv-label">{{ t('lbl_mqa') }}</span>
               <span class="cv-value"><code>{{ detail.mqaCode }}</code></span>
             </div>
             <div class="cv-item">
-              <span class="cv-label">Kod Program</span>
+              <span class="cv-label">{{ t('lbl_prog_code') }}</span>
               <span class="cv-value">{{ detail.progCode || '—' }}</span>
             </div>
             <div class="cv-item">
-              <span class="cv-label">Fakulti / Institut</span>
+              <span class="cv-label">{{ t('lbl_faculty') }}</span>
               <span class="cv-value">{{ detail.facultyFull || detail.faculty }}</span>
             </div>
             <div class="cv-item">
-              <span class="cv-label">Tahap Pengajian</span>
+              <span class="cv-label">{{ t('lbl_level') }}</span>
               <span class="cv-value">{{ detail.level }}</span>
             </div>
             <div class="cv-item">
-              <span class="cv-label">NEC 2020</span>
+              <span class="cv-label">{{ t('lbl_nec') }}</span>
               <span class="cv-value">{{ detail.nec || '—' }}</span>
             </div>
             <div class="cv-item">
-              <span class="cv-label">Tarikh Kelulusan Akreditasi</span>
+              <span class="cv-label">{{ t('lbl_accreditation') }}</span>
               <span class="cv-value">{{ detail.accreditation || '—' }}</span>
             </div>
             <div v-if="detail.isSharedCode" class="cv-item">
-              <span class="cv-label">Peranan Fakulti</span>
+              <span class="cv-label">{{ t('lbl_role') }}</span>
               <span class="cv-value">{{ detail.role === 'Pemilik' ? 'Pemilik program' : 'Berkongsi kod' }}</span>
             </div>
             <div v-if="detail.isSharedCode" class="cv-item">
-              <span class="cv-label">Fakulti / Institut Pemilik</span>
+              <span class="cv-label">{{ t('lbl_owner') }}</span>
               <span class="cv-value">{{ detail.ownerFaculty }}</span>
             </div>
           </div>
@@ -75,21 +75,21 @@
         <section class="section-card">
           <div class="section-heading">
             <button type="button" class="section-toggle" @click="sections.peo = !sections.peo" :aria-expanded="sections.peo">
-              <h3>PEO — Programme Educational Objectives</h3>
+              <h3>{{ t('peo_title') }}</h3>
               <span class="review-chevron">{{ sections.peo ? '▲' : '▼' }}</span>
             </button>
             <div class="section-heading-actions">
-              <span class="count">{{ detail.peos.length }} records</span>
-              <button class="btn btn-outline btn-sm" @click="addRecord('peo')" :disabled="adding">+ Add PEO</button>
+              <span class="count">{{ detail.peos.length }} {{ t('records') }}</span>
+              <button class="btn btn-outline btn-sm" @click="addRecord('peo')" :disabled="adding">{{ t('add_peo') }}</button>
             </div>
           </div>
           <div v-show="sections.peo" class="table-wrap">
             <table class="detail-table">
               <thead>
                 <tr>
-                  <th scope="col">Code</th>
-                  <th scope="col">PEO statement</th>
-                  <th scope="col">MQF domain</th>
+                  <th scope="col">{{ t('col_code') }}</th>
+                  <th scope="col">{{ t('col_statement') }}</th>
+                  <th scope="col">{{ t('col_mqf') }}</th>
                   <th scope="col" class="action-cell"><span class="sr-only">Actions</span></th>
                 </tr>
               </thead>
@@ -120,23 +120,23 @@
         <section class="section-card">
           <div class="section-heading">
             <button type="button" class="section-toggle" @click="sections.plo = !sections.plo" :aria-expanded="sections.plo">
-              <h3>PLO — Programme Learning Outcomes</h3>
+              <h3>{{ t('plo_title') }}</h3>
               <span class="review-chevron">{{ sections.plo ? '▲' : '▼' }}</span>
             </button>
             <div class="section-heading-actions">
-              <span class="count">{{ detail.plos.length }}/11 records</span>
-              <button class="btn btn-outline btn-sm" @click="addRecord('plo')" :disabled="adding || detail.plos.length >= 11">+ Add PLO</button>
+              <span class="count">{{ detail.plos.length }}/11 {{ t('records') }}</span>
+              <button class="btn btn-outline btn-sm" @click="addRecord('plo')" :disabled="adding || detail.plos.length >= 11">{{ t('add_plo') }}</button>
             </div>
           </div>
           <div v-show="sections.plo" class="table-wrap">
             <table class="detail-table">
               <thead>
                 <tr>
-                  <th scope="col">Code</th>
-                  <th scope="col">PLO statement</th>
-                  <th scope="col">Parent PEO</th>
-                  <th scope="col">MQF domain</th>
-                  <th scope="col">Taxonomy</th>
+                  <th scope="col">{{ t('col_code') }}</th>
+                  <th scope="col">{{ t('col_statement') }}</th>
+                  <th scope="col">{{ t('col_parent') }}</th>
+                  <th scope="col">{{ t('col_mqf') }}</th>
+                  <th scope="col">{{ t('col_taxonomy') }}</th>
                   <th scope="col">SDG</th>
                   <th scope="col">SC</th>
                   <th scope="col">TF</th>
@@ -170,7 +170,7 @@
         <section v-if="pdfLog.length" class="section-card">
           <div class="section-heading">
             <button type="button" class="section-toggle" @click="sections.pdf = !sections.pdf" :aria-expanded="sections.pdf">
-              <h3>PDF dijana</h3>
+              <h3>{{ t('pdf_title') }}</h3>
               <span class="review-chevron">{{ sections.pdf ? '▲' : '▼' }}</span>
             </button>
             <div class="section-heading-actions">
@@ -181,9 +181,9 @@
             <table class="detail-table">
               <thead>
                 <tr>
-                  <th scope="col">Fail PDF</th>
-                  <th scope="col">Tarikh</th>
-                  <th scope="col">Penjana</th>
+                  <th scope="col">{{ t('col_file') }}</th>
+                  <th scope="col">{{ t('col_date') }}</th>
+                  <th scope="col">{{ t('col_author') }}</th>
                   <th scope="col" class="action-cell"><span class="sr-only">Buka</span></th>
                 </tr>
               </thead>
@@ -196,7 +196,7 @@
                     <span v-if="row.generatedByEmail" class="text-muted text-sm"> · {{ row.generatedByEmail }}</span>
                   </td>
                   <td class="action-cell">
-                    <a class="btn btn-outline btn-sm" :href="row.url" target="_blank" rel="noopener noreferrer">Buka PDF</a>
+                    <a class="btn btn-outline btn-sm" :href="row.url" target="_blank" rel="noopener noreferrer">{{ t('open_pdf') }}</a>
                   </td>
                 </tr>
               </tbody>
@@ -206,9 +206,9 @@
 
         <section class="section-card">
           <button type="button" class="review-toggle" @click="review.open = !review.open" :aria-expanded="review.open">
-            <span class="review-toggle-title">Status Semakan</span>
+            <span class="review-toggle-title">{{ t('review_title') }}</span>
             <span class="review-toggle-meta">
-              {{ review.active ? 'Sesi dibuka · tutup ' + (review.active.closesAtLabel || review.active.cutoffLabel) : 'Tiada sesi dibuka' }}
+              {{ review.active ? t('review_open') + ' ' + (review.active.closesAtLabel || review.active.cutoffLabel) : t('review_closed') }}
             </span>
             <span class="review-chevron">{{ review.open ? '▲' : '▼' }}</span>
           </button>
@@ -218,18 +218,18 @@
             <div v-if="review.notice" class="alert alert-success">{{ review.notice }}</div>
 
             <div v-if="review.active">
-              <p class="eyebrow">SESI SEMASA</p>
+              <p class="eyebrow">{{ t('review_current') }}</p>
               <p class="review-headline">{{ review.active.title }}</p>
               <p v-if="review.currentText" class="text-sm text-muted">Status terkini: {{ review.currentText }}</p>
-              <p v-else class="text-sm text-muted">Belum ada status untuk sesi ini.</p>
+              <p v-else class="text-sm text-muted">{{ t('review_none') }}</p>
 
               <template v-if="review.canSubmit">
-                <label class="review-label" for="review-status">Status semakan (teks bebas)</label>
+                <label class="review-label" for="review-status">{{ t('review_label') }}</label>
                 <textarea id="review-status" v-model.trim="review.draft" rows="5" class="review-textarea"
                   placeholder="Contoh: pemurnian telah dibuat … semakan dan penambahbaikan akan dibuat dalam bengkel hujung April 2026."></textarea>
                 <div class="modal-actions">
                   <button type="button" class="btn btn-primary" @click="submitReview" :disabled="review.submitting || !review.draft">
-                    {{ review.submitting ? 'Menghantar…' : 'Hantar status' }}
+                    {{ review.submitting ? t('review_submitting') : t('review_submit') }}
                   </button>
                 </div>
               </template>
@@ -245,9 +245,9 @@
               <table class="detail-table">
                 <thead>
                   <tr>
-                    <th scope="col">Sesi</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Dikemaskini oleh</th>
+                    <th scope="col">{{ t('col_session') }}</th>
+                    <th scope="col">{{ t('col_status') }}</th>
+                    <th scope="col">{{ t('review_by') }}</th>
                   </tr>
                 </thead>
                 <tbody>

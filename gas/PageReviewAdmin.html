@@ -1,10 +1,10 @@
         <div class="page-intro compact-intro">
           <div class="flex items-center justify-between" style="gap:16px; flex-wrap:wrap">
             <div>
-              <p class="eyebrow">PENTADBIRAN</p>
-              <h2 class="page-title">Sesi semakan program</h2>
+              <p class="eyebrow">{{ t('admin_menu') }}</p>
+              <h2 class="page-title">{{ t('admin_title') }}</h2>
             </div>
-            <a class="btn btn-outline btn-sm" :href="baseUrl + '?page=programmes'">← Kembali ke laman utama</a>
+            <a class="btn btn-outline btn-sm" :href="baseUrl + '?page=programmes'">← {{ t('back_home') }}</a>
           </div>
           <p class="page-lede">
             Buka dan tutup sesi kemaskini status semakan. Hanya satu sesi boleh dibuka pada satu masa;
@@ -17,7 +17,7 @@
 
         <section class="section-card">
           <div class="section-heading">
-            <h3>Sesi semasa</h3>
+            <h3>{{ t('session_current') }}</h3>
             <div class="section-heading-actions">
               <span class="state-chip" :class="{ 'chip-shared': review.active, 'chip-warn': !review.active }">
                 {{ review.active ? 'Dibuka' : 'Tiada sesi dibuka' }}
@@ -41,7 +41,7 @@
 
         <section class="section-card">
           <div class="section-heading">
-            <h3>Buka sesi baharu</h3>
+            <h3>{{ t('open_new') }}</h3>
           </div>
           <div class="form-grid">
             <div class="form-field">
@@ -59,14 +59,14 @@
           </div>
           <div class="modal-actions" style="justify-content:flex-start">
             <button type="button" class="btn btn-primary" @click="openPeriod" :disabled="busy || !form.cutoffDate">
-              {{ busy ? 'Menyimpan…' : 'Buka sesi' }}
+              {{ busy ? t('review_submitting') : t('open_session') }}
             </button>
           </div>
         </section>
 
         <section class="section-card">
           <div class="section-heading">
-            <h3>Senarai sesi</h3>
+            <h3>{{ t('session_list') }}</h3>
             <div class="section-heading-actions">
               <span class="count">{{ review.periods.length }} sesi</span>
             </div>
@@ -77,9 +77,9 @@
                 <tr>
                   <th scope="col">Sesi</th>
                   <th scope="col">Cut-off</th>
-                  <th scope="col">Tutup</th>
+                  <th scope="col">{{ t('action_close') }}</th>
                   <th scope="col">Status</th>
-                  <th scope="col">Dikemaskini</th>
+                  <th scope="col">{{ t('col_updated') }}</th>
                   <th scope="col" class="action-cell"><span class="sr-only">Tindakan</span></th>
                 </tr>
               </thead>
@@ -93,8 +93,8 @@
                   </td>
                   <td>{{ period.updated }} / {{ period.total }}</td>
                   <td class="action-cell">
-                    <button v-if="period.state === 'Open'" type="button" class="btn btn-outline btn-sm" @click="setState(period.periodId, 'Closed')" :disabled="busy">Tutup</button>
-                    <button v-else type="button" class="btn btn-outline btn-sm" @click="setState(period.periodId, 'Open')" :disabled="busy">Buka</button>
+                    <button v-if="period.state === 'Open'" type="button" class="btn btn-outline btn-sm" @click="setState(period.periodId, 'Closed')" :disabled="busy">{{ t('action_close') }}</button>
+                    <button v-else type="button" class="btn btn-outline btn-sm" @click="setState(period.periodId, 'Open')" :disabled="busy">{{ t('action_open') }}</button>
                   </td>
                 </tr>
               </tbody>
@@ -104,7 +104,7 @@
 
         <section class="section-card">
           <div class="section-heading">
-            <h3>Kemajuan fakulti</h3>
+            <h3>{{ t('faculty_progress') }}</h3>
             <div class="section-heading-actions">
               <span class="count">{{ review.programmesTotal }} program</span>
             </div>
@@ -113,11 +113,11 @@
             <table class="detail-table">
               <thead>
                 <tr>
-                  <th scope="col">Fakulti</th>
-                  <th scope="col">Program</th>
-                  <th scope="col">Dikemaskini</th>
-                  <th scope="col">Belum</th>
-                  <th scope="col">Peratus</th>
+                  <th scope="col">{{ t('col_faculty') }}</th>
+                  <th scope="col">{{ t('col_programmes') }}</th>
+                  <th scope="col">{{ t('col_updated') }}</th>
+                  <th scope="col">{{ t('col_missing') }}</th>
+                  <th scope="col">{{ t('col_percent') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -135,7 +135,7 @@
 
         <section class="section-card">
           <div class="section-heading">
-            <h3>Penyelenggaraan</h3>
+            <h3>{{ t('maintenance') }}</h3>
           </div>
           <p class="text-sm text-muted" style="margin:0 0 14px">
             Salinan Excel dijana daripada Google Sheet (sumber utama). Peringatan automatik dihantar
@@ -143,10 +143,10 @@
             setiap fakulti yang belum lengkap.
           </p>
           <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap">
-            <button type="button" class="btn btn-outline" @click="syncBackup" :disabled="busy">Kemas kini backup Excel</button>
-            <button type="button" class="btn btn-outline" @click="sendEmails('open', true)" :disabled="busy || !review.active">Uji e-mel (ke saya)</button>
-            <button type="button" class="btn btn-outline" @click="sendEmails('open', false)" :disabled="busy || !review.active">E-mel sesi dibuka</button>
-            <button type="button" class="btn btn-outline" @click="sendEmails('reminder', false)" :disabled="busy || !review.active">E-mel peringatan</button>
+            <button type="button" class="btn btn-outline" @click="syncBackup" :disabled="busy">{{ t('sync_backup') }}</button>
+            <button type="button" class="btn btn-outline" @click="sendEmails('open', true)" :disabled="busy || !review.active">{{ t('email_test') }}</button>
+            <button type="button" class="btn btn-outline" @click="sendEmails('open', false)" :disabled="busy || !review.active">{{ t('email_open') }}</button>
+            <button type="button" class="btn btn-outline" @click="sendEmails('reminder', false)" :disabled="busy || !review.active">{{ t('email_reminder') }}</button>
           </div>
           <p v-if="backupUrl" class="text-sm" style="margin:14px 0 0">
             Backup terkini: <a :href="backupUrl" target="_blank" rel="noopener noreferrer">buka fail Excel</a>
@@ -155,7 +155,7 @@
 
         <section class="section-card">
           <div class="section-heading">
-            <h3>Direktori pengguna</h3>
+            <h3>{{ t('directory_title') }}</h3>
             <div class="section-heading-actions">
               <span class="count">{{ directory.rows.length }} kenalan</span>
             </div>
@@ -185,10 +185,10 @@
           </div>
           <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap">
             <button type="button" class="btn btn-primary" @click="saveDirectory" :disabled="busy">
-              {{ dirForm.rowIndex ? 'Simpan perubahan' : 'Tambah Ahli' }}
+              {{ dirForm.rowIndex ? t('review_submit') : t('add_member') }}
             </button>
             <button v-if="dirForm.rowIndex" type="button" class="btn btn-outline" @click="resetDirectory" :disabled="busy">Batal</button>
-            <button type="button" class="btn btn-outline" @click="toggleAdmins" :disabled="busy">Edit Pentadbir</button>
+            <button type="button" class="btn btn-outline" @click="toggleAdmins" :disabled="busy">{{ t('edit_admin') }}</button>
           </div>
 
           <div v-if="showAdmins" class="admin-editor">
@@ -226,7 +226,7 @@
             <div class="table-wrap" style="margin-top:12px">
               <table class="detail-table">
                 <thead>
-                  <tr><th scope="col">Nama</th><th scope="col">E-mel</th><th scope="col">Peranan</th><th scope="col">Fakulti</th><th scope="col" class="action-cell"><span class="sr-only">Tindakan</span></th></tr>
+                  <tr><th scope="col">Nama</th><th scope="col">E-mel</th><th scope="col">Peranan</th><th scope="col">{{ t('col_faculty') }}</th><th scope="col" class="action-cell"><span class="sr-only">Tindakan</span></th></tr>
                 </thead>
                 <tbody>
                   <tr v-for="admin in admins.rows" :key="admin.rowIndex">
@@ -248,7 +248,7 @@
             <table class="detail-table">
               <thead>
                 <tr>
-                  <th scope="col">Fakulti</th>
+                  <th scope="col">{{ t('col_faculty') }}</th>
                   <th scope="col">Nama</th>
                   <th scope="col">E-mel</th>
                   <th scope="col">Jawatan</th>
@@ -273,7 +273,7 @@
 
         <section v-if="review.unregistered.length" class="section-card">
           <div class="section-heading">
-            <h3>Program tidak berdaftar</h3>
+            <h3>{{ t('unregistered') }}</h3>
             <div class="section-heading-actions">
               <span class="count">{{ review.unregistered.length }} entri</span>
             </div>
@@ -286,7 +286,7 @@
               <thead>
                 <tr>
                   <th scope="col">Kod MQA</th>
-                  <th scope="col">Fakulti</th>
+                  <th scope="col">{{ t('col_faculty') }}</th>
                   <th scope="col">Sesi</th>
                   <th scope="col">Status</th>
                 </tr>
