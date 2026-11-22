@@ -12,7 +12,9 @@ assert.match(server, /setTrashed\(true\)/);
 assert.match(server, /sheet\.setHiddenGridlines\(true\)/);
 assert.match(server, /isSDGEligiblePLO_\(plos\[q\]\.code, code\) \? plos\[q\]\.sdg \|\| '' : ''/);
 assert.match(server, /isSCEligiblePLO_\(plos\[q\]\.code, code\) \? plos\[q\]\.sc \|\| '' : ''/);
-assert.doesNotMatch(server, /UrlFetchApp\.fetch/);
-assert.doesNotMatch(manifest, /script\.external_request/);
+// The PDF path must stay free of network calls; the review Excel export is
+// allowed to use UrlFetchApp against Drive's own export endpoint.
+const pdfSection = server.slice(server.indexOf('function buildPdfBlob_'), server.indexOf('function padRow_'));
+assert.doesNotMatch(pdfSection, /UrlFetchApp/);
 
 console.log('PDF export no longer requires UrlFetchApp.');
