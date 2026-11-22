@@ -26,6 +26,20 @@ instance for both pages, reading the server-injected `BOOT` payload).
 Programme rows and the "Back to programmes" control are real links, so a detail
 page can be bookmarked or shared.
 
+## Interface language
+
+English is the default interface; Malay and Arabic are translations of the same
+message table (`gas/Lang.html`, 92 keys per language). The choice is saved per
+account in the `USER` sheet (`Language` column) and in `localStorage`.
+
+Academic content (programme names, PEO/PLO statements, review text) is never
+translated — official MQA documents are issued in English, and a footnote on the
+programme pages says so in all three languages.
+
+**Decision:** server-side error messages are English only. They are rare,
+input-validation text and follow the official-language policy; localising them
+would require passing a language with every API call.
+
 ## Programme source copy
 
 The PJK workbook (`Status Semakan Maklumat Program Akademik Siswazah.xlsx`) is
