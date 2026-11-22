@@ -109,7 +109,7 @@
         },
         sdgCards: function () {
           var byCode = {};
-          (this.sdg.sdgs || []).forEach(function (row) { byCode[row.sdg] = row; });
+          (this.sdg.sdgs || []).forEach(function (row) { byCode[row.code] = row; });
           var max = 1;
           (this.sdg.sdgs || []).forEach(function (row) { max = Math.max(max, row.programmeCount); });
           var self = this;
