@@ -9,10 +9,7 @@
               </p>
               <p class="text-sm text-muted" v-else>Buka sesi di menu pentadbir untuk mula mengumpul status.</p>
             </div>
-            <div class="flex items-center gap-3">
-              <a class="btn btn-outline btn-sm" :href="baseUrl + '?page=sdg'">SDG map →</a>
-              <button type="button" class="btn btn-outline btn-sm" @click="schoolModal = true">{{ t('dash_more') }} →</button>
-            </div>
+            <button type="button" class="btn btn-outline btn-sm" @click="schoolModal = true">{{ t('dash_more') }} →</button>
           </div>
 
           <div class="dash-cards">

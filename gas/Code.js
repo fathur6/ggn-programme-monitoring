@@ -230,19 +230,6 @@ function doGet(e) {
       return jsonResponse_(backfillPdfLog_());
     }
     if (page === 'review') return renderReviewAdminPage_(session);
-    if (page === 'sdg') {
-      return renderPage_('PageSdg', APP_SHORT_NAME_ + ' — SDG map', {
-        page: 'sdg',
-        user: session.user,
-        token: session.token,
-        baseUrl: deploymentUrl_(),
-        sdg: (function () {
-          var maps = referenceMapsPayload_();
-          var mapped = maps.sdg.reduce(function (n, row) { return n + row.ploCount; }, 0);
-          return { totalProgrammes: maps.totalProgrammes, mappedPlos: mapped, sdgs: maps.sdg };
-        })()
-      });
-    }
     if (page === 'detail') {
       var mqaCode = String(params.mqaCode || '').trim();
       if (mqaCode) {
