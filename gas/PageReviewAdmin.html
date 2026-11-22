@@ -1,6 +1,11 @@
         <div class="page-intro compact-intro">
-          <p class="eyebrow">PENTADBIRAN</p>
-          <h2 class="page-title">Sesi semakan program</h2>
+          <div class="flex items-center justify-between" style="gap:16px; flex-wrap:wrap">
+            <div>
+              <p class="eyebrow">PENTADBIRAN</p>
+              <h2 class="page-title">Sesi semakan program</h2>
+            </div>
+            <a class="btn btn-outline btn-sm" :href="baseUrl + '?page=programmes'">← Kembali ke laman utama</a>
+          </div>
           <p class="page-lede">
             Buka dan tutup sesi kemaskini status semakan. Hanya satu sesi boleh dibuka pada satu masa;
             membuka sesi baharu akan menutup sesi sebelumnya.
@@ -178,11 +183,65 @@
               <input id="dir-position" type="text" v-model.trim="dirForm.position" placeholder="Deputy Dean Academic / Faculty PIC / Graduate Coordinator">
             </div>
           </div>
-          <div class="modal-actions" style="justify-content:flex-start">
+          <div class="modal-actions" style="justify-content:flex-start; flex-wrap:wrap">
             <button type="button" class="btn btn-primary" @click="saveDirectory" :disabled="busy">
-              {{ dirForm.rowIndex ? 'Simpan perubahan' : 'Tambah kenalan' }}
+              {{ dirForm.rowIndex ? 'Simpan perubahan' : 'Tambah Ahli' }}
             </button>
             <button v-if="dirForm.rowIndex" type="button" class="btn btn-outline" @click="resetDirectory" :disabled="busy">Batal</button>
+            <button type="button" class="btn btn-outline" @click="toggleAdmins" :disabled="busy">Edit Pentadbir</button>
+          </div>
+
+          <div v-if="showAdmins" class="admin-editor">
+            <h4 class="admin-editor-title">Pentadbir sistem</h4>
+            <p class="text-sm text-muted" style="margin:0 0 12px">
+              TDA PPS, PJK PPS dan PPA PPS boleh membuka/menutup sesi dan mengurus direktori.
+              Anda tidak boleh membuang akses anda sendiri.
+            </p>
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="adm-name">Nama</label>
+                <input id="adm-name" type="text" v-model.trim="adminForm.name">
+              </div>
+              <div class="form-field">
+                <label for="adm-email">E-mel</label>
+                <input id="adm-email" type="email" v-model.trim="adminForm.email" placeholder="nama@unisza.edu.my">
+              </div>
+              <div class="form-field">
+                <label for="adm-role">Peranan</label>
+                <select id="adm-role" v-model="adminForm.role">
+                  <option v-for="role in admins.roles" :key="role" :value="role">{{ role }}</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="adm-faculty">Fakulti / Unit</label>
+                <input id="adm-faculty" type="text" v-model.trim="adminForm.faculty" placeholder="PPS">
+              </div>
+            </div>
+            <div class="modal-actions" style="justify-content:flex-start">
+              <button type="button" class="btn btn-primary" @click="saveAdmin" :disabled="busy">
+                {{ adminForm.rowIndex ? 'Simpan pentadbir' : 'Tambah pentadbir' }}
+              </button>
+              <button v-if="adminForm.rowIndex" type="button" class="btn btn-outline" @click="resetAdmin" :disabled="busy">Batal</button>
+            </div>
+            <div class="table-wrap" style="margin-top:12px">
+              <table class="detail-table">
+                <thead>
+                  <tr><th scope="col">Nama</th><th scope="col">E-mel</th><th scope="col">Peranan</th><th scope="col">Fakulti</th><th scope="col" class="action-cell"><span class="sr-only">Tindakan</span></th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="admin in admins.rows" :key="admin.rowIndex">
+                    <td>{{ admin.name }}</td>
+                    <td>{{ admin.email }}</td>
+                    <td>{{ admin.role }}</td>
+                    <td>{{ admin.faculty }}</td>
+                    <td class="action-cell">
+                      <button type="button" class="btn btn-outline btn-sm" @click="editAdmin(admin)" :disabled="busy">Edit</button>
+                      <button type="button" class="btn btn-outline btn-sm" @click="removeAdmin(admin)" :disabled="busy">Buang</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div class="table-wrap" style="margin-top:16px">

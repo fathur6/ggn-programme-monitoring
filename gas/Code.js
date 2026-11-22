@@ -510,11 +510,13 @@ function reviewRolesFor_(email) {
   }).map(function (row) { return String(row.Role || '').trim(); });
 }
 
+var REVIEW_ADMIN_ROLES_ = ['PJK', 'TDA_PPS', 'PPA'];
+
 function canManageReview_(session) {
   if (!session) return false;
   if (session.isAdmin) return true;
   var roles = reviewRolesFor_(session.email);
-  return roles.indexOf('PJK') !== -1 || roles.indexOf('TDA_PPS') !== -1;
+  return roles.some(function (role) { return REVIEW_ADMIN_ROLES_.indexOf(role) !== -1; });
 }
 
 function requireReviewManager_(session) {
@@ -1061,6 +1063,61 @@ function removeDirectoryAdminApi(rowIndex, sessionToken) {
   return directoryPayload_();
 }
 
+/** Administrators: who may open cycles, edit the directory and manage admins. */
+function reviewRolesPayload_() {
+  var sheet = programmeSpreadsheet_().getSheetByName(REVIEW_ROLES_SHEET_);
+  if (!sheet) return { count: 0, rows: [] };
+  var data = sheet.getDataRange().getValues();
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var email = String(data[i][0] || '').trim();
+    if (!email) continue;
+    rows.push({
+      rowIndex: i + 1,
+      email: email,
+      name: String(data[i][1] || '').trim(),
+      role: String(data[i][2] || '').trim(),
+      faculty: String(data[i][3] || '').trim(),
+      active: String(data[i][4] || 'Yes').trim()
+    });
+  }
+  return { count: rows.length, rows: rows, roles: REVIEW_ADMIN_ROLES_ };
+}
+
+function saveReviewRoleApi(payload, sessionToken) {
+  requireReviewManager_(requireLogin_(sessionToken));
+  var input = payload || {};
+  var email = String(input.email || '').trim().toLowerCase();
+  var name = String(input.name || '').trim();
+  var role = String(input.role || '').trim();
+  var faculty = String(input.faculty || '').trim();
+  if (!email || !name) throw new Error('Nama dan e-mel wajib diisi.');
+  if (!/@unisza\.edu\.my$/.test(email)) throw new Error('E-mel mesti @unisza.edu.my.');
+  if (REVIEW_ADMIN_ROLES_.indexOf(role) === -1) throw new Error('Peranan tidak sah.');
+
+  var sheet = programmeSpreadsheet_().getSheetByName(REVIEW_ROLES_SHEET_);
+  var rowIndex = Number(input.rowIndex || 0);
+  if (rowIndex >= 2) sheet.getRange(rowIndex, 1, 1, 5).setValues([[email, name, role, faculty, 'Yes']]);
+  else sheet.appendRow([email, name, role, faculty, 'Yes']);
+  SpreadsheetApp.flush();
+  return reviewRolesPayload_();
+}
+
+function removeReviewRoleApi(rowIndex, sessionToken) {
+  requireReviewManager_(requireLogin_(sessionToken));
+  var index = Number(rowIndex || 0);
+  var sheet = programmeSpreadsheet_().getSheetByName(REVIEW_ROLES_SHEET_);
+  if (!sheet || index < 2 || index > sheet.getLastRow()) throw new Error('Rekod pentadbir tidak ditemui.');
+  var email = String(sheet.getRange(index, 1).getValue() || '').trim().toLowerCase();
+  var current = requireLogin_(sessionToken);
+  if (email && current && email === String(current.email || '').toLowerCase()) {
+    throw new Error('Anda tidak boleh membuang akses pentadbir anda sendiri.');
+  }
+  sheet.deleteRow(index);
+  SpreadsheetApp.flush();
+  return reviewRolesPayload_();
+}
+
 function jsonResponse_(payload) {
   return ContentService.createTextOutput(JSON.stringify(payload, null, 2))
     .setMimeType(ContentService.MimeType.JSON);
@@ -1258,6 +1315,7 @@ function renderReviewAdminPage_(session) {
     baseUrl: deploymentUrl_(),
     review: reviewAdminPayload_(session.user),
     directory: directoryPayload_(),
+    admins: reviewRolesPayload_(),
     appJs: 'AdminJs'
   });
 }

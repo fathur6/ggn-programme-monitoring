@@ -19,6 +19,9 @@
         sessionToken: ADMIN_BOOT.token || '',
         review: ADMIN_BOOT.review || { active: null, periods: [], faculties: [], unregistered: [], programmesTotal: 0 },
         directory: ADMIN_BOOT.directory || { rows: [] },
+        admins: ADMIN_BOOT.admins || { rows: [], roles: [] },
+        showAdmins: false,
+        adminForm: { rowIndex: 0, name: '', email: '', role: 'PPA', faculty: 'PPS' },
         dirForm: { rowIndex: 0, faculty: '', name: '', email: '', position: '' },
         form: { cutoffDate: adminDate(0), closesDate: adminDate(30), title: '' },
         busy: false,
@@ -150,6 +153,51 @@
               self.error = err && err.message ? err.message : 'Kenalan tidak dapat dipadam.';
             })
             .removeDirectoryAdminApi(person.rowIndex, this.sessionToken);
+        },
+        toggleAdmins: function () { this.showAdmins = !this.showAdmins; },
+        resetAdmin: function () {
+          this.adminForm = { rowIndex: 0, name: '', email: '', role: 'PPA', faculty: 'PPS' };
+        },
+        editAdmin: function (admin) {
+          this.showAdmins = true;
+          this.adminForm = { rowIndex: admin.rowIndex, name: admin.name, email: admin.email, role: admin.role, faculty: admin.faculty };
+        },
+        saveAdmin: function () {
+          var self = this;
+          if (this.busy) return;
+          this.busy = true;
+          this.error = null;
+          this.notice = null;
+          google.script.run
+            .withSuccessHandler(function (payload) {
+              self.busy = false;
+              self.$set(self, 'admins', payload || { rows: [], roles: [] });
+              self.notice = 'Senarai pentadbir dikemas kini.';
+              self.resetAdmin();
+            })
+            .withFailureHandler(function (err) {
+              self.busy = false;
+              self.error = err && err.message ? err.message : 'Pentadbir tidak dapat disimpan.';
+            })
+            .saveReviewRoleApi(this.adminForm, this.sessionToken);
+        },
+        removeAdmin: function (admin) {
+          var self = this;
+          if (this.busy) return;
+          this.busy = true;
+          this.error = null;
+          self.notice = null;
+          google.script.run
+            .withSuccessHandler(function (payload) {
+              self.busy = false;
+              self.$set(self, 'admins', payload || { rows: [], roles: [] });
+              self.notice = 'Akses pentadbir dibuang.';
+            })
+            .withFailureHandler(function (err) {
+              self.busy = false;
+              self.error = err && err.message ? err.message : 'Akses tidak dapat dibuang.';
+            })
+            .removeReviewRoleApi(admin.rowIndex, this.sessionToken);
         },
         setState: function (periodId, state) {
           var self = this;
