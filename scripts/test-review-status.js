@@ -89,7 +89,7 @@ function stub(app, options) {
   stub(app, { period: null });
   assert.throws(function () {
     app.submitReviewStatusApi('MQA/FA5581', 'teks', 'tok', 'FKI');
-  }, /Tiada sesi semakan/, 'Closed cycle must reject submissions');
+  }, /No review cycle/, 'Closed cycle must reject submissions');
 }
 
 // 4. Empty text is rejected.
@@ -98,7 +98,7 @@ function stub(app, options) {
   stub(app, { period: { PeriodId: 'P2026-11-21', State: 'Open' } });
   assert.throws(function () {
     app.submitReviewStatusApi('MQA/FA5581', '   ', 'tok', 'FKI');
-  }, /Sila isi status semakan/, 'Blank status must be rejected');
+  }, /Please enter the review status/, 'Blank status must be rejected');
 }
 
 // 5. A closed cycle with no submission reports "Tidak dikemaskini".
@@ -157,9 +157,9 @@ function stub(app, options) {
   assert.strictEqual(result.sent, 2, 'One email per faculty that has programmes');
   assert.strictEqual(result.skipped, 1, 'Faculties without programmes are skipped');
   assert.strictEqual(sent[0].to, 'fki@unisza.edu.my');
-  assert.ok(/Sesi semakan dibuka/.test(sent[0].subject), 'Subject must describe an opening');
-  assert.ok(/Program dikemaskini: 1 \/ 2/.test(sent[0].body), 'Body must carry that faculty\'s counts');
-  assert.ok(/Program dikemaskini: 0 \/ 1/.test(sent[1].body), 'Second faculty counts independently');
+  assert.ok(/Review cycle opened/.test(sent[0].subject), 'Subject must describe an opening');
+  assert.ok(/Programmes updated: 1 \/ 2/.test(sent[0].body), 'Body must carry that faculty\'s counts');
+  assert.ok(/Programmes updated: 0 \/ 1/.test(sent[1].body), 'Second faculty counts independently');
 
   // Reminder skips a faculty whose programmes are all updated.
   sent.length = 0;

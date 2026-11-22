@@ -481,13 +481,13 @@ function submitReviewStatusApi(mqaCode, text, sessionToken, faculty) {
   var session = requireLogin_(sessionToken);
   var programme = requireProgrammeFacultyAccess_(mqaCode, session, faculty);
   if (programme.role === PROGRAMME_ROLE_PARTNER_) {
-    throw new Error('Status semakan dikendalikan oleh fakulti pemilik (' + programme.ownerFaculty +
-      '). Fakulti berkongsi hanya menyalin status tersebut.');
+    throw new Error('Review status is maintained by the owning faculty (' + programme.ownerFaculty +
+      '). A sharing faculty only copies that status.');
   }
   var period = activeReviewPeriod_();
-  if (!period) throw new Error('Tiada sesi semakan yang dibuka. Hubungi PJK PPS.');
+  if (!period) throw new Error('No review cycle is open. Please contact the Graduate School quality coordinator.');
   var body = String(text || '').trim();
-  if (!body) throw new Error('Sila isi status semakan sebelum menghantar.');
+  if (!body) throw new Error('Please enter the review status before submitting.');
 
   var previous = reviewSubmissions_().filter(function (row) {
     return String(row.PeriodId || '') === String(period.PeriodId) &&
@@ -531,7 +531,7 @@ function canManageReview_(session) {
 
 function requireReviewManager_(session) {
   if (!canManageReview_(session)) {
-    throw new Error('Hanya Penyelaras Jaminan Kualiti atau TDA PPS boleh mengurus sesi semakan.');
+    throw new Error('Only the quality coordinator, the deputy dean or the academic programme coordinator may manage review cycles.');
   }
   return session;
 }
@@ -619,9 +619,9 @@ function saveReviewPeriodApi(payload, sessionToken) {
   var session = requireReviewManager_(requireLogin_(sessionToken));
   var input = payload || {};
   var cutoff = String(input.cutoffDate || '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(cutoff)) throw new Error('Tarikh tutup (cut-off) tidak sah.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cutoff)) throw new Error('The cut-off date is not valid.');
   var closes = String(input.closesDate || '').trim();
-  if (closes && !/^\d{4}-\d{2}-\d{2}$/.test(closes)) throw new Error('Tarikh tutup sesi tidak sah.');
+  if (closes && !/^\d{4}-\d{2}-\d{2}$/.test(closes)) throw new Error('The closing date is not valid.');
 
   var periodId = String(input.periodId || '').trim() || 'P' + cutoff;
   var sheet = ensureReviewTabs_().periods;
@@ -672,7 +672,7 @@ function setReviewPeriodStateApi(periodId, state, sessionToken) {
   var session = requireReviewManager_(requireLogin_(sessionToken));
   var target = String(periodId || '').trim();
   var next = String(state || '').trim() === REVIEW_STATE_OPEN_ ? REVIEW_STATE_OPEN_ : REVIEW_STATE_CLOSED_;
-  if (!target) throw new Error('Sesi tidak sah.');
+  if (!target) throw new Error('The cycle is not valid.');
   var sheet = ensureReviewTabs_().periods;
   var data = sheet.getDataRange().getValues();
   var headers = data[0].map(function (value) { return String(value).trim(); });
@@ -692,7 +692,7 @@ function setReviewPeriodStateApi(periodId, state, sessionToken) {
     if (updatedAtCol > 0) sheet.getRange(i + 1, updatedAtCol).setValue(new Date());
     found = true;
   }
-  if (!found) throw new Error('Sesi tidak ditemui.');
+  if (!found) throw new Error('The cycle was not found.');
   SpreadsheetApp.flush();
   if (next === REVIEW_STATE_CLOSED_) {
     try { syncReviewBackup_(); } catch (err) {
@@ -944,23 +944,23 @@ function sendReviewEmails_(kind, dryRun, session, limit) {
 
     var to = dryRun ? session.email : contact.email;
     var subject = kind === 'reminder'
-      ? '[Pengurusan Akademik] Peringatan semakan program — ' + cutoff
-      : '[Pengurusan Akademik] Sesi semakan dibuka — ' + cutoff;
+      ? '[Academic Management] Review reminder — ' + cutoff
+      : '[Academic Management] Review cycle opened — ' + cutoff;
     var lines = [
-      'Assalamualaikum dan salam sejahtera ' + (contact.name || '') + ',',
+      'Dear ' + (contact.name || 'Colleague') + ',',
       '',
       kind === 'reminder'
-        ? 'Peringatan: sesi kemaskini status semakan program akan ditutup pada ' + (closes || cutoff) + '.'
-        : 'Sesi kemaskini status semakan program telah dibuka (cut-off ' + cutoff + ').',
+        ? 'Reminder: the programme review status cycle closes on ' + (closes || cutoff) + '.'
+        : 'The programme review status cycle is now open (cut-off ' + cutoff + ').',
       '',
-      'Fakulti: ' + faculty,
-      'Program dikemaskini: ' + done + ' / ' + total,
-      'Baki: ' + Math.max(0, total - done),
+      'Faculty: ' + faculty,
+      'Programmes updated: ' + done + ' / ' + total,
+      'Outstanding: ' + Math.max(0, total - done),
       '',
-      'Kemas kini melalui: ' + link,
+      'Update at: ' + link,
       '',
-      'Sekian, terima kasih.',
-      'Pusat Pengajian Siswazah'
+      'Thank you.',
+      'Graduate School'
     ];
     GmailApp.sendEmail(to, subject, lines.join('\n'), { name: 'Pusat Pengajian Siswazah UniSZA' });
     sent++;
@@ -1048,8 +1048,8 @@ function saveDirectoryAdminApi(payload, sessionToken) {
   var name = String(input.name || '').trim();
   var email = String(input.email || '').trim().toLowerCase();
   var position = String(input.position || '').trim();
-  if (!faculty || !name || !email) throw new Error('Fakulti, nama dan e-mel wajib diisi.');
-  if (!/@unisza\.edu\.my$/.test(email)) throw new Error('E-mel mesti berakhir dengan @unisza.edu.my.');
+  if (!faculty || !name || !email) throw new Error('Faculty, name and email are required.');
+  if (!/@unisza\.edu\.my$/.test(email)) throw new Error('The email must end with @unisza.edu.my.');
 
   var sheet = programmeSpreadsheet_().getSheetByName(USER_DIRECTORY_SHEET_NAME_);
   var rowIndex = Number(input.rowIndex || 0);
@@ -1101,9 +1101,9 @@ function saveReviewRoleApi(payload, sessionToken) {
   var name = String(input.name || '').trim();
   var role = String(input.role || '').trim();
   var faculty = String(input.faculty || '').trim();
-  if (!email || !name) throw new Error('Nama dan e-mel wajib diisi.');
+  if (!email || !name) throw new Error('Name and email are required.');
   if (!/@unisza\.edu\.my$/.test(email)) throw new Error('E-mel mesti @unisza.edu.my.');
-  if (REVIEW_ADMIN_ROLES_.indexOf(role) === -1) throw new Error('Peranan tidak sah.');
+  if (REVIEW_ADMIN_ROLES_.indexOf(role) === -1) throw new Error('The role is not valid.');
 
   var sheet = programmeSpreadsheet_().getSheetByName(REVIEW_ROLES_SHEET_);
   var rowIndex = Number(input.rowIndex || 0);
@@ -1117,11 +1117,11 @@ function removeReviewRoleApi(rowIndex, sessionToken) {
   requireReviewManager_(requireLogin_(sessionToken));
   var index = Number(rowIndex || 0);
   var sheet = programmeSpreadsheet_().getSheetByName(REVIEW_ROLES_SHEET_);
-  if (!sheet || index < 2 || index > sheet.getLastRow()) throw new Error('Rekod pentadbir tidak ditemui.');
+  if (!sheet || index < 2 || index > sheet.getLastRow()) throw new Error('The administrator record was not found.');
   var email = String(sheet.getRange(index, 1).getValue() || '').trim().toLowerCase();
   var current = requireLogin_(sessionToken);
   if (email && current && email === String(current.email || '').toLowerCase()) {
-    throw new Error('Anda tidak boleh membuang akses pentadbir anda sendiri.');
+    throw new Error('You cannot remove your own administrator access.');
   }
   sheet.deleteRow(index);
   SpreadsheetApp.flush();
@@ -1496,7 +1496,7 @@ function getGoogleSessionApi() {
 function requireLogin_(token) {
   var key = String(token || '').trim();
   var raw = key && CacheService.getScriptCache().get(USER_SESSION_PREFIX_ + key);
-  if (!raw) throw new Error('Sesi log masuk tamat. Sila log masuk semula.');
+  if (!raw) throw new Error('Your session has expired. Please sign in again.');
   return JSON.parse(raw);
 }
 
@@ -1567,7 +1567,7 @@ function getProgrammesApi(sessionToken) {
 
 function requireProgrammeFacultyAccess_(mqaCode, session, facultyHint) {
   var programme = programmeForSession_(mqaCode, session, facultyHint);
-  if (!programme) throw new Error('Anda hanya boleh mengakses program di bawah fakulti sendiri.');
+  if (!programme) throw new Error('You may only access programmes under your own faculty.');
   return programme;
 }
 
@@ -1774,7 +1774,7 @@ function ensurePartnerCopy_(programme) {
 function requireOwnProgrammeTab_(programme) {
   ensurePartnerCopy_(programme);
   var sheet = programmeSpreadsheet_().getSheetByName(programme.tabName);
-  if (!sheet) throw new Error('Kandungan program tidak dapat disediakan. Sila muat semula halaman.');
+  if (!sheet) throw new Error('The programme content could not be prepared. Please reload the page.');
   return sheet;
 }
 
@@ -2208,7 +2208,7 @@ function addProgrammeRecordApi(mqaCode, recordType, sessionToken, faculty) {
     return getProgrammeDetailFor_(programme);
   }
 
-  if (ploRows >= MAX_PLO_COUNT_) throw new Error('Maksimum ' + MAX_PLO_COUNT_ + ' PLO sahaja.');
+  if (ploRows >= MAX_PLO_COUNT_) throw new Error('Only ' + MAX_PLO_COUNT_ + ' PLOs are allowed.');
   var ploCode = 'PLO' + (ploRows + 1);
   var ploRow = lastPloRow === -1 ? ploHeader + 1 : lastPloRow + 1;
   ensurePLOHeaderColumns_(sheet, data);
