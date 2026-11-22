@@ -233,6 +233,10 @@
                   </button>
                 </div>
               </template>
+              <p v-else-if="review.inheritedFrom" class="text-sm text-muted">
+                Status semakan disalin daripada fakulti pemilik ({{ review.inheritedFrom }}).
+                Hanya fakulti pemilik boleh mengemas kini status ini.
+              </p>
               <p v-else class="text-sm text-muted">Akaun anda tiada akses untuk mengemas kini program ini.</p>
             </div>
             <p v-else class="empty-note">Tiada sesi semakan dibuka. Sejarah dipaparkan di bawah.</p>

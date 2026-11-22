@@ -221,6 +221,7 @@
           this.$set(this.review, 'active', payload.active || null);
           this.$set(this.review, 'canSubmit', !!payload.canSubmit);
           this.$set(this.review, 'currentText', payload.currentText || '');
+          this.$set(this.review, 'inheritedFrom', payload.inheritedFrom || '');
           this.$set(this.review, 'history', payload.history || []);
         },
         addRecord: function (type) {

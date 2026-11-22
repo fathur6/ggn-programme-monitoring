@@ -455,9 +455,14 @@ function reviewPayloadFor_(programme, session) {
       if (history[i].periodId === String(active.PeriodId)) { current = history[i]; break; }
     }
   }
+  var isPartner = programme.role === PROGRAMME_ROLE_PARTNER_;
+  var isOwnerFaculty = !!session && !isPartner && session.faculty === programme.faculty;
   return {
     active: reviewPeriodModel_(active),
-    canSubmit: !!active && !!session && (session.isAdmin || session.faculty === programme.faculty),
+    // Review status belongs to the faculty that owns the programme; a sharing
+    // faculty copies it and never writes its own.
+    canSubmit: !!active && !!session && !isPartner && (session.isAdmin || isOwnerFaculty),
+    inheritedFrom: isPartner ? programme.ownerFaculty : '',
     currentText: current ? current.statusText : '',
     history: history,
     missingLabel: REVIEW_MISSING_TEXT_
@@ -474,6 +479,10 @@ function getReviewStatusApi(mqaCode, sessionToken, faculty) {
 function submitReviewStatusApi(mqaCode, text, sessionToken, faculty) {
   var session = requireLogin_(sessionToken);
   var programme = requireProgrammeFacultyAccess_(mqaCode, session, faculty);
+  if (programme.role === PROGRAMME_ROLE_PARTNER_) {
+    throw new Error('Status semakan dikendalikan oleh fakulti pemilik (' + programme.ownerFaculty +
+      '). Fakulti berkongsi hanya menyalin status tersebut.');
+  }
   var period = activeReviewPeriod_();
   if (!period) throw new Error('Tiada sesi semakan yang dibuka. Hubungi PJK PPS.');
   var body = String(text || '').trim();

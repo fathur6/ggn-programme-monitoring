@@ -331,4 +331,12 @@ const adminPage = fs.readFileSync('gas/PageReviewAdmin.html', 'utf8');
 });
 assert(adminJs.indexOf('baseUrl: ADMIN_BOOT.baseUrl') !== -1, 'AdminJs must expose baseUrl for the back link');
 
+// 15. Review status belongs to the owner faculty; partners only read it.
+assert(/if \(programme\.role === PROGRAMME_ROLE_PARTNER_\) \{/.test(source),
+  'Partner programmes must reject submissions');
+assert(/canSubmit: !!active && !!session && !isPartner && \(session\.isAdmin \|\| isOwnerFaculty\)/.test(source),
+  'Only the owner faculty (or an admin on an owned programme) may submit');
+assert(/inheritedFrom: isPartner \? programme\.ownerFaculty : ''/.test(source),
+  'Partner payload must report the owner faculty');
+
 console.log('single-workbook guard: OK');
