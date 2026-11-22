@@ -25,6 +25,9 @@
         summary: BOOT.reviewSummary || null,
         sdg: BOOT.sdg || { totalProgrammes: 0, mappedPlos: 0, sdgs: [] },
         sdgDetail: null,
+        maps: BOOT.maps || null,
+        mapTab: 'sdg',
+        mapDetail: null,
         schoolModal: false,
         sections: { peo: true, plo: true, pdf: true },
         review: Object.assign({
@@ -82,6 +85,27 @@
         },
         reviewUrl: function () {
           return this.baseUrl + '?page=review';
+        },
+        mapCards: function () {
+          if (!this.maps) return [];
+          var rows = this.maps[this.mapTab] || [];
+          var byCode = {};
+          rows.forEach(function (row) { byCode[row.code] = row; });
+          var catalogue;
+          if (this.mapTab === 'sdg') catalogue = this.sdgs;
+          else if (this.mapTab === 'sc') catalogue = this.sustainabilityCompetencies;
+          else catalogue = this.transversalFutureSkills;
+          return (catalogue || []).map(function (item) {
+            var row = byCode[item.code] || { programmeCount: 0, ploCount: 0, percent: 0, entries: [] };
+            return {
+              code: item.code,
+              label: item.label,
+              programmeCount: row.programmeCount,
+              ploCount: row.ploCount,
+              percent: row.percent || 0,
+              entries: row.entries || []
+            };
+          });
         },
         sdgCards: function () {
           var byCode = {};
@@ -240,6 +264,9 @@
             .withSuccessHandler(function (payload) { if (payload) self.summary = payload; })
             .withFailureHandler(function () { /* dashboard is optional */ })
             .getReviewSummaryApi(this.sessionToken);
+        },
+        openMap: function (item) {
+          this.mapDetail = item.programmeCount ? item : { code: item.code, label: item.label, programmeCount: 0, percent: 0, entries: [] };
         },
         openSdg: function (goal) {
           this.sdgDetail = goal.programmeCount ? goal : { code: goal.code, label: goal.label, programmeCount: 0, entries: [] };

@@ -84,6 +84,66 @@
           </section>
         </div>
 
+        <section v-if="maps" class="dash" style="margin-top:14px">
+          <div class="dash-head">
+            <div>
+              <p class="eyebrow">REFERENCE MAP</p>
+              <h2 class="dash-title">Coverage across {{ maps.totalProgrammes }} programmes</h2>
+              <p class="text-sm text-muted">Programmes that map at least one PLO to each goal or competency.</p>
+            </div>
+            <div class="lang-switch">
+              <button type="button" :class="{ active: mapTab === 'sdg' }" @click="mapTab = 'sdg'">SDG</button>
+              <button type="button" :class="{ active: mapTab === 'sc' }" @click="mapTab = 'sc'">SC</button>
+              <button type="button" :class="{ active: mapTab === 'tf' }" @click="mapTab = 'tf'">TF</button>
+            </div>
+          </div>
+
+          <div class="sdg-grid">
+            <button v-for="item in mapCards" :key="item.code" type="button" class="sdg-card"
+              :class="{ 'sdg-empty': !item.programmeCount }" @click="openMap(item)">
+              <span class="sdg-code">{{ item.code }}</span>
+              <span class="sdg-label">{{ item.label }}</span>
+              <span class="sdg-count">{{ item.programmeCount }} programme<span v-if="item.programmeCount !== 1">s</span> · {{ item.percent }}%</span>
+              <span class="sdg-sub">{{ item.ploCount }} PLO<span v-if="item.ploCount !== 1">s</span> mapped</span>
+              <span class="dash-bar"><span :style="{ width: item.percent + '%' }"></span></span>
+            </button>
+          </div>
+        </section>
+
+        <div v-if="mapDetail" class="modal-backdrop" @click.self="mapDetail = null">
+          <section class="modal modal-wide" role="dialog" aria-modal="true">
+            <header class="modal-header">
+              <div>
+                <h2 class="modal-title">{{ mapDetail.code }} — {{ mapDetail.label }}</h2>
+                <p class="modal-subtitle">
+                  {{ mapDetail.entries.length }} PLO mappings across {{ mapDetail.programmeCount }} programmes
+                  ({{ mapDetail.percent }}% of the register).
+                </p>
+              </div>
+              <button type="button" class="modal-close" @click="mapDetail = null" aria-label="Close">×</button>
+            </header>
+            <div class="modal-body">
+              <div v-if="!mapDetail.entries.length" class="empty-note">No programme maps a PLO to this reference.</div>
+              <div v-else class="table-wrap">
+                <table class="detail-table">
+                  <thead>
+                    <tr><th>Programme</th><th>Faculty</th><th>MQA</th><th>PLO</th><th>Statement</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="entry in mapDetail.entries" :key="entry.mqaCode + entry.plo">
+                      <td>{{ entry.name }}</td>
+                      <td>{{ entry.faculty }}</td>
+                      <td><code>{{ entry.mqaCode }}</code></td>
+                      <td>{{ entry.plo }}</td>
+                      <td>{{ entry.statement }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+
         <div class="page-intro compact-intro">
           <p class="eyebrow">PROGRAMME DIRECTORY</p>
           <h2 class="page-title">{{ t('programmes_title') }}</h2>

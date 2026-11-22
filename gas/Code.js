@@ -236,7 +236,7 @@ function doGet(e) {
         user: session.user,
         token: session.token,
         baseUrl: deploymentUrl_(),
-        sdg: sdgMapPayload_()
+        sdg: referenceMapsPayload_().sdg
       });
     }
     if (page === 'detail') {
@@ -266,7 +266,8 @@ function renderProgrammeListPage_(session) {
     programmes: getProgrammesApi(session.token),
     pdfLog: listPdfLog_(session.user),
     canManageReview: canManageReview_(session.user),
-    reviewSummary: canManageReview_(session.user) ? reviewSummaryPayload_() : null
+    reviewSummary: canManageReview_(session.user) ? reviewSummaryPayload_() : null,
+    maps: referenceMapsPayload_()
   });
 }
 
@@ -1342,6 +1343,66 @@ function sdgMapApi(sessionToken) {
   requireLogin_(sessionToken);
   try { CacheService.getScriptCache().remove('sdg-map-v1'); } catch (e) {}
   return sdgMapPayload_();
+}
+
+/**
+ * Reference maps (SDG, SC, TF) for every programme in one scan. Each entry lists
+ * the programmes and PLOs mapped to that code. Cached for 15 minutes.
+ */
+function referenceMapsPayload_() {
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get('ref-maps-v1');
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) {}
+  }
+
+  var programmes = getProgrammes_();
+  var seen = {};
+  var groups = { sdg: {}, sc: {}, tf: {} };
+  var patterns = { sdg: /^SDG[0-9]{1,2}$/, sc: /^SC[0-9]{1,2}$/, tf: /^TF[0-9]{1,2}$/ };
+
+  programmes.forEach(function (programme) {
+    if (seen[programme.mqaCode]) return;
+    seen[programme.mqaCode] = true;
+    var content = readProgrammeSheet_(programme.tabName, programme.mqaCode);
+    (content.plos || []).forEach(function (plo) {
+      ['sdg', 'sc', 'tf'].forEach(function (kind) {
+        var code = String(plo[kind] || '').trim().toUpperCase().replace(/\s+/g, '');
+        if (!patterns[kind].test(code)) return;
+        var bucket = groups[kind][code] || (groups[kind][code] = { code: code, programmes: {}, ploCount: 0, entries: [] });
+        bucket.programmes[programme.mqaCode] = true;
+        bucket.ploCount += 1;
+        bucket.entries.push({
+          mqaCode: programme.mqaCode,
+          name: programme.name,
+          faculty: programme.faculty,
+          plo: plo.code,
+          statement: plo.statement
+        });
+      });
+    });
+  });
+
+  var total = Object.keys(seen).length;
+  var shape = function (kind) {
+    return Object.keys(groups[kind]).map(function (code) {
+      var g = groups[kind][code];
+      var count = Object.keys(g.programmes).length;
+      return {
+        code: code,
+        programmeCount: count,
+        ploCount: g.ploCount,
+        percent: total ? Math.round((count / total) * 100) : 0,
+        entries: g.entries
+      };
+    }).sort(function (a, b) {
+      return b.programmeCount - a.programmeCount || a.code.localeCompare(b.code, undefined, { numeric: true });
+    });
+  };
+
+  var payload = { totalProgrammes: total, sdg: shape('sdg'), sc: shape('sc'), tf: shape('tf') };
+  try { cache.put('ref-maps-v1', JSON.stringify(payload), 900); } catch (e) {}
+  return payload;
 }
 
 function jsonResponse_(payload) {
