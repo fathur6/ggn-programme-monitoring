@@ -323,4 +323,12 @@ assert(/sections: \{ peo: true, plo: true, pdf: true \}/.test(appJs), 'Sections 
 assert(/open: true, active: null/.test(appJs), 'Review accordion must start expanded');
 assert(/section-toggle/.test(fs.readFileSync('gas/Styles.html', 'utf8')), 'Accordion styling must exist');
 
+// 14. Every template variable used by the admin page must exist in AdminJs.
+const adminJs = fs.readFileSync('gas/AdminJs.html', 'utf8');
+const adminPage = fs.readFileSync('gas/PageReviewAdmin.html', 'utf8');
+['baseUrl', 'sessionToken', 'review', 'directory', 'admins', 'showAdmins', 'adminForm', 'busy', 'error', 'notice'].forEach(function (key) {
+  assert(adminJs.indexOf(key + ':') !== -1 || adminJs.indexOf(key + ' =') !== -1, 'AdminJs must define ' + key);
+});
+assert(adminJs.indexOf('baseUrl: ADMIN_BOOT.baseUrl') !== -1, 'AdminJs must expose baseUrl for the back link');
+
 console.log('single-workbook guard: OK');
