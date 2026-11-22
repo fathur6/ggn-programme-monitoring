@@ -1401,7 +1401,8 @@ function referenceMapsPayload_() {
   };
 
   var payload = { totalProgrammes: total, sdg: shape('sdg'), sc: shape('sc'), tf: shape('tf') };
-  try { cache.put('ref-maps-v1', JSON.stringify(payload), 900); } catch (e) {}
+  // 1 hour: the scan reads every programme tab, so keep it warm longer.
+  try { cache.put('ref-maps-v1', JSON.stringify(payload), 3600); } catch (e) {}
   return payload;
 }
 
