@@ -15,6 +15,7 @@
       el: '#app',
       data: {
         page: BOOT.page || 'programmes',
+        lang: 'ms',
         currentUser: BOOT.user || null,
         sessionToken: BOOT.token || '',
         baseUrl: BOOT.baseUrl || '',
@@ -73,6 +74,7 @@
           ]
       },
       computed: {
+        isRtl: function () { return this.lang === 'ar'; },
         listUrl: function () {
           return this.baseUrl + '?page=programmes';
         },
@@ -132,6 +134,14 @@
         }
       },
       methods: {
+        t: function (key) {
+          var table = MESSAGES[this.lang] || MESSAGES.ms;
+          return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : (MESSAGES.ms[key] || key);
+        },
+        setLang: function (code) {
+          this.lang = ['ms', 'en', 'ar'].indexOf(code) === -1 ? 'ms' : code;
+          try { localStorage.setItem('ggn-lang', this.lang); } catch (e) {}
+        },
         detailUrl: function (programme) {
           return this.baseUrl + '?page=detail&mqaCode=' + encodeURIComponent(programme.mqaCode) +
             '&faculty=' + encodeURIComponent(programme.faculty || '');
@@ -327,6 +337,10 @@
         }
       },
       mounted: function () {
+        try {
+          var saved = localStorage.getItem('ggn-lang');
+          if (saved && ['ms', 'en', 'ar'].indexOf(saved) !== -1) this.lang = saved;
+        } catch (e) {}
         if (this.page === 'programmes') {
           this.openOwnFaculty();
           if (this.canManageReview && !this.summary) this.loadSummary();

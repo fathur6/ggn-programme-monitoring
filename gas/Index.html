@@ -9,7 +9,7 @@
   <?!= include('Styles') ?>
 </head>
 <body>
-  <div id="app" class="min-h-screen" @keydown.esc="closeEdit">
+  <div id="app" class="min-h-screen" :dir="lang === 'ar' ? 'rtl' : 'ltr'" @keydown.esc="closeEdit">
     <header class="header">
       <div class="brand-lockup">
         <img src="https://i.postimg.cc/L6bJj0H1/GS-logo-color-cropped.png" alt="Graduate School" class="brand-logo">
@@ -17,6 +17,11 @@
           <h1 class="header-title">Pengurusan Akademik Pascasiswazah UniSZA</h1>
           <div class="header-subtitle">Maklumat · Pemetaan · Semakan</div>
         </div>
+      </div>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button type="button" :class="{ active: lang === 'ms' }" @click="setLang('ms')">BM</button>
+        <button type="button" :class="{ active: lang === 'en' }" @click="setLang('en')">EN</button>
+        <button type="button" :class="{ active: lang === 'ar' }" @click="setLang('ar')">AR</button>
       </div>
       <div v-if="currentUser" class="header-user" :title="currentUser.email">{{ userLabel }}</div>
     </header>
@@ -27,6 +32,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.min.js"></script>
+  <?!= include('Lang') ?>
   <script>window.BOOT = <?!= bootstrap ?>;</script>
   <?!= include(appJsFile) ?>
 </body>

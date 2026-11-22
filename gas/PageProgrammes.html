@@ -1,35 +1,35 @@
         <section v-if="summary" class="dash">
           <div class="dash-head">
             <div>
-              <p class="eyebrow">STATUS SEMAKAN</p>
-              <h2 class="dash-title">{{ summary.active ? summary.active.title : 'Tiada sesi dibuka' }}</h2>
+              <p class="eyebrow">{{ t('dash_eyebrow') }}</p>
+              <h2 class="dash-title">{{ summary.active ? summary.active.title : t('dash_no_session') }}</h2>
               <p class="text-sm text-muted" v-if="summary.active">
                 Cut-off {{ summary.active.cutoffLabel }}
                 <span v-if="summary.active.closesAtLabel"> · Tutup {{ summary.active.closesAtLabel }}</span>
               </p>
               <p class="text-sm text-muted" v-else>Buka sesi di menu pentadbir untuk mula mengumpul status.</p>
             </div>
-            <button type="button" class="btn btn-outline btn-sm" @click="schoolModal = true">Maklumat lanjut →</button>
+            <button type="button" class="btn btn-outline btn-sm" @click="schoolModal = true">{{ t('dash_more') }} →</button>
           </div>
 
           <div class="dash-cards">
             <div class="dash-card">
-              <span class="dash-label">Program</span>
+              <span class="dash-label">{{ t('dash_programmes') }}</span>
               <span class="dash-value">{{ summary.totalProgrammes }}</span>
-              <span class="dash-note">keseluruhan</span>
+              <span class="dash-note">{{ t('dash_total_note') }}</span>
             </div>
             <div class="dash-card">
-              <span class="dash-label">Dikemaskini</span>
+              <span class="dash-label">{{ t('dash_updated') }}</span>
               <span class="dash-value">{{ summary.updatedTotal }}</span>
-              <span class="dash-note">program</span>
+              <span class="dash-note">{{ t('dash_word_programme') }}</span>
             </div>
             <div class="dash-card">
-              <span class="dash-label">Belum</span>
+              <span class="dash-label">{{ t('dash_outstanding') }}</span>
               <span class="dash-value dash-warn">{{ summary.totalProgrammes - summary.updatedTotal }}</span>
-              <span class="dash-note">program</span>
+              <span class="dash-note">{{ t('dash_word_programme') }}</span>
             </div>
             <div class="dash-card">
-              <span class="dash-label">Kemajuan</span>
+              <span class="dash-label">{{ t('dash_progress') }}</span>
               <span class="dash-value">{{ summary.totalProgrammes ? Math.round(summary.updatedTotal / summary.totalProgrammes * 100) : 0 }}%</span>
               <span class="dash-bar"><span :style="{ width: (summary.totalProgrammes ? Math.round(summary.updatedTotal / summary.totalProgrammes * 100) : 0) + '%' }"></span></span>
             </div>
@@ -46,7 +46,7 @@
               <button type="button" class="modal-close" @click="schoolModal = false" aria-label="Tutup">×</button>
             </header>
             <div class="modal-body">
-              <h3 class="modal-section">Senarai sesi</h3>
+              <h3 class="modal-section">{{ t('modal_sessions') }}</h3>
               <div class="table-wrap">
                 <table class="detail-table">
                   <thead><tr><th>Sesi</th><th>Cut-off</th><th>Tutup</th><th>Status</th><th>Dikemaskini</th></tr></thead>
@@ -62,7 +62,7 @@
                 </table>
               </div>
 
-              <h3 class="modal-section">Kemajuan fakulti</h3>
+              <h3 class="modal-section">{{ t('modal_faculty') }}</h3>
               <div class="table-wrap">
                 <table class="detail-table">
                   <thead><tr><th>Fakulti</th><th>Program</th><th>Dikemaskini</th><th>Belum</th><th>Peratus</th></tr></thead>
@@ -83,30 +83,30 @@
 
         <div class="page-intro compact-intro">
           <p class="eyebrow">PROGRAMME DIRECTORY</p>
-          <h2 class="page-title">Your programmes</h2>
-          <p class="page-lede">Select a programme to continue its MQF 2.0 completion workflow.</p>
+          <h2 class="page-title">{{ t('programmes_title') }}</h2>
+          <p class="page-lede">{{ t('programmes_lede') }}</p>
           <div v-if="canManageReview" style="margin:12px 0 0">
-            <a class="btn btn-primary btn-sm" :href="reviewUrl">Menu pentadbir →</a>
+            <a class="btn btn-primary btn-sm" :href="reviewUrl">{{ t('admin_menu') }} →</a>
           </div>
-          <input v-model="search" type="text" placeholder="Search programmes..." class="search-input" aria-label="Search programmes">
+          <input v-model="search" type="text" :placeholder="t('search_placeholder')" class="search-input" aria-label="Search programmes">
         </div>
 
         <div v-if="loading" class="loading-panel">Loading programmes...</div>
         <div v-if="error" class="alert alert-error">{{ error }}</div>
 
-        <div v-if="!loading && !error && grouped.length === 0" class="loading-panel">No programmes found.</div>
+        <div v-if="!loading && !error && grouped.length === 0" class="loading-panel">{{ t('no_programmes') }}</div>
 
         <template v-for="level in grouped">
           <div :key="'level-' + level.key" class="mb-6">
             <div class="level-header">
-              <h2>{{ level.title }}</h2>
-              <span class="level-count">{{ level.count }} programmes</span>
+              <h2>{{ t('level_' + level.title.toLowerCase()) }}</h2>
+              <span class="level-count">{{ level.count }} {{ t('dash_word_programme') }}</span>
             </div>
 
             <div v-for="faculty in level.faculties" :key="faculty.key">
               <div class="faculty-accordion" :aria-expanded="open[faculty.key]" role="button" tabindex="0" @click="toggleFaculty(faculty)" @keydown.enter="toggleFaculty(faculty)">
                 <span class="faculty-label">{{ faculty.title }}</span>
-                <span class="faculty-accordion-count">{{ faculty.count }} programmes</span>
+                <span class="faculty-accordion-count">{{ faculty.count }} {{ t('dash_word_programme') }}</span>
                 <span class="faculty-chevron">{{ open[faculty.key] ? '▲' : '▼' }}</span>
               </div>
               <div v-show="open[faculty.key]" class="faculty-programmes">
