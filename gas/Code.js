@@ -230,6 +230,15 @@ function doGet(e) {
       return jsonResponse_(backfillPdfLog_());
     }
     if (page === 'review') return renderReviewAdminPage_(session);
+    if (page === 'sdg') {
+      return renderPage_('PageSdg', APP_SHORT_NAME_ + ' — SDG map', {
+        page: 'sdg',
+        user: session.user,
+        token: session.token,
+        baseUrl: deploymentUrl_(),
+        sdg: sdgMapPayload_()
+      });
+    }
     if (page === 'detail') {
       var mqaCode = String(params.mqaCode || '').trim();
       if (mqaCode) {
@@ -1264,6 +1273,75 @@ function saveUserLanguageApi(code, sessionToken) {
     }
   }
   return { ok: false, language: lang, reason: 'not_listed' };
+}
+
+/**
+ * University-wide SDG map: which programmes map which PLOs to each SDG.
+ * Reading every programme tab is expensive, so the result is cached for 15 minutes.
+ */
+function sdgMapPayload_() {
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get('sdg-map-v1');
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) {}
+  }
+
+  var programmes = getProgrammes_();
+  var seen = {};
+  var bySdg = {};
+  var mapped = 0;
+
+  programmes.forEach(function (programme) {
+    if (seen[programme.mqaCode]) return;
+    seen[programme.mqaCode] = true;
+    var content = readProgrammeSheet_(programme.tabName, programme.mqaCode);
+    (content.plos || []).forEach(function (plo) {
+      var sdg = String(plo.sdg || '').trim().toUpperCase();
+      if (!/^SDG[0-9]{1,2}$/.test(sdg)) return;
+      var group = bySdg[sdg] || (bySdg[sdg] = { sdg: sdg, programmes: {}, ploCount: 0, entries: [] });
+      group.programmes[programme.mqaCode] = true;
+      group.ploCount += 1;
+      group.entries.push({
+        mqaCode: programme.mqaCode,
+        name: programme.name,
+        faculty: programme.faculty,
+        plo: plo.code,
+        statement: plo.statement
+      });
+      mapped += 1;
+    });
+  });
+
+  var list = Object.keys(bySdg).map(function (key) {
+    var group = bySdg[key];
+    return {
+      sdg: key,
+      programmeCount: Object.keys(group.programmes).length,
+      ploCount: group.ploCount,
+      entries: group.entries
+    };
+  }).sort(function (a, b) {
+    return b.programmeCount - a.programmeCount || a.sdg.localeCompare(b.sdg, undefined, { numeric: true });
+  });
+
+  var payload = {
+    totalProgrammes: Object.keys(seen).length,
+    mappedPlos: mapped,
+    sdgs: list
+  };
+  try { cache.put('sdg-map-v1', JSON.stringify(payload), 900); } catch (e) {}
+  return payload;
+}
+
+function getSdgMapApi(sessionToken) {
+  requireLogin_(sessionToken);
+  return sdgMapPayload_();
+}
+
+function sdgMapApi(sessionToken) {
+  requireLogin_(sessionToken);
+  try { CacheService.getScriptCache().remove('sdg-map-v1'); } catch (e) {}
+  return sdgMapPayload_();
 }
 
 function jsonResponse_(payload) {

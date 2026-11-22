@@ -23,6 +23,8 @@
         pdfLog: BOOT.pdfLog || [],
         canManageReview: !!BOOT.canManageReview,
         summary: BOOT.reviewSummary || null,
+        sdg: BOOT.sdg || { totalProgrammes: 0, mappedPlos: 0, sdgs: [] },
+        sdgDetail: null,
         schoolModal: false,
         sections: { peo: true, plo: true, pdf: true },
         review: Object.assign({
@@ -80,6 +82,24 @@
         },
         reviewUrl: function () {
           return this.baseUrl + '?page=review';
+        },
+        sdgCards: function () {
+          var byCode = {};
+          (this.sdg.sdgs || []).forEach(function (row) { byCode[row.sdg] = row; });
+          var max = 1;
+          (this.sdg.sdgs || []).forEach(function (row) { max = Math.max(max, row.programmeCount); });
+          var self = this;
+          return (this.sdgs || []).map(function (goal) {
+            var row = byCode[goal.code] || { programmeCount: 0, ploCount: 0, entries: [] };
+            return {
+              code: goal.code,
+              label: goal.label,
+              programmeCount: row.programmeCount,
+              ploCount: row.ploCount,
+              entries: row.entries || [],
+              percent: Math.round((row.programmeCount / max) * 100)
+            };
+          });
         },
         filtered: function () {
           if (!this.search) return this.programmes;
@@ -220,6 +240,9 @@
             .withSuccessHandler(function (payload) { if (payload) self.summary = payload; })
             .withFailureHandler(function () { /* dashboard is optional */ })
             .getReviewSummaryApi(this.sessionToken);
+        },
+        openSdg: function (goal) {
+          this.sdgDetail = goal.programmeCount ? goal : { code: goal.code, label: goal.label, programmeCount: 0, entries: [] };
         },
         submitReview: function () {
           var self = this;

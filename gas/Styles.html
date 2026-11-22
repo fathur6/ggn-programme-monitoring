@@ -186,6 +186,14 @@
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px; }
     .admin-editor { margin-top: 20px; padding: 16px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--canvas-muted); }
     .admin-editor-title { margin: 0 0 6px; font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 16px; }
+    .sdg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .sdg-card { text-align: left; background: var(--canvas-muted); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 3px; font: inherit; }
+    .sdg-card:hover { border-color: var(--action-blue); }
+    .sdg-code { font-size: 12px; font-weight: 700; letter-spacing: 0.6px; color: var(--action-blue); }
+    .sdg-label { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .sdg-count { font-size: 13px; color: var(--ink); }
+    .sdg-sub { font-size: 12px; color: var(--muted); }
+    .sdg-empty { opacity: 0.55; }
     .dash { margin: 22px 0 8px; padding: 20px 22px; background: var(--canvas); border: 1px solid var(--border-light); border-radius: var(--radius-md); }
     .dash-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
     .dash-title { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 20px; font-weight: 600; margin: 2px 0 4px; color: var(--ink); }
