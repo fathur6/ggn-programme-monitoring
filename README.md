@@ -26,6 +26,18 @@ instance for both pages, reading the server-injected `BOOT` payload).
 Programme rows and the "Back to programmes" control are real links, so a detail
 page can be bookmarked or shared.
 
+## Programme source copy
+
+The PJK workbook (`Status Semakan Maklumat Program Akademik Siswazah.xlsx`) is
+mirrored into the `ProgrammeSource` tab of our workbook: 67 programmes with the
+Excel columns (student names in both languages, MQA code, accreditation start and
+end, NEC 2010 and 2020 fields, mode of study, category) plus the faculty section
+each programme sat under. The extracted source is kept at
+`docs/import/programme-source-2026-11.json`.
+
+The tab is a read-only copy for reference and recovery; the app still reads the
+`Programme` sheet.
+
 ## Review status (semakan program)
 
 A periodic review cycle (every 4–6 months) where each faculty reports the status
