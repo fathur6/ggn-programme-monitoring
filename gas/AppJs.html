@@ -141,6 +141,9 @@
         setLang: function (code) {
           this.lang = ['ms', 'en', 'ar'].indexOf(code) === -1 ? 'ms' : code;
           try { localStorage.setItem('ggn-lang', this.lang); } catch (e) {}
+          if (this.sessionToken) {
+            google.script.run.withFailureHandler(function () {}).saveUserLanguageApi(this.lang, this.sessionToken);
+          }
         },
         detailUrl: function (programme) {
           return this.baseUrl + '?page=detail&mqaCode=' + encodeURIComponent(programme.mqaCode) +

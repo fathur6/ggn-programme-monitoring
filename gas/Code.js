@@ -900,6 +900,36 @@ function reviewRecipients_() {
   }, []);
 }
 
+var REVIEW_EMAIL_COPY_ = {
+  ms: {
+    subjectOpen: '[Pengurusan Akademik] Sesi semakan dibuka',
+    subjectReminder: '[Pengurusan Akademik] Peringatan semakan program',
+    greeting: 'Assalamualaikum dan salam sejahtera {name},',
+    openLine: 'Sesi kemaskini status semakan program telah dibuka (cut-off {cutoff}).',
+    reminderLine: 'Peringatan: sesi kemaskini status semakan program akan ditutup pada {date}.',
+    faculty: 'Fakulti', updated: 'Program dikemaskini', outstanding: 'Baki',
+    link: 'Kemas kini melalui', closing: 'Sekian, terima kasih.', signature: 'Pusat Pengajian Siswazah'
+  },
+  en: {
+    subjectOpen: '[Academic Management] Review cycle opened',
+    subjectReminder: '[Academic Management] Review reminder',
+    greeting: 'Dear {name},',
+    openLine: 'The programme review status cycle is now open (cut-off {cutoff}).',
+    reminderLine: 'Reminder: the programme review status cycle closes on {date}.',
+    faculty: 'Faculty', updated: 'Programmes updated', outstanding: 'Outstanding',
+    link: 'Update at', closing: 'Thank you.', signature: 'Graduate School'
+  },
+  ar: {
+    subjectOpen: '[الإدارة الأكاديمية] فتح دورة المراجعة',
+    subjectReminder: '[الإدارة الأكاديمية] تذكير بالمراجعة',
+    greeting: 'السلام عليكم {name}،',
+    openLine: 'تم فتح دورة تحديث حالة مراجعة البرامج (تاريخ الإغلاق {cutoff}).',
+    reminderLine: 'تذكير: تُغلق دورة تحديث حالة المراجعة في {date}.',
+    faculty: 'الكلية', updated: 'البرامج المحدّثة', outstanding: 'المتبقي',
+    link: 'التحديث عبر', closing: 'شكرًا لكم.', signature: 'كلية الدراسات العليا'
+  }
+};
+
 function sendReviewEmails_(kind, dryRun, session, limit) {
   var period = activeReviewPeriod_();
   if (!period) throw new Error('Tiada sesi semakan yang dibuka.');
@@ -943,24 +973,23 @@ function sendReviewEmails_(kind, dryRun, session, limit) {
     seen[contact.email] = true;
 
     var to = dryRun ? session.email : contact.email;
-    var subject = kind === 'reminder'
-      ? '[Academic Management] Review reminder — ' + cutoff
-      : '[Academic Management] Review cycle opened — ' + cutoff;
+    var lang = normaliseLang_(userLanguageFor_(contact.email));
+    var copy = REVIEW_EMAIL_COPY_[lang] || REVIEW_EMAIL_COPY_.en;
+    var subject = (kind === 'reminder' ? copy.subjectReminder : copy.subjectOpen) + ' — ' + cutoff;
     var lines = [
-      'Dear ' + (contact.name || 'Colleague') + ',',
+      copy.greeting.replace('{name}', contact.name || ''),
       '',
-      kind === 'reminder'
-        ? 'Reminder: the programme review status cycle closes on ' + (closes || cutoff) + '.'
-        : 'The programme review status cycle is now open (cut-off ' + cutoff + ').',
+      kind === 'reminder' ? copy.reminderLine.replace('{date}', closes || cutoff)
+                          : copy.openLine.replace('{cutoff}', cutoff),
       '',
-      'Faculty: ' + faculty,
-      'Programmes updated: ' + done + ' / ' + total,
-      'Outstanding: ' + Math.max(0, total - done),
+      copy.faculty + ': ' + faculty,
+      copy.updated + ': ' + done + ' / ' + total,
+      copy.outstanding + ': ' + Math.max(0, total - done),
       '',
-      'Update at: ' + link,
+      copy.link + ': ' + link,
       '',
-      'Thank you.',
-      'Graduate School'
+      copy.closing,
+      copy.signature
     ];
     GmailApp.sendEmail(to, subject, lines.join('\n'), { name: 'Pusat Pengajian Siswazah UniSZA' });
     sent++;
@@ -1181,6 +1210,60 @@ function reviewSummaryPayload_() {
 function getReviewSummaryApi(sessionToken) {
   requireReviewManager_(requireLogin_(sessionToken));
   return reviewSummaryPayload_();
+}
+
+/** Per-user interface language, stored in the USER sheet. Defaults to English. */
+var USER_LANGUAGE_HEADER_ = 'Language';
+
+function userLanguageColumn_() {
+  var sheet = programmeSpreadsheet_().getSheetByName(USER_DIRECTORY_SHEET_NAME_);
+  if (!sheet) return 0;
+  var header = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0]
+    .map(function (v) { return String(v).trim(); });
+  var index = header.indexOf(USER_LANGUAGE_HEADER_);
+  if (index === -1) {
+    var col = header.length + 1;
+    sheet.getRange(1, col).setValue(USER_LANGUAGE_HEADER_).setFontWeight('bold');
+    return col;
+  }
+  return index + 1;
+}
+
+function normaliseLang_(code) {
+  return ['ms', 'en', 'ar'].indexOf(String(code || '').toLowerCase()) === -1 ? 'en' : String(code).toLowerCase();
+}
+
+function userLanguageFor_(email) {
+  var target = String(email || '').trim().toLowerCase();
+  if (!target) return 'en';
+  var sheet = programmeSpreadsheet_().getSheetByName(USER_DIRECTORY_SHEET_NAME_);
+  if (!sheet) return 'en';
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2 || data[0].length < 3) return 'en';
+  var col = userLanguageColumn_();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][2] || '').trim().toLowerCase() === target) {
+      return normaliseLang_(col ? data[i][col - 1] : '');
+    }
+  }
+  return 'en';
+}
+
+function saveUserLanguageApi(code, sessionToken) {
+  var session = requireLogin_(sessionToken);
+  var lang = normaliseLang_(code);
+  var sheet = programmeSpreadsheet_().getSheetByName(USER_DIRECTORY_SHEET_NAME_);
+  var col = userLanguageColumn_();
+  var data = sheet.getDataRange().getValues();
+  var email = String(session.email || '').trim().toLowerCase();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][2] || '').trim().toLowerCase() === email) {
+      sheet.getRange(i + 1, col).setValue(lang);
+      SpreadsheetApp.flush();
+      return { ok: true, language: lang };
+    }
+  }
+  return { ok: false, language: lang, reason: 'not_listed' };
 }
 
 function jsonResponse_(payload) {
