@@ -146,7 +146,7 @@
           <h2 class="page-title">{{ t('programmes_title') }}</h2>
           <p class="page-lede">{{ t('programmes_lede') }}</p>
           <div v-if="canManageReview" style="margin:12px 0 0">
-            <a class="btn btn-primary btn-sm" :href="reviewUrl">{{ t('admin_menu') }} →</a>
+            <a class="btn btn-primary btn-sm" :href="reviewUrl" target="_top" rel="noopener">{{ t('admin_menu') }} →</a>
           </div>
           <input v-model="search" type="text" :placeholder="t('search_placeholder')" class="search-input" aria-label="Search programmes">
         </div>

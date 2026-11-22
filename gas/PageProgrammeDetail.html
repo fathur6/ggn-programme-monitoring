@@ -17,7 +17,7 @@
           </div>
           <div class="detail-actions">
             <button class="btn btn-primary" @click="generatePdf" :disabled="pdf.generating">{{ pdf.generating ? t('review_submitting') : t('download_pdf') }}</button>
-            <a class="btn btn-outline" :href="listUrl">← {{ t('back_programmes') }}</a>
+            <a class="btn btn-outline" :href="listUrl" target="_top" rel="noopener">← {{ t('back_programmes') }}</a>
           </div>
         </div>
 
