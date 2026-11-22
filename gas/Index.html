@@ -19,8 +19,8 @@
         </div>
       </div>
       <div class="lang-switch" role="group" aria-label="Language">
-        <button type="button" :class="{ active: lang === 'ms' }" @click="setLang('ms')">BM</button>
         <button type="button" :class="{ active: lang === 'en' }" @click="setLang('en')">EN</button>
+        <button type="button" :class="{ active: lang === 'ms' }" @click="setLang('ms')">BM</button>
         <button type="button" :class="{ active: lang === 'ar' }" @click="setLang('ar')">AR</button>
       </div>
       <div v-if="currentUser" class="header-user" :title="currentUser.email">{{ userLabel }}</div>
