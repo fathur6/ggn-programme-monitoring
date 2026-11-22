@@ -256,7 +256,8 @@ function renderProgrammeListPage_(session) {
     baseUrl: deploymentUrl_(),
     programmes: getProgrammesApi(session.token),
     pdfLog: listPdfLog_(session.user),
-    canManageReview: canManageReview_(session.user)
+    canManageReview: canManageReview_(session.user),
+    reviewSummary: canManageReview_(session.user) ? reviewSummaryPayload_() : null
   });
 }
 
@@ -1125,6 +1126,61 @@ function removeReviewRoleApi(rowIndex, sessionToken) {
   sheet.deleteRow(index);
   SpreadsheetApp.flush();
   return reviewRolesPayload_();
+}
+
+/** Compact review summary for the landing dashboard (managers only). */
+function reviewSummaryPayload_() {
+  var programmes = getProgrammes_();
+  var codeFaculty = {};
+  programmes.forEach(function (p) { if (!codeFaculty[p.mqaCode]) codeFaculty[p.mqaCode] = p.faculty; });
+  var periods = reviewPeriods_();
+  var active = activeReviewPeriod_();
+  var focus = active || periods[0] || null;
+  var focusId = focus ? String(focus.PeriodId) : '';
+
+  var updated = {};
+  reviewSubmissions_().forEach(function (row) {
+    if (String(row.PeriodId || '') !== focusId) return;
+    var faculty = codeFaculty[String(row.MQACode || '')];
+    if (faculty) updated[faculty] = (updated[faculty] || 0) + 1;
+  });
+
+  var totals = {};
+  programmes.forEach(function (p) { totals[p.faculty] = (totals[p.faculty] || 0) + 1; });
+  var faculties = Object.keys(totals).sort().map(function (faculty) {
+    var total = totals[faculty];
+    var done = updated[faculty] || 0;
+    return { faculty: faculty, total: total, updated: done, missing: Math.max(0, total - done),
+      percent: total ? Math.round((done / total) * 100) : 0 };
+  });
+
+  var doneAll = faculties.reduce(function (n, f) { return n + f.updated; }, 0);
+  var perPeriod = {};
+  reviewSubmissions_().forEach(function (row) {
+    var pid = String(row.PeriodId || '');
+    perPeriod[pid] = perPeriod[pid] || {};
+    perPeriod[pid][String(row.MQACode || '')] = true;
+  });
+
+  return {
+    active: reviewPeriodModel_(active),
+    focusLabel: focus ? String(focus.Title || focus.CutoffLabel) : '',
+    sessions: periods.map(function (period) {
+      var model = reviewPeriodModel_(period);
+      var done = Object.keys(perPeriod[model.periodId] || {}).filter(function (code) { return codeFaculty[code]; }).length;
+      model.updated = done;
+      model.total = programmes.length;
+      return model;
+    }),
+    faculties: faculties,
+    totalProgrammes: programmes.length,
+    updatedTotal: doneAll
+  };
+}
+
+function getReviewSummaryApi(sessionToken) {
+  requireReviewManager_(requireLogin_(sessionToken));
+  return reviewSummaryPayload_();
 }
 
 function jsonResponse_(payload) {

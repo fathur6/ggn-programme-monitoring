@@ -21,6 +21,8 @@
         programmes: BOOT.programmes || [],
         pdfLog: BOOT.pdfLog || [],
         canManageReview: !!BOOT.canManageReview,
+        summary: BOOT.reviewSummary || null,
+        schoolModal: false,
         sections: { peo: true, plo: true, pdf: true },
         review: Object.assign({
           open: true, active: null, canSubmit: false, currentText: '',
@@ -199,6 +201,13 @@
           if (result.hasOwnCopy !== undefined) this.$set(this.detail, 'hasOwnCopy', result.hasOwnCopy);
           if (result.differsFromOwner !== undefined) this.$set(this.detail, 'differsFromOwner', result.differsFromOwner);
         },
+        loadSummary: function () {
+          var self = this;
+          google.script.run
+            .withSuccessHandler(function (payload) { if (payload) self.summary = payload; })
+            .withFailureHandler(function () { /* dashboard is optional */ })
+            .getReviewSummaryApi(this.sessionToken);
+        },
         submitReview: function () {
           var self = this;
           if (this.review.submitting || !this.review.draft) return;
@@ -318,7 +327,10 @@
         }
       },
       mounted: function () {
-        if (this.page === 'programmes') this.openOwnFaculty();
+        if (this.page === 'programmes') {
+          this.openOwnFaculty();
+          if (this.canManageReview && !this.summary) this.loadSummary();
+        }
         if (this.review && this.review.currentText) this.review.draft = this.review.currentText;
       }
     });

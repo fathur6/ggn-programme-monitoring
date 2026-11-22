@@ -181,6 +181,20 @@
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px; }
     .admin-editor { margin-top: 20px; padding: 16px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--canvas-muted); }
     .admin-editor-title { margin: 0 0 6px; font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 16px; }
+    .dash { margin: 22px 0 8px; padding: 20px 22px; background: var(--canvas); border: 1px solid var(--border-light); border-radius: var(--radius-md); }
+    .dash-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+    .dash-title { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 20px; font-weight: 600; margin: 2px 0 4px; color: var(--ink); }
+    .dash-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .dash-card { background: var(--canvas-muted); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+    .dash-label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--slate); }
+    .dash-value { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 26px; font-weight: 600; color: var(--ink); line-height: 1.15; }
+    .dash-warn { color: var(--action-amber); }
+    .dash-note { font-size: 12px; color: var(--muted); }
+    .dash-bar { display: block; height: 6px; border-radius: 999px; background: var(--border-light); margin-top: 6px; overflow: hidden; }
+    .dash-bar > span { display: block; height: 100%; background: var(--deep-green); border-radius: 999px; }
+    .modal-wide { max-width: 980px; }
+    .modal-section { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 16px; font-weight: 600; margin: 20px 0 10px; }
+    .modal-section:first-child { margin-top: 0; }
     .cv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 40px; }
     .cv-item { display: grid; grid-template-columns: minmax(120px, 38%) 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-light); align-items: baseline; }
     .cv-label { font-size: 12px; font-weight: 600; letter-spacing: 0.3px; color: var(--slate); text-transform: uppercase; }

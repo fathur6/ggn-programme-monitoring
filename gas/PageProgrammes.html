@@ -1,3 +1,86 @@
+        <section v-if="summary" class="dash">
+          <div class="dash-head">
+            <div>
+              <p class="eyebrow">STATUS SEMAKAN</p>
+              <h2 class="dash-title">{{ summary.active ? summary.active.title : 'Tiada sesi dibuka' }}</h2>
+              <p class="text-sm text-muted" v-if="summary.active">
+                Cut-off {{ summary.active.cutoffLabel }}
+                <span v-if="summary.active.closesAtLabel"> · Tutup {{ summary.active.closesAtLabel }}</span>
+              </p>
+              <p class="text-sm text-muted" v-else>Buka sesi di menu pentadbir untuk mula mengumpul status.</p>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" @click="schoolModal = true">Maklumat lanjut →</button>
+          </div>
+
+          <div class="dash-cards">
+            <div class="dash-card">
+              <span class="dash-label">Program</span>
+              <span class="dash-value">{{ summary.totalProgrammes }}</span>
+              <span class="dash-note">keseluruhan</span>
+            </div>
+            <div class="dash-card">
+              <span class="dash-label">Dikemaskini</span>
+              <span class="dash-value">{{ summary.updatedTotal }}</span>
+              <span class="dash-note">program</span>
+            </div>
+            <div class="dash-card">
+              <span class="dash-label">Belum</span>
+              <span class="dash-value dash-warn">{{ summary.totalProgrammes - summary.updatedTotal }}</span>
+              <span class="dash-note">program</span>
+            </div>
+            <div class="dash-card">
+              <span class="dash-label">Kemajuan</span>
+              <span class="dash-value">{{ summary.totalProgrammes ? Math.round(summary.updatedTotal / summary.totalProgrammes * 100) : 0 }}%</span>
+              <span class="dash-bar"><span :style="{ width: (summary.totalProgrammes ? Math.round(summary.updatedTotal / summary.totalProgrammes * 100) : 0) + '%' }"></span></span>
+            </div>
+          </div>
+        </section>
+
+        <div v-if="schoolModal" class="modal-backdrop" @click.self="schoolModal = false">
+          <section class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="school-title">
+            <header class="modal-header">
+              <div>
+                <h2 id="school-title" class="modal-title">Status semakan program</h2>
+                <p class="modal-subtitle">Ringkasan sesi dan kemajuan setiap fakulti.</p>
+              </div>
+              <button type="button" class="modal-close" @click="schoolModal = false" aria-label="Tutup">×</button>
+            </header>
+            <div class="modal-body">
+              <h3 class="modal-section">Senarai sesi</h3>
+              <div class="table-wrap">
+                <table class="detail-table">
+                  <thead><tr><th>Sesi</th><th>Cut-off</th><th>Tutup</th><th>Status</th><th>Dikemaskini</th></tr></thead>
+                  <tbody>
+                    <tr v-for="row in summary.sessions" :key="row.periodId">
+                      <td>{{ row.title }}</td>
+                      <td>{{ row.cutoffLabel }}</td>
+                      <td>{{ row.closesAtLabel || '—' }}</td>
+                      <td><span class="state-chip" :class="row.state === 'Open' ? 'chip-shared' : ''">{{ row.state === 'Open' ? 'Dibuka' : 'Ditutup' }}</span></td>
+                      <td>{{ row.updated }} / {{ row.total }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 class="modal-section">Kemajuan fakulti</h3>
+              <div class="table-wrap">
+                <table class="detail-table">
+                  <thead><tr><th>Fakulti</th><th>Program</th><th>Dikemaskini</th><th>Belum</th><th>Peratus</th></tr></thead>
+                  <tbody>
+                    <tr v-for="row in summary.faculties" :key="row.faculty">
+                      <td>{{ row.faculty }}</td>
+                      <td>{{ row.total }}</td>
+                      <td>{{ row.updated }}</td>
+                      <td :class="{ 'review-missing': row.missing > 0 }">{{ row.missing }}</td>
+                      <td>{{ row.percent }}%</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+
         <div class="page-intro compact-intro">
           <p class="eyebrow">PROGRAMME DIRECTORY</p>
           <h2 class="page-title">Your programmes</h2>
