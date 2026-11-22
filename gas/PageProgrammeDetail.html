@@ -219,7 +219,7 @@
 
             <div v-if="review.active">
               <p class="eyebrow">{{ t('review_current') }}</p>
-              <p class="review-headline">{{ review.active.title }}</p>
+              <p class="review-headline">{{ t('session_as_at') }} {{ review.active.cutoffLabel }}</p>
               <p v-if="review.currentText" class="text-sm text-muted">Status terkini: {{ review.currentText }}</p>
               <p v-else class="text-sm text-muted">{{ t('review_none') }}</p>
 
@@ -252,7 +252,7 @@
                 </thead>
                 <tbody>
                   <tr v-for="entry in review.history" :key="entry.periodId">
-                    <td><strong>{{ entry.cutoffLabel || entry.title }}</strong></td>
+                    <td><strong>{{ entry.cutoffLabel }}</strong></td>
                     <td :class="{ 'review-missing': entry.missing }">{{ entry.statusText || '—' }}</td>
                     <td>
                       <span v-if="entry.submittedBy">{{ entry.submittedBy }}</span>

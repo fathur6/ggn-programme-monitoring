@@ -2,10 +2,10 @@
           <div class="dash-head">
             <div>
               <p class="eyebrow">{{ t('dash_eyebrow') }}</p>
-              <h2 class="dash-title">{{ summary.active ? summary.active.title : t('dash_no_session') }}</h2>
+              <h2 class="dash-title">{{ summary.active ? (t('session_as_at') + ' ' + summary.active.cutoffLabel) : t('dash_no_session') }}</h2>
               <p class="text-sm text-muted" v-if="summary.active">
-                Cut-off {{ summary.active.cutoffLabel }}
-                <span v-if="summary.active.closesAtLabel"> · Tutup {{ summary.active.closesAtLabel }}</span>
+                {{ t('label_cutoff') }} {{ summary.active.cutoffLabel }}
+                <span v-if="summary.active.closesAtLabel"> · {{ t('label_closes') }} {{ summary.active.closesAtLabel }}</span>
               </p>
               <p class="text-sm text-muted" v-else>Buka sesi di menu pentadbir untuk mula mengumpul status.</p>
             </div>
@@ -52,7 +52,7 @@
                   <thead><tr><th>Sesi</th><th>Cut-off</th><th>Tutup</th><th>Status</th><th>Dikemaskini</th></tr></thead>
                   <tbody>
                     <tr v-for="row in summary.sessions" :key="row.periodId">
-                      <td>{{ row.title }}</td>
+                      <td>{{ t('session_as_at') }} {{ row.cutoffLabel }}</td>
                       <td>{{ row.cutoffLabel }}</td>
                       <td>{{ row.closesAtLabel || '—' }}</td>
                       <td><span class="state-chip" :class="row.state === 'Open' ? 'chip-shared' : ''">{{ row.state === 'Open' ? 'Dibuka' : 'Ditutup' }}</span></td>
