@@ -236,7 +236,11 @@ function doGet(e) {
         user: session.user,
         token: session.token,
         baseUrl: deploymentUrl_(),
-        sdg: referenceMapsPayload_().sdg
+        sdg: (function () {
+          var maps = referenceMapsPayload_();
+          var mapped = maps.sdg.reduce(function (n, row) { return n + row.ploCount; }, 0);
+          return { totalProgrammes: maps.totalProgrammes, mappedPlos: mapped, sdgs: maps.sdg };
+        })()
       });
     }
     if (page === 'detail') {
