@@ -185,57 +185,66 @@
           var domainOf = { SC1: 'thinking', SC2: 'thinking', SC3: 'thinking',
             SC4: 'practicing', SC5: 'practicing', SC6: 'practicing', SC7: 'being', SC8: 'being' };
           var complete = 0;
-          var scComplete = 0;
-          var scOne = 0;
-          var scTwo = 0;
+          var scMapped = 0;
           var tfMapped = 0;
           var sdgEligible = 0;
           var sdgMapped = 0;
           var scoreTotal = 0;
           var scorePossible = 0;
+          var programmeDomains = {};
           plos.forEach(function (plo) {
             var codes = String(plo.sc || '').split(',').map(function (v) { return v.trim().toUpperCase(); }).filter(Boolean);
-            var domains = {};
-            codes.forEach(function (code) { if (domainOf[code]) domains[domainOf[code]] = true; });
-            var covered = ['thinking', 'practicing', 'being'].filter(function (d) { return domains[d]; }).length;
-            var hasSc = covered === 3;
-            if (hasSc) scComplete++;
-            if (covered === 1) scOne++;
-            else if (covered === 2) scTwo++;
+            var ownDomains = {};
+            codes.forEach(function (code) {
+              if (!domainOf[code]) return;
+              ownDomains[domainOf[code]] = true;
+              programmeDomains[domainOf[code]] = true;
+            });
+            if (codes.length) scMapped++;
             if (plo.tf) tfMapped++;
             var eligible = self.isSDGEligiblePLO(plo.code);
             if (eligible) {
               sdgEligible++;
               if (plo.sdg) sdgMapped++;
             }
-            // Partial credit: legacy single-SC rows keep their existing progress.
             var parts = [];
             parts.push(!!plo.statement);
             parts.push(!!plo.parentPEO);
             parts.push(!!plo.mqfDomain);
             parts.push(!!plo.taxonomy);
-            parts.push(covered / 3);
+            parts.push(codes.length ? 1 : 0);
             if (eligible) parts.push(plo.sdg ? 1 : 0);
             parts.forEach(function (v) { scoreTotal += v; scorePossible += 1; });
 
-            var ok = !!(plo.statement && plo.parentPEO && plo.mqfDomain && plo.taxonomy && hasSc
+            var ok = !!(plo.statement && plo.parentPEO && plo.mqfDomain && plo.taxonomy && codes.length
               && (!eligible || plo.sdg));
             if (ok) complete++;
           });
+          // Programme-level requirements: at least one Teras FlexS, and all three
+          // sustainability domains represented across the PLOs (at least 3 PLOs).
+          var domains = [
+            { key: 'thinking', label: 'Ways of Thinking', ok: !!programmeDomains.thinking },
+            { key: 'practicing', label: 'Ways of Practicing', ok: !!programmeDomains.practicing },
+            { key: 'being', label: 'Ways of Being', ok: !!programmeDomains.being }
+          ];
+          var scDomains = domains.filter(function (d) { return d.ok; }).length;
+          scoreTotal += tfMapped > 0 ? 1 : 0; scorePossible += 1;
+          scoreTotal += scDomains; scorePossible += 3;
           return {
             peoCount: peos.length,
             ploCount: plos.length,
             ploComplete: complete,
-            scComplete: scComplete,
-            scOne: scOne,
-            scTwo: scTwo,
+            scMapped: scMapped,
+            scDomains: scDomains,
+            scDomainList: domains,
             tfMapped: tfMapped,
             sdgEligible: sdgEligible,
             sdgMapped: sdgMapped,
             tfOk: tfMapped > 0,
+            scOk: scDomains === 3,
             percent: scorePossible ? Math.round((scoreTotal / scorePossible) * 100) : 0,
             completePercent: plos.length ? Math.round((complete / plos.length) * 100) : 0,
-            fullyComplete: plos.length > 0 && complete === plos.length && tfMapped > 0
+            fullyComplete: plos.length > 0 && complete === plos.length && tfMapped > 0 && scDomains === 3
           };
         },
         scByDomain: function () {
@@ -314,24 +323,18 @@
               mqfDomain: this.normalizeMQFDomain(record.mqfDomain),
               taxonomy: String(record.taxonomy || '').toUpperCase(),
               sdg: this.isSDGEligiblePLO(record.code) ? String(record.sdg || '').replace(/\s+/g, '').toUpperCase() : '',
-              scThinking: '', scPracticing: '', scBeing: '',
+              sc: this.firstScCode(record.sc),
               tf: String(record.tf || '').replace(/\s+/g, '').toUpperCase()
             }
           };
-          this.loadScPicks(record);
         },
-        loadScPicks: function (record) {
-          var self = this;
-          var picks = { thinking: '', practicing: '', being: '' };
-          String(record.sc || '').split(',').forEach(function (code) {
-            var upper = code.trim().toUpperCase();
-            self.sustainabilityCompetencies.forEach(function (item) {
-              if (item.code === upper) picks[item.domain] = upper;
-            });
-          });
-          this.$set(this.editor.draft, 'scThinking', picks.thinking);
-          this.$set(this.editor.draft, 'scPracticing', picks.practicing);
-          this.$set(this.editor.draft, 'scBeing', picks.being);
+        firstSc: function (value) {
+          return this.firstScCode(value);
+        },
+        firstScCode: function (value) {
+          // Legacy rows may hold several codes; the unified dropdown shows the first one.
+          var first = String(value || '').split(',')[0] || '';
+          return first.trim().toUpperCase();
         },
         closeEdit: function () {
           if (this.saving) return;
@@ -500,12 +503,7 @@
           if (this.pdf.sending || this.pdf.generating) return;
           this.pdf = emptyPdf();
         },
-        buildDraft: function () {
-          var draft = Object.assign({}, this.editor.draft);
-          draft.sc = [draft.scThinking, draft.scPracticing, draft.scBeing]
-            .filter(function (v) { return !!v; }).join(', ');
-          return draft;
-        },
+
         saveEdit: function () {
           var self = this;
           this.saving = true;

@@ -108,9 +108,10 @@
             </div>
             <div class="dash-card">
               <span class="dash-label">SC domains</span>
-              <span class="dash-value">{{ mappingSummary.scComplete }}</span>
-              <span class="dash-note">
-                with 3 domains · 1 domain: {{ mappingSummary.scOne }} · 2 domains: {{ mappingSummary.scTwo }}
+              <span class="dash-value" :class="{ 'dash-warn': !mappingSummary.scOk }">{{ mappingSummary.scDomains }}<span class="dash-note"> / 3</span></span>
+              <span class="dash-note">{{ mappingSummary.scMapped }} of {{ mappingSummary.ploCount }} PLO tagged</span>
+              <span class="dash-domains">
+                <span v-for="domain in mappingSummary.scDomainList" :key="domain.key" class="dash-domain" :class="{ 'dash-domain-on': domain.ok }">{{ domain.ok ? '✓' : '○' }} {{ domain.label }}</span>
               </span>
             </div>
             <div class="dash-card">
@@ -208,7 +209,7 @@
                   <td>{{ plo.mqfDomain || '—' }}</td>
                   <td>{{ plo.taxonomy || '—' }}</td>
                   <td>{{ isSDGEligiblePLO(plo.code) ? (plo.sdg || '—') : '' }}</td>
-                  <td>{{ plo.sc || '—' }}</td>
+                  <td>{{ firstSc(plo.sc) || '—' }}</td>
                   <td>{{ plo.tf || '—' }}</td>
                   <td class="action-cell">
                     <button type="button" class="icon-button" v-if="detail.canEdit" @click="openEdit('plo', plo)" :aria-label="'Edit ' + plo.code" title="Edit PLO">
@@ -390,26 +391,20 @@
               </select>
             </div>
             <div class="form-field">
-              <label for="sc-thinking">SC — Ways of Thinking</label>
-              <select id="sc-thinking" v-model="editor.draft.scThinking" required>
+              <label for="sc">Sustainability competency (SC)</label>
+              <select id="sc" v-model="editor.draft.sc" required>
                 <option value="" disabled>Select competency</option>
-                <option v-for="item in scByDomain.thinking" :key="item.code" :value="item.code">{{ item.code }} — {{ item.label }}</option>
+                <optgroup label="Ways of Thinking">
+                  <option v-for="item in scByDomain.thinking" :key="item.code" :value="item.code">{{ item.code }} — {{ item.label }}</option>
+                </optgroup>
+                <optgroup label="Ways of Practicing">
+                  <option v-for="item in scByDomain.practicing" :key="item.code" :value="item.code">{{ item.code }} — {{ item.label }}</option>
+                </optgroup>
+                <optgroup label="Ways of Being">
+                  <option v-for="item in scByDomain.being" :key="item.code" :value="item.code">{{ item.code }} — {{ item.label }}</option>
+                </optgroup>
               </select>
-            </div>
-            <div class="form-field">
-              <label for="sc-practicing">SC — Ways of Practicing</label>
-              <select id="sc-practicing" v-model="editor.draft.scPracticing" required>
-                <option value="" disabled>Select competency</option>
-                <option v-for="item in scByDomain.practicing" :key="item.code" :value="item.code">{{ item.code }} — {{ item.label }}</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="sc-being">SC — Ways of Being</label>
-              <select id="sc-being" v-model="editor.draft.scBeing" required>
-                <option value="" disabled>Select competency</option>
-                <option v-for="item in scByDomain.being" :key="item.code" :value="item.code">{{ item.code }} — {{ item.label }}</option>
-              </select>
-              <p class="form-help">One competency from each domain is required for a PLO to count as fully mapped.</p>
+              <p class="form-help">One SC per PLO. The programme is complete when all three SC domains appear across its PLOs.</p>
             </div>
             <div class="form-field">
               <label for="tf">Teras FlexS (TF)</label>
