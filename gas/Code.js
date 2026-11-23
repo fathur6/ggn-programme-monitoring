@@ -287,6 +287,7 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
       mqaCode: programme.mqaCode,
       progCode: programme.progCode,
       nec: programme.nee || '',
+      mode: programme.mode || 'Research',
       accreditation: programme.accreditation || '',
       level: programme.level,
       faculty: programme.faculty,
@@ -1808,6 +1809,7 @@ function getProgrammes_() {
       facultyFull: String(row[6] || '').trim(),
       faculty: String(row[7] || '').trim(),
       sharing: String(row[8] || '').trim(),
+      mode: String(row[11] || '').trim() || 'Research',
       roleRaw: String(row[9] || '').trim(),
       ownerFacultyRaw: String(row[10] || '').trim(),
       level: detectLevel_(nameMy || name)
