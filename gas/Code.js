@@ -2325,13 +2325,13 @@ function readProgrammeSheet_(tabName, baseCode) {
       peos.push({
         code: itemCode,
         statement: String(row[1] || '').trim(),
-        mqfDomain: String(row[2] || '').trim()
+        mqfDomain: compactMqfCodes_(String(row[2] || '').trim())
       });
     } else if (section === 'plo') {
       plos.push({
         code: itemCode,
         statement: String(row[1] || '').trim(),
-        mqfDomain: String(row[2] || '').trim(),
+        mqfDomain: compactMqfCodes_(String(row[2] || '').trim()),
         parentPEO: String(row[3] || '').trim(),
         taxonomy: String(row[4] || '').trim(),
         sdg: String(row[5] || '').trim(),
@@ -2521,6 +2521,11 @@ function programmePEOCodes_(data) {
     if (section === 'peo' && code) result.push(code);
   }
   return result;
+}
+
+/** Displays MQF codes without the space: MQF1, MQF3a. Storage stays canonical. */
+function compactMqfCodes_(value) {
+  return String(value == null ? '' : value).replace(/MQF\s+/gi, 'MQF');
 }
 
 function normalizeMQFDomain_(value) {
@@ -2777,8 +2782,8 @@ function applyPEOMQFRollup_(peos, plos) {
   (peos || []).forEach(function(peo) {
     var domains = domainsByPEO[peo.code] || [];
     domains.sort(function(a, b) { return MQF_DOMAIN_CODES_.indexOf(a) - MQF_DOMAIN_CODES_.indexOf(b); });
-    peo.mqfDomains = domains;
-    peo.mqfDomain = domains.join(', ');
+    peo.mqfDomains = domains.map(compactMqfCodes_);
+    peo.mqfDomain = compactMqfCodes_(domains.join(', '));
   });
 }
 
