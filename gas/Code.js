@@ -251,6 +251,26 @@ function doGet(e) {
       var applySc = String(params.setup) === 'scnormalise';
       return jsonResponse_(scNormalisationRun_(applySc, session.user));
     }
+    if (String(params.setup || '') === 'pdftest') {
+      if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
+      var testProgramme = resolveProgrammeForRead_(String(params.mqaCode || 'MQA/FA5591'), '');
+      if (!testProgramme) return jsonResponse_({ ok: false, error: 'Programme not found' });
+      var testDetail = getProgrammeDetailFor_(testProgramme);
+      var testMeta = {
+        filename: 'TEST-' + filenameBase_(testProgramme.mqaCode),
+        by: session.user.name || '',
+        email: session.user.email || '',
+        generatedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd MMM yyyy, HH:mm')
+      };
+      try {
+        var slidesBlob = buildProgrammePdfBlob_(testProgramme, testDetail, testProgramme.mqaCode, testMeta);
+        return jsonResponse_({ ok: true, build: 'b2', size: slidesBlob.getBytes().length, name: slidesBlob.getName(),
+          viewer: Session.getActiveUser().getEmail() || '' });
+      } catch (err) {
+        return jsonResponse_({ ok: false, build: 'b2', error: String(err && err.message ? err.message : err),
+          viewer: Session.getActiveUser().getEmail() || '' });
+      }
+    }
     if (String(params.setup || '') === 'pdflog') {
       if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
       return jsonResponse_(backfillPdfLog_());
@@ -336,18 +356,6 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
  * Run once from the Apps Script editor. It forces the Drive authorisation prompt
  * and proves the deployment account can reach the PDF folder.
  */
-/**
- * Run once from the Apps Script editor to grant the presentations scope used by
- * the modern PDF design. It creates a throwaway deck and deletes it.
- */
-function authorizePdfDesign() {
-  var deck = SlidesApp.create('PDF design authorisation probe');
-  var id = deck.getId();
-  deck.saveAndClose();
-  DriveApp.getFileById(id).setTrashed(true);
-  return 'Slides permission granted. The PDF design now uses Slides.';
-}
-
 function checkPdfFolderAccess() {
   var folder = DriveApp.getFolderById(PDF_FOLDER_ID_);
   console.log('PDF folder: ' + folder.getName() + ' (' + folder.getId() + ')');

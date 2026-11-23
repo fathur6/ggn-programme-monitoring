@@ -22,86 +22,71 @@ var PDF_L_ = {
   white: '#FFFFFF'
 };
 
-var PDF_LOGO_CACHE_ = {};
-var PDF_LOGO_SOURCES_ = {
+var PDF_TEMPLATE_ID_ = '1SJzzwvvAi5ziEFt6P_PfvkNIAYBXcfZQstMavh4pKtU';
+var PDF_LOGO_URLS_ = {
   unisza: 'https://www.unisza.edu.my/wp-content/uploads/2021/04/logo_left-1024x385.png',
   gs: 'https://i.postimg.cc/L6bJj0H1/GS-logo-color-cropped.png'
 };
 
-/**
- * Logos are downloaded once and cached in Drive so later runs never depend on
- * an external host. A missing logo is skipped rather than failing the document.
- */
-function pdfLogoBlob_(key) {
-  if (Object.prototype.hasOwnProperty.call(PDF_LOGO_CACHE_, key)) return PDF_LOGO_CACHE_[key];
-  PDF_LOGO_CACHE_[key] = null;
-
-  try {
-    var folder = pdfAssetsFolder_();
-    var existing = folder.getFilesByName('logo-' + key + '.png');
-    if (existing.hasNext()) {
-      PDF_LOGO_CACHE_[key] = existing.next().getBlob();
-      return PDF_LOGO_CACHE_[key];
-    }
-    var source = PDF_LOGO_SOURCES_[key];
-    if (!source) return null;
-    var response = UrlFetchApp.fetch(source, { muteHttpExceptions: true });
-    if (response.getResponseCode() !== 200) return null;
-    var blob = response.getBlob().setName('logo-' + key + '.png');
-    folder.createFile(blob);
-    PDF_LOGO_CACHE_[key] = blob;
-    return blob;
-  } catch (err) {
-    console.error('pdf logo ' + key + ' unavailable: ' + (err && err.message ? err.message : err));
-    return null;
-  }
-}
-
-function pdfAssetsFolder_() {
-  var folder = getPdfFolder_();
-  var found = folder.getFoldersByName('Brand assets');
-  if (found.hasNext()) return found.next();
-  return folder.createFolder('Brand assets');
-}
-
 function pdfRound_(slide, x, y, width, height, fill, stroke) {
-  var shape = slide.insertShape(SlidesApp.ShapeType.ROUNDED_RECTANGLE, x, y, width, height);
+  var shapeType = SlidesApp.ShapeType.ROUND_RECTANGLE || SlidesApp.ShapeType.ROUNDED_RECTANGLE;
+  var shape;
+  try {
+    shape = slide.insertShape(shapeType, x, y, width, height);
+  } catch (err) {
+    shape = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, x, y, width, height);
+  }
   shape.getFill().setSolidFill(fill || PDF_L_.white);
-  var line = shape.getLine();
-  line.setSolidFill(stroke || fill || PDF_L_.white);
-  line.setWeight(0.75);
+  try {
+    var line = shape.getLine();
+    line.setSolidFill(stroke || fill || PDF_L_.white);
+    line.setWeight(0.75);
+  } catch (err) { /* outlines are optional */ }
   return shape;
 }
 
 function pdfText_(slide, value, x, y, width, height, opts) {
   var options = opts || {};
-  var box = slide.insertTextBox(String(value == null ? '' : value), x, y, width, height);
+  var content = String(value == null ? '' : value);
+  if (!content.trim()) return null;
+  var box = slide.insertTextBox(content, x, y, width, height);
   var text = box.getText();
-  var style = text.getTextStyle();
-  style.setFontFamily('Arial');
-  style.setFontSize(options.size || 8.6);
-  style.setBold(!!options.bold);
-  style.setForegroundColor(options.color || PDF_L_.ink);
-  box.setContentAlignment(SlidesApp.ContentAlignment.TOP);
-  if (options.align === 'right') {
-    text.getParagraphStyle().setParagraphAlignment(SlidesApp.ParagraphAlignment.RIGHT);
-  } else if (options.align === 'center') {
-    text.getParagraphStyle().setParagraphAlignment(SlidesApp.ParagraphAlignment.CENTER);
+  try {
+    var style = text.getTextStyle();
+    style.setFontFamily('Arial');
+    style.setFontSize(options.size || 8.6);
+    style.setBold(!!options.bold);
+    style.setForegroundColor(options.color || PDF_L_.ink);
+  } catch (err) { /* keep the default style */ }
+  try { box.setContentAlignment(SlidesApp.ContentAlignment.TOP); } catch (err) { /* middle is fine */ }
+  if (options.align) {
+    try {
+      var alignments = SlidesApp.ParagraphAlignment;
+      var value = options.align === 'right'
+        ? (alignments.RIGHT || alignments.END)
+        : alignments.CENTER;
+      text.getParagraphStyle().setParagraphAlignment(value);
+    } catch (err) { /* left alignment is the default */ }
   }
   return box;
 }
 
 function pdfLogo_(slide, key, x, y, height, alignRight) {
-  var blob = pdfLogoBlob_(key);
-  if (!blob) return null;
-  var image = slide.insertImage(blob);
-  var ratio = image.getWidth() / (image.getHeight() || 1);
-  var width = height * ratio;
-  image.setWidth(width);
-  image.setHeight(height);
-  image.setTop(y);
-  image.setLeft(alignRight ? x - width : x);
-  return image;
+  var url = PDF_LOGO_URLS_[key];
+  if (!url) return null;
+  try {
+    var image = slide.insertImage(url);
+    var ratio = image.getWidth() / (image.getHeight() || 1);
+    var width = height * ratio;
+    image.setWidth(width);
+    image.setHeight(height);
+    image.setTop(y);
+    image.setLeft(alignRight ? x - width : x);
+    return image;
+  } catch (err) {
+    console.error('pdf logo ' + key + ' unavailable: ' + (err && err.message ? err.message : err));
+    return null;
+  }
 }
 
 function pdfTextHeight_(value, width, size, bold) {
@@ -115,8 +100,10 @@ function pdfTextHeight_(value, width, size, bold) {
 }
 
 function pdfStartPage_(state, programme, code, first) {
-  var slide = first ? state.slides[0] : state.pres.appendSlide(SlidesApp.PredefinedLayout.BLANK);
-  if (first) slide.setLayout(SlidesApp.PredefinedLayout.BLANK);
+  var existing = state.pres.getSlides();
+  var slide = first && existing.length
+    ? existing[0]
+    : state.pres.appendSlide(SlidesApp.PredefinedLayout.BLANK);
   state.slide = slide;
   state.page += 1;
 
@@ -180,8 +167,8 @@ function pdfTableHead_(state, columns, width) {
   pdfRound_(state.slide, PDF_L_.m, state.y, width, height, PDF_L_.green);
   var x = PDF_L_.m;
   columns.forEach(function (column) {
-    pdfText_(state.slide, column.label, x + 7, state.y + 6.4, column.width - 10, 12, {
-      size: 7.2, bold: true, color: PDF_L_.white
+    pdfText_(state.slide, column.label, x + 4, state.y + 6.4, column.width - 8, 12, {
+      size: 6.8, bold: true, color: PDF_L_.white
     });
     x += column.width;
   });
@@ -196,12 +183,12 @@ function pdfRowHeight_(columns, row, size) {
 }
 
 function pdfDrawRow_(state, columns, row, width, rowHeight, alternate) {
-  var size = 8.5;
+  var size = 8.1;
   pdfRound_(state.slide, PDF_L_.m, state.y, width, rowHeight,
     alternate ? PDF_L_.rowAlt : PDF_L_.white, PDF_L_.line);
   var x = PDF_L_.m;
   columns.forEach(function (column) {
-    pdfText_(state.slide, row[column.key], x + 7, state.y + 6, column.width - 14,
+    pdfText_(state.slide, row[column.key], x + 4, state.y + 6, column.width - 8,
       rowHeight - 10, {
         size: size,
         bold: !!column.bold,
@@ -237,6 +224,25 @@ function pdfDrawTable_(state, spec) {
   state.y += 8;
 }
 
+/**
+ * The Slides service cannot change a page size, so every document starts as a
+ * copy of an A4 portrait template and is then filled in.
+ */
+function pdfOpenTemplate_(title) {
+  try {
+    var copy = DriveApp.getFileById(PDF_TEMPLATE_ID_).makeCopy(title);
+    var presentation = SlidesApp.openById(copy.getId());
+    var existing = presentation.getSlides();
+    for (var i = existing.length - 1; i >= 0; i--) {
+      try { existing[i].remove(); } catch (e) { /* keep going */ }
+    }
+    return presentation;
+  } catch (err) {
+    console.error('PDF template unavailable: ' + (err && err.message ? err.message : err));
+    return null;
+  }
+}
+
 function buildProgrammePdfBlob_(programme, detail, code, meta) {
   var info = meta || {};
   var name = programme && programme.name ? programme.name : code;
@@ -249,11 +255,10 @@ function buildProgrammePdfBlob_(programme, detail, code, meta) {
   var by = info.by || '';
   var email = info.email || '';
 
-  var presentation = SlidesApp.create('PDFTMP_' + Utilities.getUuid().replace(/-/g, '').slice(0, 10));
+  var deckTitle = 'PDFTMP_' + Utilities.getUuid().replace(/-/g, '').slice(0, 10);
+  var presentation = pdfOpenTemplate_(deckTitle) || SlidesApp.create(deckTitle);
   var presentationId = presentation.getId();
   try {
-    presentation.setPageWidth(PDF_L_.w);
-    presentation.setPageHeight(PDF_L_.h);
 
     var state = {
       pres: presentation,
@@ -306,14 +311,14 @@ function buildProgrammePdfBlob_(programme, detail, code, meta) {
       width: PDF_L_.gutter,
       empty: 'Tiada rekod PLO.',
       columns: [
-        { key: 'code', label: 'CODE', width: 44, bold: true },
-        { key: 'statement', label: 'PLO STATEMENT', width: 205 },
-        { key: 'parentPEO', label: 'PEO', width: 46, color: PDF_L_.muted },
-        { key: 'mqfDomain', label: 'MQF', width: 52, color: PDF_L_.muted },
-        { key: 'taxonomy', label: 'TAXONOMY', width: 52, color: PDF_L_.muted },
-        { key: 'sdg', label: 'SDG', width: 38, color: PDF_L_.muted },
-        { key: 'sc', label: 'SC', width: 40, color: PDF_L_.muted },
-        { key: 'tf', label: 'TF', width: 38, color: PDF_L_.muted }
+        { key: 'code', label: 'CODE', width: 56, bold: true },
+        { key: 'statement', label: 'PLO STATEMENT', width: 170 },
+        { key: 'parentPEO', label: 'PEO', width: 48, color: PDF_L_.muted },
+        { key: 'mqfDomain', label: 'MQF', width: 54, color: PDF_L_.muted },
+        { key: 'taxonomy', label: 'TAX', width: 42, color: PDF_L_.muted },
+        { key: 'sdg', label: 'SDG', width: 54, color: PDF_L_.muted },
+        { key: 'sc', label: 'SC', width: 46, color: PDF_L_.muted },
+        { key: 'tf', label: 'TF', width: 45, color: PDF_L_.muted }
       ],
       rows: plos.map(function (plo) {
         return {
@@ -333,7 +338,8 @@ function buildProgrammePdfBlob_(programme, detail, code, meta) {
     var total = slides.length;
     slides.forEach(function (slide, index) {
       pdfRound_(slide, PDF_L_.m, PDF_L_.h - 56, PDF_L_.gutter, 0.8, PDF_L_.line);
-      var left = 'Generated by ' + (by || 'Pusat Pengajian Siswazah') + (email ? '  ·  ' + email : '');
+      var who = by && by !== email ? by + '  ·  ' + email : (email || by || 'Pusat Pengajian Siswazah');
+      var left = 'Generated by ' + who;
       pdfText_(slide, left, PDF_L_.m, PDF_L_.h - 46, 330, 12, {
         size: 7.2, color: PDF_L_.muted
       });
@@ -353,4 +359,16 @@ function buildProgrammePdfBlob_(programme, detail, code, meta) {
       try { DriveApp.getFileById(presentationId).setTrashed(true); } catch (e) { /* cleanup */ }
     }
   }
+}
+
+/**
+ * Run once from the Apps Script editor if the presentations permission is ever
+ * missing. It creates a throwaway deck and removes it again.
+ */
+function authorizePdfDesign() {
+  var deck = SlidesApp.create('PDF design authorisation probe');
+  var id = deck.getId();
+  deck.saveAndClose();
+  DriveApp.getFileById(id).setTrashed(true);
+  return 'Slides permission granted.';
 }
