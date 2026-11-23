@@ -1,0 +1,56 @@
+[
+ {
+  "code": "GI5101",
+  "nameMy": "SARJANA PENGURUSAN PENDIDIKAN",
+  "name": "MASTER IN EDUCATION MANAGEMENT",
+  "facultyFull": "FAKULTI PENGAJIAN KONTEMPORARI ISLAM",
+  "faculty": "FKI",
+  "mode": "COURSEWORK",
+  "nec": "0111 EDUCATION SCIENCE"
+ },
+ {
+  "code": "GL5201",
+  "nameMy": "SARJANA UNDANG-UNDANG KOMERSIL",
+  "name": "MASTER IN COMMERCIAL LAW",
+  "facultyFull": "FAKULTI UNDANG-UNDANG & HUBUNGAN ANTARABANGSA",
+  "faculty": "FUHA",
+  "mode": "MIXED-MODE",
+  "nec": "0421 LAW"
+ },
+ {
+  "code": "GL5202",
+  "nameMy": "SARJANA UNDANG-UNDANG PERBANDINGAN",
+  "name": "MASTER IN COMPARATIVE LAWS",
+  "facultyFull": "FAKULTI UNDANG-UNDANG & HUBUNGAN ANTARABANGSA",
+  "faculty": "FUHA",
+  "mode": "MIXED-MODE",
+  "nec": "0421 LAW"
+ },
+ {
+  "code": "GM5101",
+  "nameMy": "IJAZAH SARJANA PENTADBIRAN PERNIAGAAN",
+  "name": "MASTER OF BUSINESS ADMINISTRATION",
+  "facultyFull": "FAKULTI PERNIAGAAN DAN PENGURUSAN",
+  "faculty": "FPP",
+  "mode": "COURSEWORK",
+  "nec": "0414 MANAGEMENT AND ADMINISTRATION"
+ },
+ {
+  "code": "GM5201",
+  "nameMy": "SARJANA KEWANGAN ISLAM",
+  "name": "MASTER OF ISLAMIC FINANCE",
+  "facultyFull": "FAKULTI PERNIAGAAN DAN PENGURUSAN",
+  "faculty": "FPP",
+  "mode": "MIXED-MODE",
+  "nec": "0413 ISLAMIC BANKING AND FINANCE"
+ },
+ {
+  "code": "GT5201",
+  "nameMy": "SARJANA TEKNOLOGI MAKLUMAT (INFORMATIK PENGURUSAN)",
+  "name": "MASTER OF INFORMATION TECHNOLOGY (MANAGEMENT INFORMATICS)",
+  "facultyFull": "FAKULTI INFORMATIK & KOMPUTERAN",
+  "faculty": "FIK",
+  "mode": "MIXED-MODE",
+  "nec": "0611 INFORMATION TECHNOLOGY AND INFORMATION SYSTEM"
+ }
+]
