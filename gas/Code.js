@@ -2323,20 +2323,20 @@ function readProgrammeSheet_(tabName, baseCode) {
 
     if (section === 'peo') {
       peos.push({
-        code: itemCode,
+        code: compactCodes_(itemCode),
         statement: String(row[1] || '').trim(),
-        mqfDomain: compactMqfCodes_(String(row[2] || '').trim())
+        mqfDomain: compactCodes_(String(row[2] || '').trim())
       });
     } else if (section === 'plo') {
       plos.push({
-        code: itemCode,
+        code: compactCodes_(itemCode),
         statement: String(row[1] || '').trim(),
-        mqfDomain: compactMqfCodes_(String(row[2] || '').trim()),
-        parentPEO: String(row[3] || '').trim(),
-        taxonomy: String(row[4] || '').trim(),
-        sdg: String(row[5] || '').trim(),
-        sc: String(row[6] || '').trim(),
-        tf: String(row[7] || '').trim()
+        mqfDomain: compactCodes_(String(row[2] || '').trim()),
+        parentPEO: compactCodes_(String(row[3] || '').trim()),
+        taxonomy: compactCodes_(String(row[4] || '').trim()),
+        sdg: compactCodes_(String(row[5] || '').trim()),
+        sc: compactCodes_(String(row[6] || '').trim()),
+        tf: compactCodes_(String(row[7] || '').trim())
       });
     }
   }
@@ -2523,9 +2523,21 @@ function programmePEOCodes_(data) {
   return result;
 }
 
-/** Displays MQF codes without the space: MQF1, MQF3a. Storage stays canonical. */
+/** Displays codes without inner spaces: MQF1, SDG3, SC3, TF1, PLO1, C3. */
+function compactCodes_(value) {
+  return String(value == null ? '' : value)
+    .replace(/MQF\s+/gi, 'MQF')
+    .replace(/SDG\s+/gi, 'SDG')
+    .replace(/SC\s+/gi, 'SC')
+    .replace(/TF\s+/gi, 'TF')
+    .replace(/PEO\s+/gi, 'PEO')
+    .replace(/PLO\s+/gi, 'PLO')
+    .replace(/\b([CAP])\s+(\d)/g, '$1$2');
+}
+
+/** Kept for older call sites. */
 function compactMqfCodes_(value) {
-  return String(value == null ? '' : value).replace(/MQF\s+/gi, 'MQF');
+  return compactCodes_(value);
 }
 
 function normalizeMQFDomain_(value) {
