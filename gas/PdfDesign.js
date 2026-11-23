@@ -45,6 +45,16 @@ function pdfRound_(slide, x, y, width, height, fill, stroke) {
   return shape;
 }
 
+/**
+ * Light cards and row bands are text boxes with a solid fill: text boxes carry no
+ * outline, so the report stays free of the default shape border.
+ */
+function pdfPanel_(slide, x, y, width, height, fill) {
+  var box = slide.insertTextBox(' ', x, y, width, height);
+  try { box.getFill().setSolidFill(fill); } catch (err) { /* keep default */ }
+  return box;
+}
+
 function pdfText_(slide, value, x, y, width, height, opts) {
   var options = opts || {};
   var content = String(value == null ? '' : value);
@@ -118,12 +128,12 @@ function pdfStartPage_(state, programme, code, first) {
     pdfText_(slide, 'Programme Information', PDF_L_.m, 100, 420, 30, {
       size: 22, bold: true, color: PDF_L_.ink
     });
-    pdfRound_(slide, PDF_L_.m, 134, 92, 17, PDF_L_.greenSoft);
+    pdfPanel_(slide, PDF_L_.m, 134, 92, 17, PDF_L_.greenSoft);
     pdfText_(slide, 'MQF 2.0 (2024)', PDF_L_.m, 138.5, 92, 12, {
       size: 7.6, bold: true, color: PDF_L_.green, align: 'center'
     });
 
-    pdfRound_(slide, PDF_L_.m, 162, PDF_L_.gutter, 78, PDF_L_.card);
+    pdfPanel_(slide, PDF_L_.m, 162, PDF_L_.gutter, 78, PDF_L_.card);
     pdfText_(slide, state.name, PDF_L_.m + 16, 174, PDF_L_.gutter - 32, 18, {
       size: 13, bold: true, color: PDF_L_.ink
     });
@@ -184,16 +194,18 @@ function pdfRowHeight_(columns, row, size) {
 
 function pdfDrawRow_(state, columns, row, width, rowHeight, alternate) {
   var size = 8.1;
-  pdfRound_(state.slide, PDF_L_.m, state.y, width, rowHeight,
-    alternate ? PDF_L_.rowAlt : PDF_L_.white, PDF_L_.line);
+  pdfPanel_(state.slide, PDF_L_.m, state.y, width, rowHeight,
+    alternate ? PDF_L_.rowAlt : PDF_L_.card);
   var x = PDF_L_.m;
   columns.forEach(function (column) {
-    pdfText_(state.slide, row[column.key], x + 4, state.y + 6, column.width - 8,
-      rowHeight - 10, {
-        size: size,
-        bold: !!column.bold,
-        color: column.color || (column.bold ? PDF_L_.ink : PDF_L_.ink)
-      });
+    var value = row[column.key];
+    var textHeight = pdfTextHeight_(value, column.width - 10, size, !!column.bold);
+    var top = state.y + Math.max(5, (rowHeight - textHeight) / 2);
+    pdfText_(state.slide, value, x + 6, top, column.width - 10, textHeight + 2, {
+      size: size,
+      bold: !!column.bold,
+      color: column.color || PDF_L_.ink
+    });
     x += column.width;
   });
   state.y += rowHeight + 3;
