@@ -83,6 +83,52 @@
 
         <section class="section-card">
           <div class="section-heading">
+            <h3>{{ t('mapping_title') }}</h3>
+            <div class="section-heading-actions">
+              <span class="state-chip" :class="mappingSummary.percent === 100 ? 'chip-shared' : 'chip-warn'">
+                {{ mappingSummary.percent }}% complete
+              </span>
+            </div>
+          </div>
+          <div class="dash-cards">
+            <div class="dash-card">
+              <span class="dash-label">PEO</span>
+              <span class="dash-value">{{ mappingSummary.peoCount }}</span>
+              <span class="dash-note">records</span>
+            </div>
+            <div class="dash-card">
+              <span class="dash-label">PLO</span>
+              <span class="dash-value">{{ mappingSummary.ploCount }}</span>
+              <span class="dash-note">of 11</span>
+            </div>
+            <div class="dash-card">
+              <span class="dash-label">Fully mapped</span>
+              <span class="dash-value" :class="{ 'dash-warn': mappingSummary.ploComplete < mappingSummary.ploCount }">{{ mappingSummary.ploComplete }}</span>
+              <span class="dash-note">PLO complete</span>
+            </div>
+            <div class="dash-card">
+              <span class="dash-label">SC three domains</span>
+              <span class="dash-value" :class="{ 'dash-warn': mappingSummary.scComplete < mappingSummary.ploCount }">{{ mappingSummary.scComplete }}</span>
+              <span class="dash-note">of {{ mappingSummary.ploCount }} PLO</span>
+            </div>
+            <div class="dash-card">
+              <span class="dash-label">SDG</span>
+              <span class="dash-value">{{ mappingSummary.sdgMapped }}<span class="dash-note"> / {{ mappingSummary.sdgEligible }}</span></span>
+              <span class="dash-note">eligible PLO</span>
+            </div>
+            <div class="dash-card">
+              <span class="dash-label">Teras FlexS</span>
+              <span class="dash-value">{{ mappingSummary.tfMapped }}</span>
+              <span class="dash-note">of {{ mappingSummary.ploCount }} PLO</span>
+            </div>
+          </div>
+          <div class="dash-bar" style="margin-top:14px">
+            <span :style="{ width: mappingSummary.percent + '%' }"></span>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <div class="section-heading">
             <button type="button" class="section-toggle" @click="sections.peo = !sections.peo" :aria-expanded="sections.peo">
               <h3>{{ t('peo_title') }}</h3>
               <span class="review-chevron">{{ sections.peo ? '▲' : '▼' }}</span>
