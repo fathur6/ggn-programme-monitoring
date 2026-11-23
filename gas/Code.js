@@ -336,6 +336,18 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
  * Run once from the Apps Script editor. It forces the Drive authorisation prompt
  * and proves the deployment account can reach the PDF folder.
  */
+/**
+ * Run once from the Apps Script editor to grant the presentations scope used by
+ * the modern PDF design. It creates a throwaway deck and deletes it.
+ */
+function authorizePdfDesign() {
+  var deck = SlidesApp.create('PDF design authorisation probe');
+  var id = deck.getId();
+  deck.saveAndClose();
+  DriveApp.getFileById(id).setTrashed(true);
+  return 'Slides permission granted. The PDF design now uses Slides.';
+}
+
 function checkPdfFolderAccess() {
   var folder = DriveApp.getFolderById(PDF_FOLDER_ID_);
   console.log('PDF folder: ' + folder.getName() + ' (' + folder.getId() + ')');
@@ -2845,7 +2857,13 @@ function generatePdfApi(mqaCode, sessionToken, faculty) {
   var folder = getPdfFolder_();
   var filename = buildPdfFilename_(code, folder);
 
-  var blob = buildPdfBlob_(programme, detail, code);
+  var active = Session.getActiveUser().getEmail() || session.user.email || '';
+  var blob = buildPdfBlob_(programme, detail, code, {
+    filename: filename,
+    by: (session.user && session.user.name) || active,
+    email: active,
+    generatedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd MMM yyyy, HH:mm')
+  });
   var file = folder.createFile(blob);
   file.setName(filename);
   recordPdfInLog_(file, programme, session, 'generate');
@@ -2884,10 +2902,21 @@ function buildPdfFilename_(mqaCode, folder) {
     }
   }
   var serial = ('0' + (maxSerial + 1)).slice(-2);
-  return base + serial;
+  return base + serial + '.pdf';
 }
 
-function buildPdfBlob_(programme, detail, code) {
+function buildPdfBlob_(programme, detail, code, meta) {
+  // The Slides design needs the presentations scope. Until the deploying account
+  // has granted it, fall back to the spreadsheet design so PDFs still work.
+  try {
+    return buildProgrammePdfBlob_(programme, detail, code, meta || {});
+  } catch (err) {
+    console.error('Slides PDF unavailable: ' + (err && err.message ? err.message : err));
+    return buildPdfBlobSheets_(programme, detail, code, meta || {});
+  }
+}
+
+function buildPdfBlobSheets_(programme, detail, code, meta) {
   var name = programme && programme.name ? programme.name : code;
   var level = programme ? programme.level || '' : '';
   var faculty = programme ? (programme.facultyFull || programme.faculty || '') : '';
@@ -3010,6 +3039,7 @@ function padRow_(row, width) {
   for (var i = 0; i < width; i++) out.push(row[i] == null ? '' : row[i]);
   return out;
 }
+
 
 
 function filenameBase_(mqaCode) {
