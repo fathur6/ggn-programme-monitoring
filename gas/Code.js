@@ -517,10 +517,21 @@ function submitReviewStatusApi(mqaCode, text, sessionToken, faculty) {
 function reviewRolesFor_(email) {
   var target = String(email || '').trim().toLowerCase();
   if (!target) return [];
-  return reviewRows_(REVIEW_ROLES_SHEET_).filter(function (row) {
-    return String(row.Email || '').trim().toLowerCase() === target &&
-      String(row.Active || 'Yes').trim().toLowerCase() !== 'no';
-  }).map(function (row) { return String(row.Role || '').trim(); });
+  var known = ['PJK', 'TDA_PPS', 'PPA', 'PP'];
+  var out = [];
+  reviewRows_(REVIEW_ROLES_SHEET_).forEach(function (row) {
+    if (String(row.Email || '').trim().toLowerCase() !== target) return;
+    if (String(row.Active || 'Yes').trim().toLowerCase() === 'no') return;
+    // Role should sit in the Role column; tolerate a shifted sheet by scanning
+    // the remaining columns for a known role value.
+    var candidates = [row.Role, row.Faculty, row.Name].map(function (v) {
+      return String(v || '').trim().toUpperCase().replace(/\s+/g, '_');
+    });
+    for (var i = 0; i < candidates.length; i++) {
+      if (known.indexOf(candidates[i]) !== -1) { out.push(candidates[i]); break; }
+    }
+  });
+  return out;
 }
 
 var REVIEW_ADMIN_ROLES_ = ['PJK', 'TDA_PPS', 'PPA', 'PP'];
