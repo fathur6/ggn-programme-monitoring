@@ -84,7 +84,7 @@
             </button>
             <div class="section-heading-actions">
               <span class="count">{{ detail.peos.length }} {{ t('records') }}</span>
-              <button class="btn btn-outline btn-sm" @click="addRecord('peo')" :disabled="adding">{{ t('add_peo') }}</button>
+              <button v-if="detail.canEdit" class="btn btn-outline btn-sm" @click="addRecord('peo')" :disabled="adding">{{ t('add_peo') }}</button>
             </div>
           </div>
           <div v-show="sections.peo" class="table-wrap">
@@ -108,7 +108,7 @@
                     <span v-else>—</span>
                   </td>
                   <td class="action-cell">
-                    <button type="button" class="icon-button" @click="openEdit('peo', peo)" :aria-label="'Edit ' + peo.code" title="Edit PEO">
+                    <button type="button" class="icon-button" v-if="detail.canEdit" @click="openEdit('peo', peo)" :aria-label="'Edit ' + peo.code" title="Edit PEO">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
                     </button>
                   </td>
@@ -129,7 +129,7 @@
             </button>
             <div class="section-heading-actions">
               <span class="count">{{ detail.plos.length }}/11 {{ t('records') }}</span>
-              <button class="btn btn-outline btn-sm" @click="addRecord('plo')" :disabled="adding || detail.plos.length >= 11">{{ t('add_plo') }}</button>
+              <button v-if="detail.canEdit" class="btn btn-outline btn-sm" @click="addRecord('plo')" :disabled="adding || detail.plos.length >= 11">{{ t('add_plo') }}</button>
             </div>
           </div>
           <div v-show="sections.plo" class="table-wrap">
@@ -158,7 +158,7 @@
                   <td>{{ isSCEligiblePLO(plo.code) ? (plo.sc || '—') : '' }}</td>
                   <td>{{ plo.tf || '—' }}</td>
                   <td class="action-cell">
-                    <button type="button" class="icon-button" @click="openEdit('plo', plo)" :aria-label="'Edit ' + plo.code" title="Edit PLO">
+                    <button type="button" class="icon-button" v-if="detail.canEdit" @click="openEdit('plo', plo)" :aria-label="'Edit ' + plo.code" title="Edit PLO">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
                     </button>
                   </td>

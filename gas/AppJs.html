@@ -35,7 +35,7 @@
           history: [], missingLabel: 'Tidak dikemaskini',
           draft: '', submitting: false, error: null, notice: null
         }, BOOT.review || {}),
-        detail: BOOT.detail || emptyDetail(),
+        detail: Object.assign(emptyDetail(), BOOT.detail || {}),
         search: '',
         open: {},
         loading: false,

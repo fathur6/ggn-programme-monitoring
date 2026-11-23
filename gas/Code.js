@@ -263,7 +263,7 @@ function renderProgrammeListPage_(session) {
 }
 
 function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
-  var programme = programmeForSession_(mqaCode, session.user, facultyHint);
+  var programme = resolveProgrammeForRead_(mqaCode, facultyHint);
   if (!programme) {
     return renderAccessPage_({
       reason: 'not_found',
@@ -288,6 +288,7 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
       progCode: programme.progCode,
       nec: programme.nee || '',
       mode: programme.mode || 'Research',
+      canEdit: canEditProgramme_(programme, session.user),
       accreditation: programme.accreditation || '',
       level: programme.level,
       faculty: programme.faculty,
@@ -1776,13 +1777,19 @@ function adminDirectoryEntries_() {
  *          I=sharing flag.
  */
 function getProgrammesApi(sessionToken) {
-  var session = requireLogin_(sessionToken);
-  return session.isAdmin ? getProgrammes_() : getProgrammes_().filter(function(programme) { return programme.faculty === session.faculty; });
+  requireLogin_(sessionToken);
+  // University-wide visibility; editing is scoped separately by canEditProgramme_.
+  return getProgrammes_().map(function (programme) {
+    return programme;
+  });
 }
 
 function requireProgrammeFacultyAccess_(mqaCode, session, facultyHint) {
-  var programme = programmeForSession_(mqaCode, session, facultyHint);
-  if (!programme) throw new Error('You may only access programmes under your own faculty.');
+  var programme = resolveProgrammeForRead_(mqaCode, facultyHint);
+  if (!programme) throw new Error('The programme was not found.');
+  if (!canEditProgramme_(programme, session)) {
+    throw new Error('You may only edit programmes under your own faculty or institute.');
+  }
   return programme;
 }
 
@@ -1869,6 +1876,37 @@ function programmeTabName_(programme) {
  * Resolve one programme row for a session. A faculty hint is only meaningful for
  * admins, who can see the same MQA code under several faculties.
  */
+/**
+ * Editing rights: the owning faculty may edit its own programmes; PPS staff may
+ * only edit when they hold a PPS role (TDA, PJK or PPA). Everyone else reads.
+ */
+function ppsEditorRoles_(session) {
+  if (!session || !session.email) return [];
+  return reviewRolesFor_(session.email).filter(function (role) {
+    return ['PJK', 'TDA_PPS', 'PPA'].indexOf(role) !== -1;
+  });
+}
+
+function canEditProgramme_(programme, session) {
+  if (!programme || !session) return false;
+  if (ppsEditorRoles_(session).length) return true;
+  return String(programme.faculty || '') === String(session.faculty || '');
+}
+
+/** Resolve any programme for reading; the session only scopes editing. */
+function resolveProgrammeForRead_(mqaCode, facultyHint) {
+  var code = String(mqaCode || '').trim();
+  if (!code) return null;
+  var rows = getProgrammes_().filter(function (p) { return p.mqaCode === code; });
+  if (!rows.length) return null;
+  var hint = String(facultyHint || '').trim();
+  if (hint) {
+    for (var i = 0; i < rows.length; i++) if (rows[i].faculty === hint) return rows[i];
+  }
+  for (var j = 0; j < rows.length; j++) if (rows[j].role === PROGRAMME_ROLE_OWNER_) return rows[j];
+  return rows[0];
+}
+
 function programmeForSession_(mqaCode, session, facultyHint) {
   var code = String(mqaCode || '').trim();
   if (!code) return null;
