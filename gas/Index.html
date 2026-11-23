@@ -23,7 +23,10 @@
         <button type="button" :class="{ active: lang === 'ms' }" @click="setLang('ms')">BM</button>
         <button type="button" :class="{ active: lang === 'ar' }" @click="setLang('ar')">AR</button>
       </div>
-      <div v-if="currentUser" class="header-user" :title="currentUser.email">{{ userLabel }}</div>
+      <div v-if="currentUser" class="header-user" :title="currentUser.email">
+        <span>{{ userLabel }}</span>
+        <small class="header-version">v<?= appVersion ?></small>
+      </div>
     </header>
 
     <main class="container">
