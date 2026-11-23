@@ -280,6 +280,7 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
     token: session.token,
     baseUrl: deploymentUrl_(),
     pdfLog: listPdfLog_(session.user, programme.mqaCode),
+    changes: pendingChangesForProgramme_(programme.mqaCode),
     review: reviewPayloadFor_(programme, session.user),
     detail: {
       name: programme.name,
@@ -1408,6 +1409,171 @@ function referenceMapsPayload_() {
   // 1 hour: the scan reads every programme tab, so keep it warm longer.
   try { cache.put('ref-maps-v1', JSON.stringify(payload), 3600); } catch (e) {}
   return payload;
+}
+
+/**
+ * Programme metadata changes: the owning faculty proposes, a PPS approver decides.
+ * Approved values are written to the Programme sheet by column.
+ */
+var CHANGE_SHEET_ = 'ProgrammeChangeRequests';
+var CHANGE_HEADERS_ = ['RequestId', 'MQACode', 'Faculty', 'Changes', 'RequestedBy', 'RequestedByEmail',
+  'RequestedAt', 'Status', 'DecidedBy', 'DecidedAt'];
+var PROGRAMME_META_FIELDS_ = ['nameMy', 'name', 'progCode', 'nec', 'accreditation', 'mode'];
+var PROGRAMME_META_COLUMNS_ = { nameMy: 1, name: 2, progCode: 5, nec: 4, accreditation: 6, mode: 12 };
+
+function changeSheet_() {
+  var ss = programmeSpreadsheet_();
+  var sheet = ss.getSheetByName(CHANGE_SHEET_);
+  if (!sheet) {
+    sheet = ss.insertSheet(CHANGE_SHEET_);
+    sheet.getRange(1, 1, 1, CHANGE_HEADERS_.length).setValues([CHANGE_HEADERS_]).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function changeRows_() {
+  var sheet = programmeSpreadsheet_().getSheetByName(CHANGE_SHEET_);
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+  var header = data[0].map(function (v) { return String(v).trim(); });
+  return data.slice(1).filter(function (row) { return String(row[0] || '').trim(); }).map(function (row) {
+    var out = {};
+    header.forEach(function (name, i) { if (name) out[name] = row[i]; });
+    return out;
+  });
+}
+
+/** Who may approve: the named PPS approvers, plus the super-user roles. */
+function canApproveChanges_(session) {
+  if (!session) return false;
+  var email = String(session.email || '').trim().toLowerCase();
+  var named = ['fathurrahman@unisza.edu.my', 'fatinhannani@unisza.edu.my',
+    'fairuznasir@unisza.edu.my', 'yusnitayusof@unisza.edu.my'];
+  if (named.indexOf(email) !== -1) return true;
+  return ppsEditorRoles_(session).length > 0;
+}
+
+function pendingChangesForProgramme_(mqaCode) {
+  var code = String(mqaCode || '').trim();
+  return changeRows_().filter(function (row) {
+    return String(row.MQACode || '').trim() === code && String(row.Status || '') === 'Pending';
+  }).map(function (row) {
+    var changes = {};
+    try { changes = JSON.parse(String(row.Changes || '{}')); } catch (e) { changes = {}; }
+    return {
+      requestId: String(row.RequestId || ''),
+      requestedBy: String(row.RequestedBy || ''),
+      requestedAt: row.RequestedAt ? reviewDateLabel_(row.RequestedAt) : '',
+      changes: changes
+    };
+  });
+}
+
+function submitProgrammeChangeApi(mqaCode, changes, sessionToken, faculty) {
+  var session = requireLogin_(sessionToken);
+  var programme = resolveProgrammeForRead_(mqaCode, faculty);
+  if (!programme) throw new Error('The programme was not found.');
+  if (!canEditProgramme_(programme, session)) {
+    throw new Error('You may only propose changes for programmes under your own faculty.');
+  }
+  var clean = {};
+  PROGRAMME_META_FIELDS_.forEach(function (field) {
+    if (changes && Object.prototype.hasOwnProperty.call(changes, field)) {
+      var value = String(changes[field] == null ? '' : changes[field]).trim();
+      var current = String(programme[field] || '').trim();
+      if (value !== current) clean[field] = value;
+    }
+  });
+  if (!Object.keys(clean).length) throw new Error('No changes to submit.');
+
+  changeSheet_().appendRow([
+    Utilities.getUuid(), programme.mqaCode, programme.faculty, JSON.stringify(clean),
+    session.name || '', session.email || '', new Date(), 'Pending', '', ''
+  ]);
+  SpreadsheetApp.flush();
+  return { ok: true, pending: pendingChangesForProgramme_(programme.mqaCode).length };
+}
+
+function getProgrammeChangesApi(mqaCode, sessionToken, faculty) {
+  var session = requireLogin_(sessionToken);
+  var programme = resolveProgrammeForRead_(mqaCode, faculty);
+  if (!programme) throw new Error('The programme was not found.');
+  return {
+    pending: pendingChangesForProgramme_(programme.mqaCode),
+    canApprove: canApproveChanges_(session),
+    canEdit: canEditProgramme_(programme, session)
+  };
+}
+
+function listChangeRequestsApi(sessionToken) {
+  var session = requireLogin_(sessionToken);
+  if (!canApproveChanges_(session)) throw new Error('Only PPS approvers may review change requests.');
+  var programmes = getProgrammes_();
+  var byCode = {};
+  programmes.forEach(function (p) { if (!byCode[p.mqaCode]) byCode[p.mqaCode] = p; });
+  return changeRows_().filter(function (row) {
+    return String(row.Status || '') === 'Pending';
+  }).map(function (row) {
+    var code = String(row.MQACode || '');
+    var programme = byCode[code] || {};
+    var changes = {};
+    try { changes = JSON.parse(String(row.Changes || '{}')); } catch (e) { changes = {}; }
+    return {
+      requestId: String(row.RequestId || ''),
+      mqaCode: code,
+      name: programme.name || code,
+      faculty: String(row.Faculty || ''),
+      requestedBy: String(row.RequestedBy || ''),
+      requestedAt: row.RequestedAt ? reviewDateLabel_(row.RequestedAt) : '',
+      changes: changes
+    };
+  });
+}
+
+function decideChangeRequestApi(requestId, decision, sessionToken) {
+  var session = requireLogin_(sessionToken);
+  if (!canApproveChanges_(session)) throw new Error('Only PPS approvers may decide change requests.');
+  var id = String(requestId || '').trim();
+  var approve = String(decision || '').toLowerCase() === 'approve';
+  var sheet = changeSheet_();
+  var data = sheet.getDataRange().getValues();
+  var header = data[0].map(function (v) { return String(v).trim(); });
+  var idCol = header.indexOf('RequestId') + 1;
+  var statusCol = header.indexOf('Status') + 1;
+  var decidedCol = header.indexOf('DecidedBy') + 1;
+  var decidedAtCol = header.indexOf('DecidedAt') + 1;
+  var changesCol = header.indexOf('Changes') + 1;
+  var codeCol = header.indexOf('MQACode') + 1;
+
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][idCol - 1]).trim() !== id) continue;
+    if (String(data[i][statusCol - 1]).trim() !== 'Pending') throw new Error('This request was already decided.');
+
+    if (approve) {
+      var changes = {};
+      try { changes = JSON.parse(String(data[i][changesCol - 1] || '{}')); } catch (e) { changes = {}; }
+      var code = String(data[i][codeCol - 1] || '').trim();
+      var progSheet = programmeSpreadsheet_().getSheetByName('Programme');
+      var progData = progSheet.getDataRange().getValues();
+      for (var r = 1; r < progData.length; r++) {
+        if (String(progData[r][2] || '').trim() !== code) continue;
+        Object.keys(changes).forEach(function (field) {
+          var col = PROGRAMME_META_COLUMNS_[field];
+          if (col) progSheet.getRange(r + 1, col).setValue(changes[field]);
+        });
+      }
+      try { CacheService.getScriptCache().remove('ref-maps-v1'); } catch (e) {}
+    }
+
+    sheet.getRange(i + 1, statusCol).setValue(approve ? 'Approved' : 'Rejected');
+    sheet.getRange(i + 1, decidedCol).setValue(session.name || '');
+    sheet.getRange(i + 1, decidedAtCol).setValue(new Date());
+    SpreadsheetApp.flush();
+    return { ok: true, status: approve ? 'Approved' : 'Rejected' };
+  }
+  throw new Error('The request was not found.');
 }
 
 function jsonResponse_(payload) {

@@ -28,6 +28,11 @@
         maps: BOOT.maps || null,
         mapTab: 'sdg',
         mapDetail: null,
+        changes: BOOT.changes || [],
+        changeOpen: false,
+        changeSaving: false,
+        changeError: null,
+        changeForm: { nameMy: '', name: '', progCode: '', nec: '', accreditation: '', mode: '' },
         schoolModal: false,
         sections: { peo: true, plo: true, pdf: true },
         review: Object.assign({
@@ -264,6 +269,36 @@
             .withSuccessHandler(function (payload) { if (payload) self.summary = payload; })
             .withFailureHandler(function () { /* dashboard is optional */ })
             .getReviewSummaryApi(this.sessionToken);
+        },
+        openChange: function () {
+          var d = this.detail || {};
+          this.changeForm = {
+            nameMy: d.nameMy || '', name: d.name || '', progCode: d.progCode || '',
+            nec: d.nec || '', accreditation: d.accreditation || '', mode: d.mode || 'Research'
+          };
+          this.changeError = null;
+          this.changeOpen = true;
+        },
+        closeChange: function () {
+          if (this.changeSaving) return;
+          this.changeOpen = false;
+        },
+        submitChange: function () {
+          var self = this;
+          this.changeSaving = true;
+          this.changeError = null;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.changeSaving = false;
+              self.changeOpen = false;
+              self.notice = 'Change sent for PPS approval.';
+              if (result) self.changes = self.changes.concat([{ requestId: String(Date.now()), changes: {} }]);
+            })
+            .withFailureHandler(function (err) {
+              self.changeSaving = false;
+              self.changeError = err && err.message ? err.message : 'The change could not be sent.';
+            })
+            .submitProgrammeChangeApi(this.detail.mqaCode, this.changeForm, this.sessionToken, this.detail.faculty);
         },
         openMap: function (item) {
           this.mapDetail = item.programmeCount ? item : { code: item.code, label: item.label, programmeCount: 0, percent: 0, entries: [] };

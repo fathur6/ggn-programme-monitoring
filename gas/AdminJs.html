@@ -29,7 +29,8 @@
         busy: false,
         error: null,
         notice: null,
-        backupUrl: ''
+        backupUrl: '',
+        changeRequests: []
       },
       computed: {
         userLabel: function () {
@@ -162,6 +163,27 @@
             })
             .removeDirectoryAdminApi(person.rowIndex, this.sessionToken);
         },
+        loadChangeRequests: function () {
+          var self = this;
+          google.script.run
+            .withSuccessHandler(function (rows) { self.changeRequests = rows || []; })
+            .withFailureHandler(function () { self.changeRequests = []; })
+            .listChangeRequestsApi(this.sessionToken);
+        },
+        decideChange: function (row, decision) {
+          var self = this;
+          this.error = null;
+          this.notice = null;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.notice = decision === 'approve' ? 'Change approved and applied.' : 'Change rejected.';
+              self.loadChangeRequests();
+            })
+            .withFailureHandler(function (err) {
+              self.error = err && err.message ? err.message : 'The decision could not be saved.';
+            })
+            .decideChangeRequestApi(row.requestId, decision, this.sessionToken);
+        },
         toggleAdmins: function () { this.showAdmins = !this.showAdmins; },
         resetAdmin: function () {
           this.adminForm = { rowIndex: 0, name: '', email: '', role: 'PPA', faculty: 'PPS' };
@@ -226,6 +248,7 @@
         }
       },
       mounted: function () {
+        this.loadChangeRequests();
         try {
           var saved = localStorage.getItem('ggn-lang');
           if (saved && ['ms', 'en', 'ar'].indexOf(saved) !== -1) this.lang = saved;

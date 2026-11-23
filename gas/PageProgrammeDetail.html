@@ -27,6 +27,10 @@
         <section class="section-card">
           <div class="section-heading">
             <h3>{{ t('programme_info') }}</h3>
+            <div class="section-heading-actions">
+              <span v-if="changes.length" class="state-chip chip-warn">{{ changes.length }} pending</span>
+              <button v-if="detail.canEdit" type="button" class="btn btn-outline btn-sm" @click="openChange">Propose change</button>
+            </div>
           </div>
           <div class="cv-grid">
             <div class="cv-item">
@@ -270,6 +274,33 @@
           </div>
         </section>
 
+
+    <div v-if="changeOpen" class="modal-backdrop" @click.self="closeChange">
+      <section class="modal" role="dialog" aria-modal="true">
+        <header class="modal-header">
+          <div>
+            <h2 class="modal-title">Propose a change</h2>
+            <p class="modal-subtitle">A PPS approver must confirm before the programme record changes.</p>
+          </div>
+          <button type="button" class="modal-close" @click="closeChange" :disabled="changeSaving" aria-label="Close">×</button>
+        </header>
+        <form class="modal-body" @submit.prevent="submitChange">
+          <div v-if="changeError" class="alert alert-error">{{ changeError }}</div>
+          <div class="form-grid">
+            <div class="form-field"><label>Programme name (BM)</label><input type="text" v-model.trim="changeForm.nameMy"></div>
+            <div class="form-field"><label>Programme name (EN)</label><input type="text" v-model.trim="changeForm.name"></div>
+            <div class="form-field"><label>Programme code</label><input type="text" v-model.trim="changeForm.progCode"></div>
+            <div class="form-field"><label>NEC 2020</label><input type="text" v-model.trim="changeForm.nec"></div>
+            <div class="form-field"><label>Accreditation approval date</label><input type="text" v-model.trim="changeForm.accreditation"></div>
+            <div class="form-field"><label>Programme mode</label><input type="text" v-model.trim="changeForm.mode" placeholder="Research / Coursework / Mixed-mode"></div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" @click="closeChange" :disabled="changeSaving">Cancel</button>
+            <button type="submit" class="btn btn-primary" :disabled="changeSaving">{{ changeSaving ? 'Sending…' : 'Send for approval' }}</button>
+          </div>
+        </form>
+      </section>
+    </div>
     <div v-if="editor.open" class="modal-backdrop" @click.self="closeEdit">
       <section class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-record-title">
         <header class="modal-header">

@@ -135,6 +135,43 @@
 
         <section class="section-card">
           <div class="section-heading">
+            <h3>Programme change requests</h3>
+            <div class="section-heading-actions">
+              <span class="count">{{ (changeRequests || []).length }} pending</span>
+            </div>
+          </div>
+          <p class="text-sm text-muted" style="margin:0 0 14px">
+            Faculty proposals for programme information. Approving writes the new values to the
+            Programme sheet immediately.
+          </p>
+          <div v-if="!(changeRequests || []).length" class="empty-note">No pending requests.</div>
+          <div v-else class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr><th>Programme</th><th>Faculty</th><th>Proposed by</th><th>Changes</th><th class="action-cell"><span class="sr-only">Action</span></th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in changeRequests" :key="row.requestId">
+                  <td>{{ row.name }}<br><span class="text-muted text-sm">{{ row.mqaCode }}</span></td>
+                  <td>{{ row.faculty }}</td>
+                  <td>{{ row.requestedBy }}<br><span class="text-muted text-sm">{{ row.requestedAt }}</span></td>
+                  <td>
+                    <div v-for="(value, field) in row.changes" :key="field" class="text-sm">
+                      <strong>{{ field }}</strong>: {{ value }}
+                    </div>
+                  </td>
+                  <td class="action-cell">
+                    <button type="button" class="btn btn-outline btn-sm" @click="decideChange(row, 'approve')">Approve</button>
+                    <button type="button" class="btn btn-outline btn-sm" @click="decideChange(row, 'reject')">Reject</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <div class="section-heading">
             <h3>{{ t('maintenance') }}</h3>
           </div>
           <p class="text-sm text-muted" style="margin:0 0 14px">
