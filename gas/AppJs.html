@@ -184,7 +184,7 @@
           var peos = this.detail.peos || [];
           var domainOf = { SC1: 'thinking', SC2: 'thinking', SC3: 'thinking',
             SC4: 'practicing', SC5: 'practicing', SC6: 'practicing', SC7: 'being', SC8: 'being' };
-          var complete = 0;
+          var baseComplete = 0;
           var scMapped = 0;
           var tfMapped = 0;
           var sdgEligible = 0;
@@ -192,59 +192,72 @@
           var scoreTotal = 0;
           var scorePossible = 0;
           var programmeDomains = {};
+
           plos.forEach(function (plo) {
             var codes = String(plo.sc || '').split(',').map(function (v) { return v.trim().toUpperCase(); }).filter(Boolean);
-            var ownDomains = {};
             codes.forEach(function (code) {
-              if (!domainOf[code]) return;
-              ownDomains[domainOf[code]] = true;
-              programmeDomains[domainOf[code]] = true;
+              if (domainOf[code]) programmeDomains[domainOf[code]] = true;
             });
             if (codes.length) scMapped++;
             if (plo.tf) tfMapped++;
+
             var eligible = self.isSDGEligiblePLO(plo.code);
             if (eligible) {
               sdgEligible++;
               if (plo.sdg) sdgMapped++;
             }
-            var parts = [];
-            parts.push(!!plo.statement);
-            parts.push(!!plo.parentPEO);
-            parts.push(!!plo.mqfDomain);
-            parts.push(!!plo.taxonomy);
-            parts.push(codes.length ? 1 : 0);
-            if (eligible) parts.push(plo.sdg ? 1 : 0);
-            parts.forEach(function (v) { scoreTotal += v; scorePossible += 1; });
 
-            var ok = !!(plo.statement && plo.parentPEO && plo.mqfDomain && plo.taxonomy && codes.length
-              && (!eligible || plo.sdg));
-            if (ok) complete++;
+            // Base integrity: every PLO must carry its own statement, parent PEO,
+            // MQF domain and taxonomy. SC, TF and SDG are programme-level checks.
+            var base = [];
+            base.push(!!plo.statement);
+            base.push(!!plo.parentPEO);
+            base.push(!!plo.mqfDomain);
+            base.push(!!plo.taxonomy);
+            base.forEach(function (value) { scoreTotal += value ? 1 : 0; scorePossible += 1; });
+            if (base.every(function (value) { return value; })) baseComplete++;
+
+            if (eligible) {
+              scoreTotal += plo.sdg ? 1 : 0;
+              scorePossible += 1;
+            }
           });
-          // Programme-level requirements: at least one Teras FlexS, and all three
-          // sustainability domains represented across the PLOs (at least 3 PLOs).
+
           var domains = [
             { key: 'thinking', label: 'Ways of Thinking', ok: !!programmeDomains.thinking },
             { key: 'practicing', label: 'Ways of Practicing', ok: !!programmeDomains.practicing },
             { key: 'being', label: 'Ways of Being', ok: !!programmeDomains.being }
           ];
           var scDomains = domains.filter(function (d) { return d.ok; }).length;
+
+          // Programme-level requirements are scored once: Teras FlexS and each SC domain.
           scoreTotal += tfMapped > 0 ? 1 : 0; scorePossible += 1;
           scoreTotal += scDomains; scorePossible += 3;
+
+          var baseOk = plos.length > 0 && baseComplete === plos.length;
+          var scOk = scDomains === 3;
+          var tfOk = tfMapped > 0;
+          var sdgOk = sdgMapped === sdgEligible;
+          var gates = [baseOk, scOk, tfOk, sdgOk].filter(function (ok) { return ok; }).length;
+
           return {
             peoCount: peos.length,
             ploCount: plos.length,
-            ploComplete: complete,
+            ploBase: baseComplete,
             scMapped: scMapped,
             scDomains: scDomains,
             scDomainList: domains,
             tfMapped: tfMapped,
             sdgEligible: sdgEligible,
             sdgMapped: sdgMapped,
-            tfOk: tfMapped > 0,
-            scOk: scDomains === 3,
+            baseOk: baseOk,
+            tfOk: tfOk,
+            scOk: scOk,
+            sdgOk: sdgOk,
+            gates: gates,
             percent: scorePossible ? Math.round((scoreTotal / scorePossible) * 100) : 0,
-            completePercent: plos.length ? Math.round((complete / plos.length) * 100) : 0,
-            fullyComplete: plos.length > 0 && complete === plos.length && tfMapped > 0 && scDomains === 3
+            completePercent: Math.round((gates / 4) * 100),
+            fullyComplete: gates === 4
           };
         },
         scByDomain: function () {

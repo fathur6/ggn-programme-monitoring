@@ -85,7 +85,7 @@
           <div class="section-heading">
             <h3>{{ t('mapping_title') }}</h3>
             <div class="section-heading-actions">
-              <span class="state-chip" :class="mappingSummary.fullyComplete ? 'chip-shared' : 'chip-warn'">
+              <span class="state-chip" :class="mappingSummary.fullyComplete ? 'chip-done' : 'chip-warn'">
                 {{ mappingSummary.percent }}% progress · {{ mappingSummary.completePercent }}% complete
               </span>
             </div>
@@ -102,9 +102,9 @@
               <span class="dash-note">of 11</span>
             </div>
             <div class="dash-card">
-              <span class="dash-label">Fully mapped</span>
-              <span class="dash-value" :class="{ 'dash-warn': mappingSummary.ploComplete < mappingSummary.ploCount }">{{ mappingSummary.ploComplete }}</span>
-              <span class="dash-note">PLO complete</span>
+              <span class="dash-label">PLO ready</span>
+              <span class="dash-value" :class="{ 'dash-warn': !mappingSummary.baseOk }">{{ mappingSummary.ploBase }}</span>
+              <span class="dash-note">statement · PEO · MQF · taxonomy</span>
             </div>
             <div class="dash-card">
               <span class="dash-label">SC domains</span>
@@ -127,6 +127,13 @@
           </div>
           <div class="dash-bar" style="margin-top:14px">
             <span :style="{ width: mappingSummary.percent + '%' }"></span>
+          </div>
+          <div class="dash-gates">
+            <span :class="{ 'gate-on': mappingSummary.baseOk }">Base fields {{ mappingSummary.ploBase }}/{{ mappingSummary.ploCount }}</span>
+            <span :class="{ 'gate-on': mappingSummary.scOk }">SC domains {{ mappingSummary.scDomains }}/3</span>
+            <span :class="{ 'gate-on': mappingSummary.tfOk }">Teras FlexS {{ mappingSummary.tfMapped }}</span>
+            <span :class="{ 'gate-on': mappingSummary.sdgOk }">SDG {{ mappingSummary.sdgMapped }}/{{ mappingSummary.sdgEligible }}</span>
+            <span class="gate-total">{{ mappingSummary.gates }}/4 requirements</span>
           </div>
         </section>
 
