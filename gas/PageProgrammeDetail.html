@@ -160,7 +160,7 @@
                   <td>{{ plo.mqfDomain || '—' }}</td>
                   <td>{{ plo.taxonomy || '—' }}</td>
                   <td>{{ isSDGEligiblePLO(plo.code) ? (plo.sdg || '—') : '' }}</td>
-                  <td>{{ isSCEligiblePLO(plo.code) ? (plo.sc || '—') : '' }}</td>
+                  <td>{{ plo.sc || '—' }}</td>
                   <td>{{ plo.tf || '—' }}</td>
                   <td class="action-cell">
                     <button type="button" class="icon-button" v-if="detail.canEdit" @click="openEdit('plo', plo)" :aria-label="'Edit ' + plo.code" title="Edit PLO">
@@ -341,7 +341,7 @@
                 <option v-for="sdg in sdgs" :key="sdg.code" :value="sdg.code">{{ sdg.code }} - {{ sdg.label }}</option>
               </select>
             </div>
-            <div v-if="isSCEligiblePLO(editor.draft.code)" class="form-field">
+            <div class="form-field">
               <label for="sc">Sustainability competency (SC)</label>
               <select id="sc" v-model="editor.draft.sc" required>
                 <option value="" disabled>Select sustainability competency</option>

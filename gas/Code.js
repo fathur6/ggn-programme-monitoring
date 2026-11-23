@@ -2174,7 +2174,6 @@ function readProgrammeSheet_(tabName, baseCode) {
       });
     }
   }
-  relocateSpecialPhdSc_(plos, code);
   applyPEOMQFRollup_(peos, plos);
   return { exists: true, peos: peos, plos: plos };
 }
@@ -2312,11 +2311,8 @@ function saveProgrammeRecordApi(mqaCode, recordType, payload, sessionToken, facu
   if (!isSDGEligiblePLO_(itemCode, code) && sdg) {
     throw new Error('SDG mapping is only available for ' + sdgEligiblePLOCodes_(code).join(', '));
   }
-  if (isSCEligiblePLO_(itemCode, code) && SC_CODES_.indexOf(sc) === -1) {
+  if (sc && SC_CODES_.indexOf(sc) === -1) {
     throw new Error('Select a valid sustainability competency');
-  }
-  if (!isSCEligiblePLO_(itemCode, code) && sc) {
-    throw new Error('SC mapping is only available for ' + scEligiblePLOCodes_(code).join(', '));
   }
   if (['TF1', 'TF2', 'TF3', 'TF4'].indexOf(tf) === -1) {
     throw new Error('Select a valid Teras FlexS value');
@@ -2325,10 +2321,6 @@ function saveProgrammeRecordApi(mqaCode, recordType, payload, sessionToken, facu
   // Keep the stable code in column A and update only the editable PLO fields.
   ensurePLOHeaderColumns_(sheet, data);
   sheet.getRange(match.row, 2, 1, 7).setValues([[statement, mqfDomain, parentPEO, taxonomy, sdg, sc, tf]]);
-  if (normalizePLOCode_(itemCode) === 'PLO10' && scEligiblePLOCodes_(code).indexOf('PLO10') > -1) {
-    var legacySc = findProgrammeRecordRow_(data, 'plo', 'PLO11');
-    if (legacySc) sheet.getRange(legacySc.row, 7).clearContent();
-  }
   SpreadsheetApp.flush();
   return getProgrammeDetailFor_(programme);
 }

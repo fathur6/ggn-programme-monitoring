@@ -13,12 +13,9 @@ const client = ['Index.html', 'AppJs.html', 'PageProgrammes.html', 'PageProgramm
 assert.match(server, /SDG_ELIGIBLE_PLO_CODES_ = \['PLO1', 'PLO9', 'PLO11'\]/);
 assert.match(server, /'MQA\/FA5573': \['PLO1', 'PLO9', 'PLO10'\]/);
 assert.match(server, /'MQA\/FA5574': \['PLO1', 'PLO9', 'PLO10'\]/);
-assert.match(server, /'MQA\/FA5573': \['PLO2', 'PLO4', 'PLO9', 'PLO10'\]/);
-assert.match(server, /'MQA\/FA5574': \['PLO2', 'PLO4', 'PLO9', 'PLO10'\]/);
 assert.match(client, /programmeCode === 'MQA\/FA5573' \|\| programmeCode === 'MQA\/FA5574'/);
 assert.match(client, /\['PLO1', 'PLO9', 'PLO10'\]/);
 assert.match(client, /\['PLO1', 'PLO9', 'PLO11'\]/);
-assert.match(client, /\['PLO2', 'PLO4', 'PLO9', 'PLO10'\]/);
 assert.match(server, /function migrateApprovedSdgPlo8ToPlo9\(\)/);
 
 const migration = server.slice(server.indexOf('function migrateApprovedSdgPlo8ToPlo9()'));

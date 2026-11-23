@@ -226,12 +226,9 @@
             : ['PLO1', 'PLO9', 'PLO11'];
           return eligible.indexOf(String(ploCode || '').replace(/\s+/g, '').toUpperCase().replace(/^PLO0+(\d+)$/, 'PLO$1')) > -1;
         },
-        isSCEligiblePLO: function (ploCode) {
-          var programmeCode = String(this.detail.mqaCode || '').trim().toUpperCase();
-          var eligible = (programmeCode === 'MQA/FA5573' || programmeCode === 'MQA/FA5574')
-            ? ['PLO2', 'PLO4', 'PLO9', 'PLO10']
-            : ['PLO2', 'PLO4', 'PLO9', 'PLO11'];
-          return eligible.indexOf(String(ploCode || '').replace(/\s+/g, '').toUpperCase().replace(/^PLO0+(\d+)$/, 'PLO$1')) > -1;
+        isSCEligiblePLO: function () {
+          // Sustainability competencies are chosen freely by each faculty.
+          return true;
         },
         openEdit: function (type, record) {
           this.editError = null;
