@@ -128,9 +128,11 @@ function pdfStartPage_(state, programme, code, first) {
     pdfText_(slide, 'Programme Information', PDF_L_.m, 100, 420, 30, {
       size: 22, bold: true, color: PDF_L_.ink
     });
-    pdfPanel_(slide, PDF_L_.m, 134, 92, 17, PDF_L_.greenSoft);
-    pdfText_(slide, 'MQF 2.0 (2024)', PDF_L_.m, 138.5, 92, 12, {
-      size: 7.6, bold: true, color: PDF_L_.green, align: 'center'
+    var chipText = 'MQF 2.0 (2024)';
+    var chipWidth = Math.round(chipText.length * 7.6 * 0.66) + 26;
+    pdfPanel_(slide, PDF_L_.m, 134, chipWidth, 17, PDF_L_.greenSoft);
+    pdfText_(slide, chipText, PDF_L_.m + 8, 138.5, chipWidth - 16, 12, {
+      size: 7.6, bold: true, color: PDF_L_.green
     });
 
     pdfPanel_(slide, PDF_L_.m, 162, PDF_L_.gutter, 78, PDF_L_.card);
@@ -283,8 +285,11 @@ function buildProgrammePdfBlob_(programme, detail, code, meta) {
       name: name,
       metaLine: [
         code,
-        progCode ? 'Programme code ' + progCode : '',
-        level
+        progCode,
+        level,
+        level && programme.mode
+          ? (/mode/i.test(programme.mode) ? programme.mode : programme.mode + ' Mode')
+          : ''
       ].filter(Boolean).join('   ·   '),
       facultyLine: faculty || '',
       generatedAt: generatedAt,
