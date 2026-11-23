@@ -9,10 +9,10 @@
               <span class="code-cell">{{ detail.facultyFull || detail.faculty }}</span>
             </div>
             <div v-if="detail.isSharedCode" class="detail-meta" style="margin-top:8px">
-              <span v-if="detail.role === 'Pemilik'" class="state-chip">Pemilik program · {{ detail.faculty }}</span>
-              <span v-else class="state-chip chip-shared">Berkongsi kod · pemilik {{ detail.ownerFaculty }}</span>
-              <span v-if="detail.role === 'Berkongsi' && detail.hasOwnCopy && detail.differsFromOwner" class="state-chip chip-warn">Berbeza dengan fakulti pemilik</span>
-              <span v-if="detail.role === 'Berkongsi' && detail.hasOwnCopy && !detail.differsFromOwner" class="state-chip">Sama dengan fakulti pemilik</span>
+              <span v-if="detail.role === 'Pemilik'" class="state-chip">{{ t('role_owner') }} · {{ detail.faculty }}</span>
+              <span v-else class="state-chip chip-shared">{{ t('role_partner_of') }} {{ detail.ownerFaculty }}</span>
+              <span v-if="detail.role === 'Berkongsi' && detail.hasOwnCopy && detail.differsFromOwner" class="state-chip chip-warn">{{ t('role_differs') }}</span>
+              <span v-if="detail.role === 'Berkongsi' && detail.hasOwnCopy && !detail.differsFromOwner" class="state-chip">{{ t('role_same') }}</span>
             </div>
           </div>
           <div class="detail-actions">
@@ -72,7 +72,7 @@
             </div>
             <div v-if="detail.isSharedCode" class="cv-item">
               <span class="cv-label">{{ t('lbl_role') }}</span>
-              <span class="cv-value">{{ detail.role === 'Pemilik' ? 'Pemilik program' : 'Berkongsi kod' }}</span>
+              <span class="cv-value">{{ detail.role === 'Pemilik' ? t('role_owner') : t('role_partner') }}</span>
             </div>
             <div v-if="detail.isSharedCode" class="cv-item">
               <span class="cv-label">{{ t('lbl_owner') }}</span>

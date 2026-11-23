@@ -272,8 +272,8 @@ assert(source.indexOf('function setupSharedProgrammeRoleColumn') !== -1, 'Role c
 
 const detailMarkup = fs.readFileSync('gas/PageProgrammeDetail.html', 'utf8');
 assert(detailMarkup.indexOf('Salin daripada fakulti pemilik') === -1, 'Manual copy button must be gone');
-assert(detailMarkup.indexOf('Berbeza dengan fakulti pemilik') !== -1, 'Difference badge must be present');
-assert(detailMarkup.indexOf('Sama dengan fakulti pemilik') !== -1, 'Match badge must be present');
+assert(detailMarkup.indexOf("t('role_differs')") !== -1, 'Difference badge must be present');
+assert(detailMarkup.indexOf("t('role_same')") !== -1, 'Match badge must be present');
 
 assert(appJs.indexOf('copyFromOwner') === -1, 'Client must not offer a manual copy action');
 assert(appJs.indexOf('this.detail.faculty)') !== -1, 'Client must pass the faculty to write APIs');
