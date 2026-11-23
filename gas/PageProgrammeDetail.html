@@ -16,7 +16,8 @@
             </div>
           </div>
           <div class="detail-actions">
-            <button class="btn btn-primary" @click="generatePdf" :disabled="pdf.generating">{{ pdf.generating ? t('review_submitting') : t('download_pdf') }}</button>
+            <button class="btn btn-outline" @click="downloadLatestPdf" :disabled="pdf.generating">{{ t('download_pdf') }}</button>
+            <button class="btn btn-primary" @click="generatePdf" :disabled="pdf.generating">{{ pdf.generating ? t('pdf_generating') : t('update_programme') }}</button>
             <a class="btn btn-outline" :href="listUrl" target="_top" rel="noopener">← {{ t('back_programmes') }}</a>
           </div>
         </div>
@@ -457,21 +458,21 @@
         <header class="modal-header">
           <div>
             <h2 id="pdf-modal-title" class="modal-title">PDF — {{ detail.name }}</h2>
-            <p class="modal-subtitle">Generate a PDF of this programme's PEO and PLO records.</p>
+            <p class="modal-subtitle">{{ t('pdf_subtitle') }}</p>
           </div>
           <button type="button" class="modal-close" @click="closePdf" :disabled="pdf.generating" aria-label="Close PDF dialog">×</button>
         </header>
         <div class="modal-body">
           <div v-if="pdf.error" class="alert alert-error">{{ pdf.error }}</div>
 
-          <div v-if="pdf.generating" class="loading-panel">Generating PDF…</div>
+          <div v-if="pdf.generating" class="loading-panel">{{ t('pdf_generating') }}</div>
 
           <template v-else-if="pdf.ready">
-            <div class="alert alert-success">PDF is ready.</div>
-            <p class="form-help" style="margin:10px 0 0">File: <strong>{{ pdf.filename }}</strong></p>
+            <div class="alert alert-success">{{ t('pdf_ready') }}</div>
+            <p class="form-help" style="margin:10px 0 0">{{ t('pdf_file') }}: <strong>{{ pdf.filename }}</strong></p>
             <div class="modal-actions">
               <button type="button" class="btn btn-outline" @click="closePdf">Close</button>
-              <button type="button" class="btn btn-primary" @click="downloadPdf">Download PDF</button>
+              <button type="button" class="btn btn-primary" @click="downloadPdf">{{ t('download_pdf') }}</button>
               <button type="button" class="btn btn-outline" @click="showEmailForm">Email</button>
             </div>
           </template>

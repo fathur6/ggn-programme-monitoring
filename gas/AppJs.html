@@ -464,6 +464,35 @@
             })
             .addProgrammeRecordApi(this.detail.mqaCode, type, this.sessionToken, this.detail.faculty);
         },
+        downloadLatestPdf: function () {
+          var self = this;
+          // Open the tab synchronously so the browser does not block the download.
+          var target = window.open('', '_blank');
+          this.pdf = Object.assign(emptyPdf(), { open: true, generating: true });
+          google.script.run
+            .withSuccessHandler(function (result) {
+              if (result && result.found) {
+                if (target) target.location.href = result.url;
+                self.pdf = Object.assign(emptyPdf(), {
+                  open: true,
+                  ready: true,
+                  filename: result.filename,
+                  url: result.url,
+                  fileId: result.fileId
+                });
+                return;
+              }
+              if (target) target.close();
+              self.pdf = emptyPdf();
+              self.notice = self.t('no_pdf_yet');
+            })
+            .withFailureHandler(function (err) {
+              if (target) target.close();
+              self.pdf = emptyPdf();
+              self.detailError = err && err.message ? err.message : 'Unable to load the latest PDF.';
+            })
+            .getLatestPdfApi(this.detail.mqaCode, this.sessionToken, this.detail.faculty);
+        },
         generatePdf: function () {
           var self = this;
           this.pdf = Object.assign(emptyPdf(), { open: true, generating: true });

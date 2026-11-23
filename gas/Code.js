@@ -52,7 +52,7 @@ var TF_CODES_BY_MQF_DOMAIN_ = {
 };
 var MAX_PLO_COUNT_ = 11;
 var PROGRAMME_SPREADSHEET_ID_ = '1w5xrwoLJ7HpSZ_emgwqoGr-YcRVb7Zuq3KuDSmhUf6o';
-var APP_VERSION_ = '2.1.9';
+var APP_VERSION_ = '2.2.2';
 var PDF_FOLDER_ID_ = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
 /**
  * Single-workbook rule: programme records, PDF storage and the USER/ADMIN login
@@ -2876,6 +2876,22 @@ function addProgrammeRecordApi(mqaCode, recordType, sessionToken, faculty) {
  * shared Graduate School Drive folder with the naming convention
  * MQA-FAxxxx-ddmmyy-zz (zz = daily serial). Returns the stored file details.
  */
+/** Latest PDF already recorded for a programme, so a reader can just download it. */
+function getLatestPdfApi(mqaCode, sessionToken, faculty) {
+  var session = requireLogin_(sessionToken);
+  var programme = requireProgrammeFacultyAccess_(mqaCode, session, faculty);
+  var rows = listPdfLog_(session, programme.mqaCode);
+  var latest = rows[0];
+  if (!latest) return { found: false };
+  return {
+    found: true,
+    fileId: latest.fileId,
+    filename: latest.fileName,
+    url: latest.url,
+    generatedAt: latest.generatedAtLabel
+  };
+}
+
 function generatePdfApi(mqaCode, sessionToken, faculty) {
   var session = requireLogin_(sessionToken);
   var programme = requireProgrammeFacultyAccess_(mqaCode, session, faculty);
@@ -2884,10 +2900,10 @@ function generatePdfApi(mqaCode, sessionToken, faculty) {
   var folder = getPdfFolder_();
   var filename = buildPdfFilename_(code, folder);
 
-  var active = Session.getActiveUser().getEmail() || session.user.email || '';
+  var active = Session.getActiveUser().getEmail() || session.email || '';
   var blob = buildPdfBlob_(programme, detail, code, {
     filename: filename,
-    by: (session.user && session.user.name) || active,
+    by: session.name || active,
     email: active,
     generatedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd MMM yyyy, HH:mm')
   });
