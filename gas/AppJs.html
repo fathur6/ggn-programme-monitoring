@@ -200,7 +200,8 @@
               sdgEligible++;
               if (plo.sdg) sdgMapped++;
             }
-            var ok = !!(plo.statement && plo.parentPEO && plo.mqfDomain && plo.taxonomy && plo.tf && hasSc
+            // Teras FlexS is a programme-level requirement, not per PLO.
+            var ok = !!(plo.statement && plo.parentPEO && plo.mqfDomain && plo.taxonomy && hasSc
               && (!self.isSDGEligiblePLO(plo.code) || plo.sdg));
             if (ok) complete++;
           });
@@ -212,7 +213,9 @@
             tfMapped: tfMapped,
             sdgEligible: sdgEligible,
             sdgMapped: sdgMapped,
-            percent: plos.length ? Math.round((complete / plos.length) * 100) : 0
+            tfOk: tfMapped > 0,
+            percent: plos.length ? Math.round((complete / plos.length) * 100) : 0,
+            fullyComplete: plos.length > 0 && complete === plos.length && tfMapped > 0
           };
         },
         scByDomain: function () {

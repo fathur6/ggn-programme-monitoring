@@ -85,7 +85,7 @@
           <div class="section-heading">
             <h3>{{ t('mapping_title') }}</h3>
             <div class="section-heading-actions">
-              <span class="state-chip" :class="mappingSummary.percent === 100 ? 'chip-shared' : 'chip-warn'">
+              <span class="state-chip" :class="mappingSummary.fullyComplete ? 'chip-shared' : 'chip-warn'">
                 {{ mappingSummary.percent }}% complete
               </span>
             </div>
@@ -118,8 +118,8 @@
             </div>
             <div class="dash-card">
               <span class="dash-label">Teras FlexS</span>
-              <span class="dash-value">{{ mappingSummary.tfMapped }}</span>
-              <span class="dash-note">of {{ mappingSummary.ploCount }} PLO</span>
+              <span class="dash-value" :class="{ 'dash-warn': !mappingSummary.tfOk }">{{ mappingSummary.tfMapped }}</span>
+              <span class="dash-note">{{ mappingSummary.tfOk ? 'mapped (requirement met)' : 'at least 1 PLO needed' }}</span>
             </div>
           </div>
           <div class="dash-bar" style="margin-top:14px">
