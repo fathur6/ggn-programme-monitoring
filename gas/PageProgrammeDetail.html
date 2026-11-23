@@ -86,7 +86,7 @@
             <h3>{{ t('mapping_title') }}</h3>
             <div class="section-heading-actions">
               <span class="state-chip" :class="mappingSummary.fullyComplete ? 'chip-shared' : 'chip-warn'">
-                {{ mappingSummary.percent }}% complete
+                {{ mappingSummary.percent }}% progress · {{ mappingSummary.completePercent }}% complete
               </span>
             </div>
           </div>
@@ -107,9 +107,11 @@
               <span class="dash-note">PLO complete</span>
             </div>
             <div class="dash-card">
-              <span class="dash-label">SC three domains</span>
-              <span class="dash-value" :class="{ 'dash-warn': mappingSummary.scComplete < mappingSummary.ploCount }">{{ mappingSummary.scComplete }}</span>
-              <span class="dash-note">of {{ mappingSummary.ploCount }} PLO</span>
+              <span class="dash-label">SC domains</span>
+              <span class="dash-value">{{ mappingSummary.scComplete }}</span>
+              <span class="dash-note">
+                with 3 domains · 1 domain: {{ mappingSummary.scOne }} · 2 domains: {{ mappingSummary.scTwo }}
+              </span>
             </div>
             <div class="dash-card">
               <span class="dash-label">SDG</span>

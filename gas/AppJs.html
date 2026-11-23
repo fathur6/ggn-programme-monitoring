@@ -186,23 +186,40 @@
             SC4: 'practicing', SC5: 'practicing', SC6: 'practicing', SC7: 'being', SC8: 'being' };
           var complete = 0;
           var scComplete = 0;
+          var scOne = 0;
+          var scTwo = 0;
           var tfMapped = 0;
           var sdgEligible = 0;
           var sdgMapped = 0;
+          var scoreTotal = 0;
+          var scorePossible = 0;
           plos.forEach(function (plo) {
             var codes = String(plo.sc || '').split(',').map(function (v) { return v.trim().toUpperCase(); }).filter(Boolean);
             var domains = {};
             codes.forEach(function (code) { if (domainOf[code]) domains[domainOf[code]] = true; });
-            var hasSc = !!(domains.thinking && domains.practicing && domains.being);
+            var covered = ['thinking', 'practicing', 'being'].filter(function (d) { return domains[d]; }).length;
+            var hasSc = covered === 3;
             if (hasSc) scComplete++;
+            if (covered === 1) scOne++;
+            else if (covered === 2) scTwo++;
             if (plo.tf) tfMapped++;
-            if (self.isSDGEligiblePLO(plo.code)) {
+            var eligible = self.isSDGEligiblePLO(plo.code);
+            if (eligible) {
               sdgEligible++;
               if (plo.sdg) sdgMapped++;
             }
-            // Teras FlexS is a programme-level requirement, not per PLO.
+            // Partial credit: legacy single-SC rows keep their existing progress.
+            var parts = [];
+            parts.push(!!plo.statement);
+            parts.push(!!plo.parentPEO);
+            parts.push(!!plo.mqfDomain);
+            parts.push(!!plo.taxonomy);
+            parts.push(covered / 3);
+            if (eligible) parts.push(plo.sdg ? 1 : 0);
+            parts.forEach(function (v) { scoreTotal += v; scorePossible += 1; });
+
             var ok = !!(plo.statement && plo.parentPEO && plo.mqfDomain && plo.taxonomy && hasSc
-              && (!self.isSDGEligiblePLO(plo.code) || plo.sdg));
+              && (!eligible || plo.sdg));
             if (ok) complete++;
           });
           return {
@@ -210,11 +227,14 @@
             ploCount: plos.length,
             ploComplete: complete,
             scComplete: scComplete,
+            scOne: scOne,
+            scTwo: scTwo,
             tfMapped: tfMapped,
             sdgEligible: sdgEligible,
             sdgMapped: sdgMapped,
             tfOk: tfMapped > 0,
-            percent: plos.length ? Math.round((complete / plos.length) * 100) : 0,
+            percent: scorePossible ? Math.round((scoreTotal / scorePossible) * 100) : 0,
+            completePercent: plos.length ? Math.round((complete / plos.length) * 100) : 0,
             fullyComplete: plos.length > 0 && complete === plos.length && tfMapped > 0
           };
         },
