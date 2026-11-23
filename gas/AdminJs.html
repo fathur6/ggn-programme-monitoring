@@ -129,7 +129,6 @@
         },
         saveDirectory: function () {
           var self = this;
-          if (this.busy) return;
           this.busy = true;
           this.error = null;
           this.notice = null;
@@ -148,7 +147,6 @@
         },
         removeDirectory: function (person) {
           var self = this;
-          if (this.busy) return;
           this.busy = true;
           this.error = null;
           this.notice = null;
@@ -174,7 +172,6 @@
         },
         saveAdmin: function () {
           var self = this;
-          if (this.busy) return;
           this.busy = true;
           this.error = null;
           this.notice = null;
