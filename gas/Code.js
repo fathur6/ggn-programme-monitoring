@@ -523,7 +523,7 @@ function reviewRolesFor_(email) {
   }).map(function (row) { return String(row.Role || '').trim(); });
 }
 
-var REVIEW_ADMIN_ROLES_ = ['PJK', 'TDA_PPS', 'PPA'];
+var REVIEW_ADMIN_ROLES_ = ['PJK', 'TDA_PPS', 'PPA', 'PP'];
 
 function canManageReview_(session) {
   if (!session) return false;
@@ -1883,7 +1883,7 @@ function programmeTabName_(programme) {
 function ppsEditorRoles_(session) {
   if (!session || !session.email) return [];
   return reviewRolesFor_(session.email).filter(function (role) {
-    return ['PJK', 'TDA_PPS', 'PPA'].indexOf(role) !== -1;
+    return ['PJK', 'TDA_PPS', 'PPA', 'PP'].indexOf(role) !== -1;
   });
 }
 
