@@ -30,14 +30,10 @@ var MQF_DOMAIN_CODES_ = ['MQF 1', 'MQF 2', 'MQF 3a', 'MQF 3b', 'MQF 3c', 'MQF 3d
 var TAXONOMY_CODES_ = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'A1', 'A2', 'A3', 'A4', 'A5', 'P1', 'P2', 'P3', 'P4', 'P5'];
 var SDG_CODES_ = ['SDG1', 'SDG2', 'SDG3', 'SDG4', 'SDG5', 'SDG6', 'SDG7', 'SDG8', 'SDG9', 'SDG10', 'SDG11', 'SDG12', 'SDG13', 'SDG14', 'SDG15', 'SDG16', 'SDG17'];
 // SDG mapping is limited to PLO1, PLO8 and PLO11 everywhere, except FBK
-// (Faculty of Languages and Communication), which keeps its existing set.
+// (Faculty of Languages and Communication), which maps PLO1, PLO9 and PLO11.
 var SDG_ELIGIBLE_PLO_CODES_ = ['PLO1', 'PLO8', 'PLO11'];
 var SDG_ELIGIBLE_PLO_CODES_BY_FACULTY_ = {
   FBK: ['PLO1', 'PLO9', 'PLO11']
-};
-var SDG_ELIGIBLE_PLO_CODES_BY_PROGRAMME_ = {
-  'MQA/FA5573': ['PLO1', 'PLO9', 'PLO10'],
-  'MQA/FA5574': ['PLO1', 'PLO9', 'PLO10']
 };
 var SC_CODES_ = ['SC1', 'SC2', 'SC3', 'SC4', 'SC5', 'SC6', 'SC7', 'SC8'];
 var SC_DOMAIN_OF_ = { SC1: 'thinking', SC2: 'thinking', SC3: 'thinking',
@@ -2525,7 +2521,6 @@ function isSDGEligiblePLO_(ploCode, programmeCode, faculty) {
 
 function sdgEligiblePLOCodes_(programmeCode, faculty) {
   var code = normalizeReferenceCode_(programmeCode);
-  if (SDG_ELIGIBLE_PLO_CODES_BY_PROGRAMME_[code]) return SDG_ELIGIBLE_PLO_CODES_BY_PROGRAMME_[code];
   var facultyValue = String(faculty || programmeFacultyFor_(code) || '').trim().toUpperCase();
   var facultyKeys = Object.keys(SDG_ELIGIBLE_PLO_CODES_BY_FACULTY_);
   for (var i = 0; i < facultyKeys.length; i++) {
