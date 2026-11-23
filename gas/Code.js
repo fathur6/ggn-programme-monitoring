@@ -29,12 +29,20 @@ var PROGRAMME_TAB_SECTIONS = {
 var MQF_DOMAIN_CODES_ = ['MQF 1', 'MQF 2', 'MQF 3a', 'MQF 3b', 'MQF 3c', 'MQF 3d', 'MQF 3e', 'MQF 3f', 'MQF 4a', 'MQF 4b', 'MQF 5'];
 var TAXONOMY_CODES_ = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'A1', 'A2', 'A3', 'A4', 'A5', 'P1', 'P2', 'P3', 'P4', 'P5'];
 var SDG_CODES_ = ['SDG1', 'SDG2', 'SDG3', 'SDG4', 'SDG5', 'SDG6', 'SDG7', 'SDG8', 'SDG9', 'SDG10', 'SDG11', 'SDG12', 'SDG13', 'SDG14', 'SDG15', 'SDG16', 'SDG17'];
-var SDG_ELIGIBLE_PLO_CODES_ = ['PLO1', 'PLO9', 'PLO11'];
+// SDG mapping is limited to PLO1, PLO8 and PLO11 everywhere, except FBK
+// (Faculty of Languages and Communication), which keeps its existing set.
+var SDG_ELIGIBLE_PLO_CODES_ = ['PLO1', 'PLO8', 'PLO11'];
+var SDG_ELIGIBLE_PLO_CODES_BY_FACULTY_ = {
+  FBK: ['PLO1', 'PLO9', 'PLO11']
+};
 var SDG_ELIGIBLE_PLO_CODES_BY_PROGRAMME_ = {
   'MQA/FA5573': ['PLO1', 'PLO9', 'PLO10'],
   'MQA/FA5574': ['PLO1', 'PLO9', 'PLO10']
 };
 var SC_CODES_ = ['SC1', 'SC2', 'SC3', 'SC4', 'SC5', 'SC6', 'SC7', 'SC8'];
+var SC_DOMAIN_OF_ = { SC1: 'thinking', SC2: 'thinking', SC3: 'thinking',
+  SC4: 'practicing', SC5: 'practicing', SC6: 'practicing', SC7: 'being', SC8: 'being' };
+var SC_DEFAULT_BY_DOMAIN_ = { thinking: 'SC1', practicing: 'SC4', being: 'SC7' };
 var SC_ELIGIBLE_PLO_CODES_ = ['PLO2', 'PLO4', 'PLO9', 'PLO11'];
 var SC_ELIGIBLE_PLO_CODES_BY_PROGRAMME_ = {
   'MQA/FA5573': ['PLO2', 'PLO4', 'PLO9', 'PLO10'],
@@ -225,6 +233,28 @@ function doGet(e) {
       if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
       return jsonResponse_(setupSharedProgrammeRoleColumn());
     }
+    if (String(params.setup || '') === 'sclog') {
+      if (!(session.user.isAdmin || canApproveChanges_(session.user))) {
+        return jsonResponse_({ ok: false, error: 'Administrator or PPS approver access required' });
+      }
+      var rawRows = [];
+      try { rawRows = JSON.parse(String(params.rows || '[]')); } catch (e) { rawRows = []; }
+      if (!rawRows.length || rawRows.length > 100) return jsonResponse_({ ok: false, error: 'Nothing to log' });
+      var nowLog = new Date();
+      var byLog = session.user.email || '';
+      var logRows = rawRows.map(function (row) {
+        return [nowLog, String(row.tab || ''), String(row.plo || ''), String(row.before || ''),
+          String(row.after || ''), byLog];
+      });
+      return jsonResponse_({ ok: true, logged: appendScNormalisationLog_(logRows) });
+    }
+    if (String(params.setup || '') === 'scpreview' || String(params.setup || '') === 'scnormalise') {
+      if (!(session.user.isAdmin || canApproveChanges_(session.user))) {
+        return jsonResponse_({ ok: false, error: 'Administrator or PPS approver access required' });
+      }
+      var applySc = String(params.setup) === 'scnormalise';
+      return jsonResponse_(scNormalisationRun_(applySc, session.user));
+    }
     if (String(params.setup || '') === 'pdflog') {
       if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
       return jsonResponse_(backfillPdfLog_());
@@ -300,7 +330,8 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
       hasOwnCopy: detail.hasOwnCopy,
       differsFromOwner: detail.differsFromOwner,
       peos: detail.peos,
-      plos: detail.plos
+      plos: detail.plos,
+      sdgEligiblePlos: detail.sdgEligiblePlos
     }
   });
 }
@@ -1588,6 +1619,125 @@ function decideChangeRequestApi(requestId, decision, sessionToken) {
   throw new Error('The request was not found.');
 }
 
+/**
+ * One-off normalisation: every PLO keeps a single sustainability competency.
+ * Legacy cells may hold several codes; the first one is kept, then any domain
+ * that would otherwise disappear from the programme is given to an untagged
+ * PLO so the three-domain requirement stays satisfied.
+ */
+function scNormalisationPlan_() {
+  var ss = programmeSpreadsheet_();
+  var seen = {};
+  var plan = [];
+
+  getProgrammes_().forEach(function (programme) {
+    var tabName = programme.tabName;
+    if (!tabName || seen[tabName]) return;
+    seen[tabName] = true;
+    var sheet = ss.getSheetByName(tabName);
+    if (!sheet) return;
+
+    var data = sheet.getDataRange().getValues();
+    var rows = [];
+    var section = '';
+    for (var i = 0; i < data.length; i++) {
+      var marker = String(data[i][0] || '').trim().toUpperCase();
+      if (marker === 'PEO') { section = 'peo'; continue; }
+      if (marker === 'PLO') { section = 'plo'; continue; }
+      if (section !== 'plo' || !/^PLO\d+$/.test(marker)) continue;
+      var before = String(data[i][6] || '').trim();
+      var codes = before.split(',').map(function (v) { return v.trim().toUpperCase(); }).filter(Boolean);
+      rows.push({
+        row: i + 1,
+        plo: marker,
+        before: before,
+        after: codes.length ? codes[0] : '',
+        legacy: codes
+      });
+    }
+    if (!rows.length) return;
+
+    var covered = {};
+    rows.forEach(function (r) { if (SC_DOMAIN_OF_[r.after]) covered[SC_DOMAIN_OF_[r.after]] = true; });
+
+    // Remember any code the programme already used, per domain.
+    var legacyByDomain = {};
+    rows.forEach(function (r) {
+      r.legacy.forEach(function (code) {
+        var domain = SC_DOMAIN_OF_[code];
+        if (domain && !legacyByDomain[domain]) legacyByDomain[domain] = code;
+      });
+    });
+
+    ['thinking', 'practicing', 'being'].forEach(function (domain) {
+      if (covered[domain]) return;
+      var target = rows.filter(function (r) { return !r.after; })[0];
+      if (!target) return;
+      target.after = legacyByDomain[domain] || SC_DEFAULT_BY_DOMAIN_[domain];
+      covered[domain] = true;
+    });
+
+    rows.forEach(function (r) {
+      if (r.before !== r.after) {
+        plan.push({ tab: tabName, row: r.row, plo: r.plo, before: r.before, after: r.after });
+      }
+    });
+  });
+
+  return plan;
+}
+
+function scNormalisationLogSheet_() {
+  var ss = programmeSpreadsheet_();
+  var log = ss.getSheetByName('SC_Normalisation_Log');
+  if (!log) {
+    log = ss.insertSheet('SC_Normalisation_Log');
+    log.getRange(1, 1, 1, 6)
+      .setValues([['RunAt', 'Programme', 'PLO', 'Before', 'After', 'RunBy']])
+      .setFontWeight('bold');
+    log.setFrozenRows(1);
+  }
+  return log;
+}
+
+function appendScNormalisationLog_(rows) {
+  if (!rows || !rows.length) return 0;
+  var log = scNormalisationLogSheet_();
+  log.getRange(log.getLastRow() + 1, 1, rows.length, 6).setValues(rows);
+  return rows.length;
+}
+
+function scNormalisationRun_(apply, user) {
+  var plan = scNormalisationPlan_();
+  if (!apply) {
+    return { dryRun: true, changed: plan.length, items: plan };
+  }
+
+  var ss = programmeSpreadsheet_();
+  var now = new Date();
+  var by = (user && user.email) || '';
+  var logRows = [];
+  var byTab = {};
+  plan.forEach(function (item) {
+    if (!byTab[item.tab]) byTab[item.tab] = [];
+    byTab[item.tab].push(item);
+  });
+
+  Object.keys(byTab).forEach(function (tab) {
+    var sheet = ss.getSheetByName(tab);
+    if (!sheet) return;
+    byTab[tab].forEach(function (item) {
+      sheet.getRange(item.row, 7).setValue(item.after);
+      logRows.push([now, tab, item.plo, item.before, item.after, by]);
+    });
+  });
+
+  appendScNormalisationLog_(logRows);
+  SpreadsheetApp.flush();
+  try { CacheService.getScriptCache().remove('ref-maps-v1'); } catch (e) {}
+  return { dryRun: false, changed: plan.length, items: plan };
+}
+
 function jsonResponse_(payload) {
   return ContentService.createTextOutput(JSON.stringify(payload, null, 2))
     .setMimeType(ContentService.MimeType.JSON);
@@ -2240,6 +2390,7 @@ function getProgrammeDetailFor_(programme) {
     mqaCode: programme.mqaCode,
     peos: own.peos,
     plos: own.plos,
+    sdgEligiblePlos: sdgEligiblePLOCodes_(programme.mqaCode, programme.faculty),
     isSharedCode: !!programme.isSharedCode,
     role: programme.role,
     ownerFaculty: programme.ownerFaculty || programme.faculty,
@@ -2305,11 +2456,13 @@ function saveProgrammeRecordApi(mqaCode, recordType, payload, sessionToken, facu
   if (peoCodes.indexOf(parentPEO) === -1) throw new Error('Select a valid parent PEO');
   if (MQF_DOMAIN_CODES_.indexOf(mqfDomain) === -1) throw new Error('Select a valid MQF domain');
   if (TAXONOMY_CODES_.indexOf(taxonomy) === -1) throw new Error('Select a valid taxonomy level');
-  if (isSDGEligiblePLO_(itemCode, code) && SDG_CODES_.indexOf(sdg) === -1) {
+  var eligibleSdg = isSDGEligiblePLO_(itemCode, code, programme.faculty);
+  var storedSdg = normalizeReferenceCode_(String((data[match.row - 1] || [])[5] || ''));
+  if (eligibleSdg && SDG_CODES_.indexOf(sdg) === -1) {
     throw new Error('Select a valid SDG');
   }
-  if (!isSDGEligiblePLO_(itemCode, code) && sdg) {
-    throw new Error('SDG mapping is only available for ' + sdgEligiblePLOCodes_(code).join(', '));
+  if (!eligibleSdg && sdg && sdg !== storedSdg) {
+    throw new Error('SDG mapping is only available for ' + sdgEligiblePLOCodes_(code, programme.faculty).join(', '));
   }
   // One sustainability competency per PLO; the three domains are checked across
   // the programme, not on a single outcome.
@@ -2366,13 +2519,42 @@ function normalizeReferenceCode_(value) {
   return String(value || '').trim().replace(/\s+/g, '').toUpperCase();
 }
 
-function isSDGEligiblePLO_(ploCode, programmeCode) {
-  return sdgEligiblePLOCodes_(programmeCode).indexOf(normalizePLOCode_(ploCode)) > -1;
+function isSDGEligiblePLO_(ploCode, programmeCode, faculty) {
+  return sdgEligiblePLOCodes_(programmeCode, faculty).indexOf(normalizePLOCode_(ploCode)) > -1;
 }
 
-function sdgEligiblePLOCodes_(programmeCode) {
+function sdgEligiblePLOCodes_(programmeCode, faculty) {
   var code = normalizeReferenceCode_(programmeCode);
-  return SDG_ELIGIBLE_PLO_CODES_BY_PROGRAMME_[code] || SDG_ELIGIBLE_PLO_CODES_;
+  if (SDG_ELIGIBLE_PLO_CODES_BY_PROGRAMME_[code]) return SDG_ELIGIBLE_PLO_CODES_BY_PROGRAMME_[code];
+  var facultyValue = String(faculty || programmeFacultyFor_(code) || '').trim().toUpperCase();
+  var facultyKeys = Object.keys(SDG_ELIGIBLE_PLO_CODES_BY_FACULTY_);
+  for (var i = 0; i < facultyKeys.length; i++) {
+    var key = facultyKeys[i];
+    if (facultyValue && new RegExp('(^|[^A-Z0-9])' + key + '([^A-Z0-9]|$)').test(facultyValue)) {
+      return SDG_ELIGIBLE_PLO_CODES_BY_FACULTY_[key];
+    }
+  }
+  return SDG_ELIGIBLE_PLO_CODES_;
+}
+
+var PROGRAMME_FACULTY_CACHE_ = null;
+function programmeFacultyFor_(programmeCode) {
+  if (!PROGRAMME_FACULTY_CACHE_) {
+    PROGRAMME_FACULTY_CACHE_ = {};
+    try {
+      var sheet = programmeSpreadsheet_().getSheetByName('Programme');
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        for (var i = 1; i < data.length; i++) {
+          var code = String(data[i][2] || '').trim().toUpperCase();
+          if (code && !PROGRAMME_FACULTY_CACHE_[code]) {
+            PROGRAMME_FACULTY_CACHE_[code] = String(data[i][7] || '').trim();
+          }
+        }
+      }
+    } catch (e) { PROGRAMME_FACULTY_CACHE_ = {}; }
+  }
+  return PROGRAMME_FACULTY_CACHE_[String(programmeCode || '').trim().toUpperCase()] || '';
 }
 
 function normalizePLOCode_(ploCode) {
@@ -2755,7 +2937,7 @@ function buildPdfBlob_(programme, detail, code) {
     values[ploHeadingRow] = ['PLO — Programme Learning Outcomes'];
     values[ploHeaderRow] = ['Code', 'PLO statement', 'Parent PEO', 'MQF domain', 'Taxonomy', 'SDG', 'SC', 'TF'];
     for (var q = 0; q < ploCount; q++) {
-      var sdg = isSDGEligiblePLO_(plos[q].code, code) ? plos[q].sdg || '' : '';
+      var sdg = isSDGEligiblePLO_(plos[q].code, code, faculty) ? plos[q].sdg || '' : '';
       var sc = isSCEligiblePLO_(plos[q].code, code) ? plos[q].sc || '' : '';
       values[ploDataStart + q] = [plos[q].code, plos[q].statement || '', plos[q].parentPEO || '', plos[q].mqfDomain || '', plos[q].taxonomy || '', sdg, sc, plos[q].tf || ''];
     }

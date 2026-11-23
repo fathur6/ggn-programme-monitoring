@@ -362,6 +362,11 @@
         </header>
         <form class="modal-body" @submit.prevent="saveEdit">
           <div v-if="editError" class="alert alert-error">{{ editError }}</div>
+          <div v-if="legacyScCodes.length" class="alert alert-warn">
+            This PLO currently stores {{ legacyScCodes.join(', ') }}. One SC is kept per PLO, so saving
+            will replace them with <strong>{{ editor.draft.sc }}</strong>. Check that the programme still
+            covers Ways of Thinking, Ways of Practicing and Ways of Being.
+          </div>
           <div class="form-field">
             <label for="record-statement">{{ editor.type === 'peo' ? 'PEO statement' : 'PLO statement' }}</label>
             <textarea id="record-statement" v-model.trim="editor.draft.statement" required></textarea>
@@ -389,6 +394,13 @@
                 <option value="" disabled>Select SDG</option>
                 <option v-for="sdg in sdgs" :key="sdg.code" :value="sdg.code">{{ sdg.code }} - {{ sdg.label }}</option>
               </select>
+            </div>
+            <div v-else-if="editor.draft.sdg" class="form-field">
+              <label>SDG kept from the previous mapping</label>
+              <p class="form-help">
+                {{ editor.draft.sdg }} stays on this PLO. New SDG mappings are limited to
+                {{ (detail.sdgEligiblePlos || []).join(', ') }} for this faculty.
+              </p>
             </div>
             <div class="form-field">
               <label for="sc">Sustainability competency (SC)</label>

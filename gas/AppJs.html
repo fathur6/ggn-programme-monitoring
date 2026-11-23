@@ -301,10 +301,8 @@
           this.editor.draft.tf = '';
         },
         isSDGEligiblePLO: function (ploCode) {
-          var programmeCode = String(this.detail.mqaCode || '').trim().toUpperCase();
-          var eligible = (programmeCode === 'MQA/FA5573' || programmeCode === 'MQA/FA5574')
-            ? ['PLO1', 'PLO9', 'PLO10']
-            : ['PLO1', 'PLO9', 'PLO11'];
+          // The server sends the eligible list for this programme's faculty.
+          var eligible = (this.detail && this.detail.sdgEligiblePlos) || ['PLO1', 'PLO8', 'PLO11'];
           return eligible.indexOf(String(ploCode || '').replace(/\s+/g, '').toUpperCase().replace(/^PLO0+(\d+)$/, 'PLO$1')) > -1;
         },
         isSCEligiblePLO: function () {
@@ -322,11 +320,19 @@
               parentPEO: record.parentPEO || '',
               mqfDomain: this.normalizeMQFDomain(record.mqfDomain),
               taxonomy: String(record.taxonomy || '').toUpperCase(),
-              sdg: this.isSDGEligiblePLO(record.code) ? String(record.sdg || '').replace(/\s+/g, '').toUpperCase() : '',
+              // Keep any stored value so a PLO outside the SDG list does not lose data.
+              sdg: String(record.sdg || '').replace(/\s+/g, '').toUpperCase(),
               sc: this.firstScCode(record.sc),
               tf: String(record.tf || '').replace(/\s+/g, '').toUpperCase()
-            }
+            },
+            originalSc: String(record.sc || '')
           };
+        },
+        legacyScCodes: function () {
+          if (!this.editor || !this.editor.open) return [];
+          var codes = String(this.editor.originalSc || '').split(',')
+            .map(function (v) { return v.trim().toUpperCase(); }).filter(Boolean);
+          return codes.length > 1 ? codes : [];
         },
         firstSc: function (value) {
           return this.firstScCode(value);
@@ -344,6 +350,7 @@
         applyDetail: function (result) {
           this.$set(this.detail, 'peos', result.peos || []);
           this.$set(this.detail, 'plos', result.plos || []);
+          if (result.sdgEligiblePlos) this.$set(this.detail, 'sdgEligiblePlos', result.sdgEligiblePlos);
           if (result.hasOwnCopy !== undefined) this.$set(this.detail, 'hasOwnCopy', result.hasOwnCopy);
           if (result.differsFromOwner !== undefined) this.$set(this.detail, 'differsFromOwner', result.differsFromOwner);
         },

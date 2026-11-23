@@ -10,7 +10,7 @@ assert.match(server, /var tempSs = SpreadsheetApp\.create\(tempName\)/);
 assert.match(server, /DriveApp\.getFileById\(tempSs\.getId\(\)\)\.getAs\(MimeType\.PDF\)/);
 assert.match(server, /setTrashed\(true\)/);
 assert.match(server, /sheet\.setHiddenGridlines\(true\)/);
-assert.match(server, /isSDGEligiblePLO_\(plos\[q\]\.code, code\) \? plos\[q\]\.sdg \|\| '' : ''/);
+assert.match(server, /isSDGEligiblePLO_\(plos\[q\]\.code, code, faculty\) \? plos\[q\]\.sdg \|\| '' : ''/);
 assert.match(server, /isSCEligiblePLO_\(plos\[q\]\.code, code\) \? plos\[q\]\.sc \|\| '' : ''/);
 // The PDF path must stay free of network calls; the review Excel export is
 // allowed to use UrlFetchApp against Drive's own export endpoint.
