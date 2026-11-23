@@ -2311,9 +2311,21 @@ function saveProgrammeRecordApi(mqaCode, recordType, payload, sessionToken, facu
   if (!isSDGEligiblePLO_(itemCode, code) && sdg) {
     throw new Error('SDG mapping is only available for ' + sdgEligiblePLOCodes_(code).join(', '));
   }
-  if (sc && SC_CODES_.indexOf(sc) === -1) {
-    throw new Error('Select a valid sustainability competency');
+  var SC_DOMAIN_OF_ = { SC1: 'thinking', SC2: 'thinking', SC3: 'thinking',
+    SC4: 'practicing', SC5: 'practicing', SC6: 'practicing', SC7: 'being', SC8: 'being' };
+  var scCodes = String(sc || '').split(',').map(function (v) { return v.trim().toUpperCase(); }).filter(Boolean);
+  if (!scCodes.length) {
+    throw new Error('Map at least one sustainability competency from each domain');
   }
+  var scDomains = {};
+  scCodes.forEach(function (code) {
+    if (!SC_DOMAIN_OF_[code]) throw new Error('Select a valid sustainability competency');
+    scDomains[SC_DOMAIN_OF_[code]] = true;
+  });
+  if (!scDomains.thinking || !scDomains.practicing || !scDomains.being) {
+    throw new Error('Each PLO needs at least one SC from Ways of Thinking, Ways of Practicing and Ways of Being');
+  }
+  sc = scCodes.join(', ');
   if (['TF1', 'TF2', 'TF3', 'TF4'].indexOf(tf) === -1) {
     throw new Error('Select a valid Teras FlexS value');
   }

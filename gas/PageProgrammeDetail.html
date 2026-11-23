@@ -342,11 +342,26 @@
               </select>
             </div>
             <div class="form-field">
-              <label for="sc">Sustainability competency (SC)</label>
-              <select id="sc" v-model="editor.draft.sc" required>
-                <option value="" disabled>Select sustainability competency</option>
-                <option v-for="competency in sustainabilityCompetencies" :key="competency.code" :value="competency.code">{{ competency.code }} - {{ competency.label }}</option>
+              <label for="sc-thinking">SC — Ways of Thinking</label>
+              <select id="sc-thinking" v-model="editor.draft.scThinking" required>
+                <option value="" disabled>Select competency</option>
+                <option v-for="item in scByDomain.thinking" :key="item.code" :value="item.code">{{ item.code }} — {{ item.label }}</option>
               </select>
+            </div>
+            <div class="form-field">
+              <label for="sc-practicing">SC — Ways of Practicing</label>
+              <select id="sc-practicing" v-model="editor.draft.scPracticing" required>
+                <option value="" disabled>Select competency</option>
+                <option v-for="item in scByDomain.practicing" :key="item.code" :value="item.code">{{ item.code }} — {{ item.label }}</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="sc-being">SC — Ways of Being</label>
+              <select id="sc-being" v-model="editor.draft.scBeing" required>
+                <option value="" disabled>Select competency</option>
+                <option v-for="item in scByDomain.being" :key="item.code" :value="item.code">{{ item.code }} — {{ item.label }}</option>
+              </select>
+              <p class="form-help">One competency from each domain is required for a PLO to count as fully mapped.</p>
             </div>
             <div class="form-field">
               <label for="tf">Teras FlexS (TF)</label>

@@ -74,7 +74,14 @@
             { code: 'SDG1', label: 'No Poverty' }, { code: 'SDG2', label: 'Zero Hunger' }, { code: 'SDG3', label: 'Good Health and Well-being' }, { code: 'SDG4', label: 'Quality Education' }, { code: 'SDG5', label: 'Gender Equality' }, { code: 'SDG6', label: 'Clean Water and Sanitation' }, { code: 'SDG7', label: 'Affordable and Clean Energy' }, { code: 'SDG8', label: 'Decent Work and Economic Growth' }, { code: 'SDG9', label: 'Industry, Innovation and Infrastructure' }, { code: 'SDG10', label: 'Reduced Inequalities' }, { code: 'SDG11', label: 'Sustainable Cities and Communities' }, { code: 'SDG12', label: 'Responsible Consumption and Production' }, { code: 'SDG13', label: 'Climate Action' }, { code: 'SDG14', label: 'Life Below Water' }, { code: 'SDG15', label: 'Life on Land' }, { code: 'SDG16', label: 'Peace, Justice and Strong Institutions' }, { code: 'SDG17', label: 'Partnerships for the Goals' }
           ],
           sustainabilityCompetencies: [
-            { code: 'SC1', label: 'Systems-thinking' }, { code: 'SC2', label: 'Anticipatory' }, { code: 'SC3', label: 'Critical thinking' }, { code: 'SC4', label: 'Strategic' }, { code: 'SC5', label: 'Collaboration' }, { code: 'SC6', label: 'Integrated problem-solving' }, { code: 'SC7', label: 'Self-awareness' }, { code: 'SC8', label: 'Normative' }
+            { code: 'SC1', label: 'Systems Thinking', domain: 'thinking' },
+            { code: 'SC2', label: 'Anticipatory (Future Thinking)', domain: 'thinking' },
+            { code: 'SC3', label: 'Critical Thinking', domain: 'thinking' },
+            { code: 'SC4', label: 'Strategic', domain: 'practicing' },
+            { code: 'SC5', label: 'Collaboration', domain: 'practicing' },
+            { code: 'SC6', label: 'Integrated Problem-solving', domain: 'practicing' },
+            { code: 'SC7', label: 'Self-awareness', domain: 'being' },
+            { code: 'SC8', label: 'Normative', domain: 'being' }
           ],
           transversalFutureSkills: [
             { code: 'TF1', label: 'Murabbi Unggul', mqfDomains: ['MQF1', 'MQF4A'] },
@@ -171,6 +178,11 @@
             return result;
           }, []);
         },
+        scByDomain: function () {
+          var groups = { thinking: [], practicing: [], being: [] };
+          this.sustainabilityCompetencies.forEach(function (item) { groups[item.domain].push(item); });
+          return groups;
+        },
         availableTFs: function () {
           // Teras FlexS are chosen freely by each faculty; no MQF-domain filter.
           return this.transversalFutureSkills;
@@ -242,10 +254,24 @@
               mqfDomain: this.normalizeMQFDomain(record.mqfDomain),
               taxonomy: String(record.taxonomy || '').toUpperCase(),
               sdg: this.isSDGEligiblePLO(record.code) ? String(record.sdg || '').replace(/\s+/g, '').toUpperCase() : '',
-              sc: this.isSCEligiblePLO(record.code) ? String(record.sc || '').replace(/\s+/g, '').toUpperCase() : '',
+              scThinking: '', scPracticing: '', scBeing: '',
               tf: String(record.tf || '').replace(/\s+/g, '').toUpperCase()
             }
           };
+          this.loadScPicks(record);
+        },
+        loadScPicks: function (record) {
+          var self = this;
+          var picks = { thinking: '', practicing: '', being: '' };
+          String(record.sc || '').split(',').forEach(function (code) {
+            var upper = code.trim().toUpperCase();
+            self.sustainabilityCompetencies.forEach(function (item) {
+              if (item.code === upper) picks[item.domain] = upper;
+            });
+          });
+          this.$set(this.editor.draft, 'scThinking', picks.thinking);
+          this.$set(this.editor.draft, 'scPracticing', picks.practicing);
+          this.$set(this.editor.draft, 'scBeing', picks.being);
         },
         closeEdit: function () {
           if (this.saving) return;
@@ -414,6 +440,12 @@
           if (this.pdf.sending || this.pdf.generating) return;
           this.pdf = emptyPdf();
         },
+        buildDraft: function () {
+          var draft = Object.assign({}, this.editor.draft);
+          draft.sc = [draft.scThinking, draft.scPracticing, draft.scBeing]
+            .filter(function (v) { return !!v; }).join(', ');
+          return draft;
+        },
         saveEdit: function () {
           var self = this;
           this.saving = true;
@@ -429,7 +461,7 @@
               self.editError = err && err.message ? err.message : 'Unable to save this record.';
               self.saving = false;
             })
-            .saveProgrammeRecordApi(this.detail.mqaCode, this.editor.type, this.editor.draft, this.sessionToken, this.detail.faculty);
+            .saveProgrammeRecordApi(this.detail.mqaCode, this.editor.type, this.buildDraft(), this.sessionToken, this.detail.faculty);
         }
       },
       mounted: function () {
