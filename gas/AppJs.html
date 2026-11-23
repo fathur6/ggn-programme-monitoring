@@ -172,10 +172,8 @@
           }, []);
         },
         availableTFs: function () {
-          var compact = String(this.editor.draft.mqfDomain || '').replace(/\s+/g, '').toUpperCase();
-          return this.transversalFutureSkills.filter(function (skill) {
-            return skill.mqfDomains.indexOf(compact) > -1;
-          });
+          // Teras FlexS are chosen freely by each faculty; no MQF-domain filter.
+          return this.transversalFutureSkills;
         },
         userLabel: function () {
           if (!this.currentUser) return '';

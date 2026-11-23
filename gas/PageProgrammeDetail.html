@@ -329,7 +329,7 @@
             </div>
             <div class="form-field">
               <label for="mqf-domain">MQF domain</label>
-              <select id="mqf-domain" v-model="editor.draft.mqfDomain" @change="clearTF" required>
+              <select id="mqf-domain" v-model="editor.draft.mqfDomain" required>
                 <option value="" disabled>Select MQF domain</option>
                 <option v-for="domain in mqfDomains" :key="domain.code" :value="domain.code">{{ domain.label }}</option>
               </select>
@@ -349,12 +349,12 @@
               </select>
             </div>
             <div class="form-field">
-              <label for="tf">Transversal future skill (TF)</label>
-              <select id="tf" v-model="editor.draft.tf" :disabled="availableTFs.length === 0" required>
-                <option value="" disabled>{{ availableTFs.length ? 'Select transversal future skill' : 'Select an MQF domain first' }}</option>
+              <label for="tf">Teras FlexS (TF)</label>
+              <select id="tf" v-model="editor.draft.tf" required>
+                <option value="" disabled>Select Teras FlexS</option>
                 <option v-for="skill in availableTFs" :key="skill.code" :value="skill.code">{{ skill.code }} - {{ skill.label }}</option>
               </select>
-              <p class="form-help">Options are limited to skills mapped to the selected MQF domain.</p>
+              <p class="form-help">All four Teras FlexS are available; choose the one that fits the outcome.</p>
             </div>
             <div class="form-field">
               <label for="taxonomy">Bloom taxonomy</label>

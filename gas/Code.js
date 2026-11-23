@@ -2318,8 +2318,8 @@ function saveProgrammeRecordApi(mqaCode, recordType, payload, sessionToken, facu
   if (!isSCEligiblePLO_(itemCode, code) && sc) {
     throw new Error('SC mapping is only available for ' + scEligiblePLOCodes_(code).join(', '));
   }
-  if (transversalFutureSkillsForMQFDomain_(mqfDomain).indexOf(tf) === -1) {
-    throw new Error('Select a transversal future skill valid for the MQF domain');
+  if (['TF1', 'TF2', 'TF3', 'TF4'].indexOf(tf) === -1) {
+    throw new Error('Select a valid Teras FlexS value');
   }
 
   // Keep the stable code in column A and update only the editable PLO fields.
