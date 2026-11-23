@@ -30,6 +30,7 @@
             <div class="section-heading-actions">
               <span v-if="changes.length" class="state-chip chip-warn">{{ changes.length }} pending</span>
               <button v-if="detail.canEdit" type="button" class="btn btn-outline btn-sm" @click="openChange">Propose change</button>
+              <button v-if="detail.canEdit" type="button" class="btn btn-outline btn-sm" @click="requestDelete">Request deletion</button>
             </div>
           </div>
           <div class="cv-grid">

@@ -1479,13 +1479,17 @@ function submitProgrammeChangeApi(mqaCode, changes, sessionToken, faculty) {
     throw new Error('You may only propose changes for programmes under your own faculty.');
   }
   var clean = {};
-  PROGRAMME_META_FIELDS_.forEach(function (field) {
-    if (changes && Object.prototype.hasOwnProperty.call(changes, field)) {
-      var value = String(changes[field] == null ? '' : changes[field]).trim();
-      var current = String(programme[field] || '').trim();
-      if (value !== current) clean[field] = value;
-    }
-  });
+  if (changes && String(changes.__action || '') === 'delete') {
+    clean = { __action: 'delete' };
+  } else {
+    PROGRAMME_META_FIELDS_.forEach(function (field) {
+      if (changes && Object.prototype.hasOwnProperty.call(changes, field)) {
+        var value = String(changes[field] == null ? '' : changes[field]).trim();
+        var current = String(programme[field] || '').trim();
+        if (value !== current) clean[field] = value;
+      }
+    });
+  }
   if (!Object.keys(clean).length) throw new Error('No changes to submit.');
 
   changeSheet_().appendRow([
@@ -1557,12 +1561,20 @@ function decideChangeRequestApi(requestId, decision, sessionToken) {
       var code = String(data[i][codeCol - 1] || '').trim();
       var progSheet = programmeSpreadsheet_().getSheetByName('Programme');
       var progData = progSheet.getDataRange().getValues();
-      for (var r = 1; r < progData.length; r++) {
-        if (String(progData[r][2] || '').trim() !== code) continue;
-        Object.keys(changes).forEach(function (field) {
-          var col = PROGRAMME_META_COLUMNS_[field];
-          if (col) progSheet.getRange(r + 1, col).setValue(changes[field]);
-        });
+
+      if (String(changes.__action || '') === 'delete') {
+        // Remove the register rows; the programme tab is kept for archive.
+        for (var d = progData.length - 1; d >= 1; d--) {
+          if (String(progData[d][2] || '').trim() === code) progSheet.deleteRow(d + 1);
+        }
+      } else {
+        for (var r = 1; r < progData.length; r++) {
+          if (String(progData[r][2] || '').trim() !== code) continue;
+          Object.keys(changes).forEach(function (field) {
+            var col = PROGRAMME_META_COLUMNS_[field];
+            if (col) progSheet.getRange(r + 1, col).setValue(changes[field]);
+          });
+        }
       }
       try { CacheService.getScriptCache().remove('ref-maps-v1'); } catch (e) {}
     }

@@ -300,6 +300,19 @@
             })
             .submitProgrammeChangeApi(this.detail.mqaCode, this.changeForm, this.sessionToken, this.detail.faculty);
         },
+        requestDelete: function () {
+          var self = this;
+          if (!window.confirm('Request deletion of this programme? A PPS approver must confirm before it is removed.')) return;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.notice = 'Deletion request sent for PPS approval.';
+              if (result) self.changes = self.changes.concat([{ requestId: String(Date.now()), changes: { __action: 'delete' } }]);
+            })
+            .withFailureHandler(function (err) {
+              self.detailError = err && err.message ? err.message : 'The request could not be sent.';
+            })
+            .submitProgrammeChangeApi(this.detail.mqaCode, { __action: 'delete' }, this.sessionToken, this.detail.faculty);
+        },
         openMap: function (item) {
           this.mapDetail = item.programmeCount ? item : { code: item.code, label: item.label, programmeCount: 0, percent: 0, entries: [] };
         },
