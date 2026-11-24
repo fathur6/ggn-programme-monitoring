@@ -3,7 +3,8 @@
             <div>
               <p class="eyebrow">{{ t('admin_menu') }}</p>
               <h2 class="page-title">{{ t('admin_title') }}</h2>
-            </div>
+      
+      </div>
             <a class="btn btn-outline btn-sm" :href="baseUrl + '?page=programmes'" target="_top" rel="noopener">← {{ t('back_home') }}</a>
           </div>
           <p class="page-lede">
@@ -95,7 +96,7 @@
                   <td class="action-cell">
                     <button v-if="period.state === 'Open'" type="button" class="btn btn-outline btn-sm" @click="setState(period.periodId, 'Closed')" :disabled="busy">{{ t('action_close') }}</button>
                     <button v-else type="button" class="btn btn-outline btn-sm" @click="setState(period.periodId, 'Open')" :disabled="busy">{{ t('action_open') }}</button>
-                    <button v-if="period.state !== 'Open'" type="button" class="btn btn-outline btn-sm" @click="exportPeriod(period)" :disabled="busy">{{ t('action_export_sheet') }}</button>
+                    <button v-if="period.state !== 'Open'" type="button" class="btn btn-outline btn-sm" @click="openExportModal(period)" :disabled="busy">{{ t('action_export_sheet') }}</button>
                   </td>
                 </tr>
               </tbody>
@@ -341,3 +342,31 @@
             </table>
           </div>
         </section>
+
+    <div v-if="exportModal.open" class="modal-backdrop" @click.self="closeExportModal">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+        <header class="modal-header">
+          <div>
+            <h2 id="export-modal-title" class="modal-title">{{ t('export_title') }}</h2>
+            <p class="modal-subtitle">{{ t('export_body') }}</p>
+          </div>
+          <button type="button" class="modal-close" @click="closeExportModal" :disabled="exportModal.busy" aria-label="Close">×</button>
+        </header>
+        <div class="modal-body">
+          <div v-if="exportModal.error" class="alert alert-error">{{ exportModal.error }}</div>
+          <div v-if="exportModal.result" class="alert alert-success">
+            {{ t('export_done_prefix') }} {{ exportModal.result.written }} {{ t('export_done_rows') }}
+            ({{ exportModal.result.firstColumn }} · {{ exportModal.result.period }}).
+          </div>
+          <p class="text-sm text-muted" style="margin:0">
+            {{ t('export_cycle') }} <strong>{{ exportModal.period ? exportModal.period.cutoffLabel : '' }}</strong>
+          </p>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" @click="closeExportModal" :disabled="exportModal.busy">{{ t('export_later') }}</button>
+            <button type="button" class="btn btn-primary" @click="runExport" :disabled="exportModal.busy || !!exportModal.result">
+              {{ exportModal.busy ? t('export_running') : t('export_run') }}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>

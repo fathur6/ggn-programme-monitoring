@@ -52,7 +52,7 @@ var TF_CODES_BY_MQF_DOMAIN_ = {
 };
 var MAX_PLO_COUNT_ = 11;
 var PROGRAMME_SPREADSHEET_ID_ = '1w5xrwoLJ7HpSZ_emgwqoGr-YcRVb7Zuq3KuDSmhUf6o';
-var APP_VERSION_ = '2.2.6';
+var APP_VERSION_ = '2.2.9';
 var PDF_FOLDER_ID_ = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
 /**
  * Single-workbook rule: programme records, PDF storage and the USER/ADMIN login
@@ -2911,91 +2911,95 @@ function exportPeriodToSheetApi(periodId, sessionToken) {
     throw new Error('Close the review period before exporting it.');
   }
 
-  var sheet;
   try {
-    sheet = SpreadsheetApp.openById(REVIEW_SHEET_TARGET_ID_).getSheets()[0];
+    var sheet;
+    try {
+      sheet = SpreadsheetApp.openById(REVIEW_SHEET_TARGET_ID_).getSheets()[0];
+    } catch (openErr) {
+      throw new Error('The backup register could not be opened as a Google Sheet. Convert it once with File > Save as Google Sheets.');
+    }
+
+    var lastRow = Math.max(sheet.getLastRow(), 1);
+    var lastColumn = Math.max(sheet.getLastColumn(), 1);
+    var blockStart = lastColumn + 1;
+    var codeColumn = 4; // column D holds the MQA reference code
+    var values = sheet.getRange(1, 1, lastRow, lastColumn).getValues();
+
+    var programmes = {};
+    getProgrammes_().forEach(function (programme) {
+      if (!programmes[programme.mqaCode]) programmes[programme.mqaCode] = programme;
+    });
+
+    var submissions = {};
+    reviewSubmissions_().forEach(function (row) {
+      if (String(row.PeriodId || '').trim() !== String(period.PeriodId).trim()) return;
+      var code = String(row.MQACode || '').trim();
+      var stamp = row.SubmittedAt instanceof Date ? row.SubmittedAt.getTime() : new Date(row.SubmittedAt).getTime();
+      if (!submissions[code] || (stamp || 0) >= submissions[code].stamp) {
+        submissions[code] = { row: row, stamp: stamp || 0 };
+      }
+    });
+
+    var label = 'STATUS SEMAKAN PROGRAM (SETAKAT ' +
+      String(period.CutoffLabel || period.PeriodId).toUpperCase() + ')';
+    var headerRange = sheet.getRange(1, blockStart, 2, 3);
+    headerRange.breakApart();
+    headerRange.merge()
+      .setValue(label)
+      .setBackground('#f2a13b')
+      .setFontColor('#1a1a1a')
+      .setFontWeight('bold')
+      .setFontSize(10)
+      .setHorizontalAlignment('center')
+      .setVerticalAlignment('middle')
+      .setWrap(true);
+    sheet.setColumnWidth(blockStart, 220);
+    sheet.setColumnWidth(blockStart + 1, 150);
+    sheet.setColumnWidth(blockStart + 2, 110);
+
+    var written = 0;
+    var firstRow = 3; // rows 1-2 are the merged header band
+    var targetRows = [];
+    for (var r = firstRow; r <= lastRow; r++) {
+      var code = String(values[r - 1][codeColumn - 1] || '').trim();
+      if (!code || !programmes[code]) {
+        targetRows.push(['', '', '']);
+        continue;
+      }
+      var hit = submissions[code];
+      targetRows.push([
+        hit ? String(hit.row.StatusText || '') : REVIEW_MISSING_TEXT_,
+        hit ? String(hit.row.SubmittedBy || '') : '',
+        hit && hit.row.SubmittedAt ? reviewDateLabel_(hit.row.SubmittedAt) : ''
+      ]);
+      written += 1;
+    }
+
+    if (!written) throw new Error('No programme rows were found in the backup register.');
+
+    sheet.getRange(firstRow, blockStart, targetRows.length, 3)
+      .setValues(targetRows)
+      .setWrap(true)
+      .setVerticalAlignment('top')
+      .setFontSize(10);
+    SpreadsheetApp.flush();
+
+    auditRegisterExport_(period, written, session);
+
+    return {
+      ok: true,
+      period: String(period.CutoffLabel || period.PeriodId),
+      written: written,
+      firstColumn: columnLetter_(blockStart),
+      url: 'https://docs.google.com/spreadsheets/d/' + REVIEW_SHEET_TARGET_ID_ + '/edit'
+    };
   } catch (err) {
     var reason = String(err && err.message ? err.message : err);
-    if (/permission/i.test(reason)) {
-      throw new Error('The review register is read-only for the app account. In the sheet, open Share and give Editor access to pps_tdakademik@unisza.edu.my (or set General access to Editor).');
+    if (/permission|read-only/i.test(reason)) {
+      throw new Error('The backup register is read-only for the app account. In that sheet, open Share and give Editor access to pps_tdakademik@unisza.edu.my, or set General access to Editor.');
     }
-    throw new Error('The review register could not be opened as a Google Sheet. Convert it once with File > Save as Google Sheets.');
+    throw new Error(reason);
   }
-
-  var lastRow = Math.max(sheet.getLastRow(), 1);
-  var lastColumn = Math.max(sheet.getLastColumn(), 1);
-  var blockStart = lastColumn + 1;
-
-  var codeColumn = 4; // column D holds the MQA reference code
-  var values = sheet.getRange(1, 1, lastRow, lastColumn).getValues();
-  var programmes = {};
-  getProgrammes_().forEach(function (programme) {
-    if (!programmes[programme.mqaCode]) programmes[programme.mqaCode] = programme;
-  });
-
-  var submissions = {};
-  reviewSubmissions_().forEach(function (row) {
-    if (String(row.PeriodId || '').trim() !== String(period.PeriodId).trim()) return;
-    var code = String(row.MQACode || '').trim();
-    var stamp = row.SubmittedAt instanceof Date ? row.SubmittedAt.getTime() : new Date(row.SubmittedAt).getTime();
-    if (!submissions[code] || (stamp || 0) >= submissions[code].stamp) {
-      submissions[code] = { row: row, stamp: stamp || 0 };
-    }
-  });
-
-  var label = 'STATUS SEMAKAN PROGRAM (SETAKAT ' +
-    String(period.CutoffLabel || period.PeriodId).toUpperCase() + ')';
-  var headerRange = sheet.getRange(1, blockStart, 2, 3);
-  headerRange.breakApart();
-  headerRange.merge()
-    .setValue(label)
-    .setBackground('#f2a13b')
-    .setFontColor('#1a1a1a')
-    .setFontWeight('bold')
-    .setFontSize(10)
-    .setHorizontalAlignment('center')
-    .setVerticalAlignment('middle')
-    .setWrap(true);
-  sheet.setColumnWidth(blockStart, 220);
-  sheet.setColumnWidth(blockStart + 1, 150);
-  sheet.setColumnWidth(blockStart + 2, 110);
-
-  var written = 0;
-  var firstRow = 3; // rows 1-2 are the merged header band
-  var targetRows = [];
-  for (var r = firstRow; r <= lastRow; r++) {
-    var code = String(values[r - 1][codeColumn - 1] || '').trim();
-    if (!code || !programmes[code]) {
-      targetRows.push(['', '', '']);
-      continue;
-    }
-    var hit = submissions[code];
-    targetRows.push([
-      hit ? String(hit.row.StatusText || '') : REVIEW_MISSING_TEXT_,
-      hit ? String(hit.row.SubmittedBy || '') : '',
-      hit && hit.row.SubmittedAt ? reviewDateLabel_(hit.row.SubmittedAt) : ''
-    ]);
-    written += 1;
-  }
-
-  if (!written) throw new Error('No programme rows were found in the review register.');
-
-  var block = sheet.getRange(firstRow, blockStart, targetRows.length, 3);
-  block.setValues(targetRows)
-    .setWrap(true)
-    .setVerticalAlignment('top')
-    .setFontSize(10);
-  SpreadsheetApp.flush();
-
-  auditRegisterExport_(period, written, session);
-
-  return {
-    ok: true,
-    period: String(period.CutoffLabel || period.PeriodId),
-    written: written,
-    firstColumn: columnLetter_(blockStart),
-    url: 'https://docs.google.com/spreadsheets/d/' + REVIEW_SHEET_TARGET_ID_ + '/edit'
-  };
 }
 
 function columnLetter_(index) {

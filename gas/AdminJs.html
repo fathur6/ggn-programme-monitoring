@@ -30,7 +30,8 @@
         error: null,
         notice: null,
         backupUrl: '',
-        changeRequests: []
+        changeRequests: [],
+        exportModal: { open: false, period: null, busy: false, error: null, result: null }
       },
       computed: {
         userLabel: function () {
@@ -228,23 +229,30 @@
             })
             .removeReviewRoleApi(admin.rowIndex, this.sessionToken);
         },
-        exportPeriod: function (period) {
+        openExportModal: function (period) {
+          this.exportModal = { open: true, period: period, busy: false, error: null, result: null };
+        },
+        closeExportModal: function () {
+          if (this.exportModal.busy) return;
+          this.exportModal = { open: false, period: null, busy: false, error: null, result: null };
+        },
+        runExport: function () {
           var self = this;
-          if (!window.confirm(this.t('export_confirm'))) return;
-          this.busy = true;
-          this.error = null;
-          this.notice = null;
+          if (!this.exportModal.open || this.exportModal.busy) return;
+          this.exportModal.busy = true;
+          this.exportModal.error = null;
           google.script.run
             .withSuccessHandler(function (result) {
-              self.busy = false;
+              self.exportModal.busy = false;
+              self.exportModal.result = result;
               self.notice = self.t('export_done_prefix') + ' ' + result.written +
                 ' ' + self.t('export_done_rows') + ' (' + result.firstColumn + ', ' + result.period + ').';
             })
             .withFailureHandler(function (err) {
-              self.busy = false;
-              self.error = err && err.message ? err.message : 'The export failed.';
+              self.exportModal.busy = false;
+              self.exportModal.error = err && err.message ? err.message : 'The export failed.';
             })
-            .exportPeriodToSheetApi(period.periodId, this.sessionToken);
+            .exportPeriodToSheetApi(self.exportModal.period.periodId, self.sessionToken);
         },
         setState: function (periodId, state) {
           var self = this;
@@ -257,6 +265,12 @@
               self.busy = false;
               self.apply(payload);
               self.notice = state === 'Open' ? 'Sesi dibuka.' : 'Sesi ditutup.';
+              if (state === 'Closed') {
+                var closed = (self.review.periods || []).filter(function (row) {
+                  return String(row.periodId) === String(periodId);
+                })[0];
+                if (closed) self.openExportModal(closed);
+              }
             })
             .withFailureHandler(function (err) {
               self.busy = false;
