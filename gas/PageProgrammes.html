@@ -196,7 +196,7 @@
             dan tidak boleh dipadam dari aplikasi ini.
           </p>
           <div v-if="!pdfLog.length" class="empty-note">Belum ada PDF dijana.</div>
-          <div v-else class="table-wrap">
+          <div v-else class="table-wrap scroll-panel">
             <table class="detail-table">
               <thead>
                 <tr>
@@ -223,6 +223,7 @@
               </tbody>
             </table>
           </div>
+          <p v-if="pdfLog.length > 5" class="scroll-hint">{{ t('pdf_list_hint') }}</p>
         </section>
 
         <p class="footnote">{{ t('footnote_data') }}</p>
