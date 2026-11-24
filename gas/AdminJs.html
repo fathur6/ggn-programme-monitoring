@@ -228,6 +228,24 @@
             })
             .removeReviewRoleApi(admin.rowIndex, this.sessionToken);
         },
+        exportPeriod: function (period) {
+          var self = this;
+          if (!window.confirm(this.t('export_confirm'))) return;
+          this.busy = true;
+          this.error = null;
+          this.notice = null;
+          google.script.run
+            .withSuccessHandler(function (result) {
+              self.busy = false;
+              self.notice = self.t('export_done_prefix') + ' ' + result.written +
+                ' ' + self.t('export_done_rows') + ' (' + result.firstColumn + ', ' + result.period + ').';
+            })
+            .withFailureHandler(function (err) {
+              self.busy = false;
+              self.error = err && err.message ? err.message : 'The export failed.';
+            })
+            .exportPeriodToSheetApi(period.periodId, this.sessionToken);
+        },
         setState: function (periodId, state) {
           var self = this;
           if (this.busy) return;

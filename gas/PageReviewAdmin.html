@@ -95,6 +95,7 @@
                   <td class="action-cell">
                     <button v-if="period.state === 'Open'" type="button" class="btn btn-outline btn-sm" @click="setState(period.periodId, 'Closed')" :disabled="busy">{{ t('action_close') }}</button>
                     <button v-else type="button" class="btn btn-outline btn-sm" @click="setState(period.periodId, 'Open')" :disabled="busy">{{ t('action_open') }}</button>
+                    <button v-if="period.state !== 'Open'" type="button" class="btn btn-outline btn-sm" @click="exportPeriod(period)" :disabled="busy">{{ t('action_export_sheet') }}</button>
                   </td>
                 </tr>
               </tbody>

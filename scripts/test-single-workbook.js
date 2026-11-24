@@ -15,6 +15,7 @@ const vm = require('vm');
 const WORKBOOK_ID = '1w5xrwoLJ7HpSZ_emgwqoGr-YcRVb7Zuq3KuDSmhUf6o';
 const GRADUATE_SCHOOL_DIRECTORY_ID = '1CZyEFe7VqEWp8V4UYnQ-6fQMATDF0X0JUN09XbWmfrQ';
 const PDF_FOLDER_ID = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
+const REVIEW_SHEET_ID = '13mDnI1bHixSzyhmxIRKLNvRFSwhQTWFdHRML0FzITHA';
 
 const source = fs.readFileSync('gas/Code.js', 'utf8');
 
@@ -83,8 +84,8 @@ const idLiterals = [...source.matchAll(/'(\d{1,3}[\w-]{20,})'/g)]
 const uniqueIds = Array.from(new Set(idLiterals));
 assert.deepStrictEqual(
   uniqueIds.sort(),
-  [WORKBOOK_ID, PDF_FOLDER_ID].sort(),
-  'gas/Code.js must reference exactly one workbook ID plus the PDF folder ID'
+  [WORKBOOK_ID, PDF_FOLDER_ID, REVIEW_SHEET_ID].sort(),
+  'gas/Code.js must reference the workbook, the PDF folder and the review register only'
 );
 assert(
   source.indexOf(GRADUATE_SCHOOL_DIRECTORY_ID) === -1,
@@ -103,8 +104,8 @@ assert(
 const directoryOpeners = source.match(/SpreadsheetApp\.openById\(([^)]*)\)/g) || [];
 assert.deepStrictEqual(
   directoryOpeners,
-  ['SpreadsheetApp.openById(PROGRAMME_SPREADSHEET_ID_)'],
-  'All spreadsheet access must go through programmeSpreadsheet_()'
+  ['SpreadsheetApp.openById(PROGRAMME_SPREADSHEET_ID_)', 'SpreadsheetApp.openById(REVIEW_SHEET_TARGET_ID_)'],
+  'Only the app workbook and the review register may be opened directly'
 );
 assert(
   /function userDirectoryEntries_\(\) \{\s*var sheet = programmeSpreadsheet_\(\)/.test(source),
