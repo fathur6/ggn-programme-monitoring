@@ -11,7 +11,7 @@ const client = ['Index.html', 'AppJs.html', 'PageProgrammes.html', 'PageProgramm
   .join('\n');
 
 assert.match(server, /SDG_ELIGIBLE_PLO_CODES_ = \['PLO1', 'PLO8', 'PLO11'\]/);
-assert.match(server, /FBK: \['PLO1', 'PLO9', 'PLO11'\]/);
+assert.match(server, /FBK: \['PLO1', 'PLO7', 'PLO9'\]/);
 assert.doesNotMatch(server, /SDG_ELIGIBLE_PLO_CODES_BY_PROGRAMME_/);
 assert.match(client, /this\.detail\.sdgEligiblePlos/);
 assert.match(client, /\['PLO1', 'PLO8', 'PLO11'\]/);

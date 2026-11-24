@@ -30,10 +30,10 @@ var MQF_DOMAIN_CODES_ = ['MQF 1', 'MQF 2', 'MQF 3a', 'MQF 3b', 'MQF 3c', 'MQF 3d
 var TAXONOMY_CODES_ = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'A1', 'A2', 'A3', 'A4', 'A5', 'P1', 'P2', 'P3', 'P4', 'P5'];
 var SDG_CODES_ = ['SDG1', 'SDG2', 'SDG3', 'SDG4', 'SDG5', 'SDG6', 'SDG7', 'SDG8', 'SDG9', 'SDG10', 'SDG11', 'SDG12', 'SDG13', 'SDG14', 'SDG15', 'SDG16', 'SDG17'];
 // SDG mapping is limited to PLO1, PLO8 and PLO11 everywhere, except FBK
-// (Faculty of Languages and Communication), which maps PLO1, PLO9 and PLO11.
+// (Faculty of Languages and Communication), which maps PLO1, PLO7 and PLO9.
 var SDG_ELIGIBLE_PLO_CODES_ = ['PLO1', 'PLO8', 'PLO11'];
 var SDG_ELIGIBLE_PLO_CODES_BY_FACULTY_ = {
-  FBK: ['PLO1', 'PLO9', 'PLO11']
+  FBK: ['PLO1', 'PLO7', 'PLO9']
 };
 var SC_CODES_ = ['SC1', 'SC2', 'SC3', 'SC4', 'SC5', 'SC6', 'SC7', 'SC8'];
 var SC_DOMAIN_OF_ = { SC1: 'thinking', SC2: 'thinking', SC3: 'thinking',
@@ -52,7 +52,7 @@ var TF_CODES_BY_MQF_DOMAIN_ = {
 };
 var MAX_PLO_COUNT_ = 11;
 var PROGRAMME_SPREADSHEET_ID_ = '1w5xrwoLJ7HpSZ_emgwqoGr-YcRVb7Zuq3KuDSmhUf6o';
-var APP_VERSION_ = '2.2.2';
+var APP_VERSION_ = '2.2.3';
 var PDF_FOLDER_ID_ = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
 /**
  * Single-workbook rule: programme records, PDF storage and the USER/ADMIN login
