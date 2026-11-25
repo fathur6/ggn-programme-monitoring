@@ -31,8 +31,7 @@
         notice: null,
         backupUrl: '',
         changeRequests: [],
-        pendingChangeCount: ADMIN_BOOT.pendingChangeCount || 0,
-        changeRequestRowsHtml: ADMIN_BOOT.changeRequestRowsHtml || '',
+        reviewPanel: ADMIN_BOOT.changeRequests || { pendingCount: 0, approvedCount: 0, rejectedCount: 0, pending: '', approved: '', rejected: '' },
         canApproveChanges: !!ADMIN_BOOT.canApproveChanges,
         exportModal: { open: false, period: null, busy: false, error: null, result: null }
       },
@@ -287,6 +286,14 @@
       },
       mounted: function () {
         this.loadChangeRequests();
+        var self = this;
+        window.addEventListener('change-decided', function (event) {
+          var panel = self.reviewPanel;
+          if (!panel) return;
+          if (panel.pendingCount > 0) panel.pendingCount -= 1;
+          if (event.detail && event.detail.decision === 'approve') panel.approvedCount += 1;
+          else panel.rejectedCount += 1;
+        });
         document.addEventListener('click', function (event) {
           var target = event.target;
           var button = target && target.closest ? target.closest('[data-request-id]') : null;
@@ -296,7 +303,19 @@
           var decision = button.getAttribute('data-decision');
           button.disabled = true;
           google.script.run
-            .withSuccessHandler(function () { window.location.reload(); })
+            .withSuccessHandler(function () {
+              var row = document.querySelector('[data-row-id="' + requestId + '"]');
+              if (row) row.parentNode.removeChild(row);
+              var alert = document.getElementById('change-alert');
+              if (alert) {
+                alert.textContent = decision === 'approve'
+                  ? 'Change approved. The programme record has been updated.'
+                  : 'Change rejected. The programme record is unchanged.';
+                alert.style.display = 'block';
+                alert.scrollIntoView({ block: 'center' });
+              }
+              window.dispatchEvent(new CustomEvent('change-decided', { detail: { decision: decision } }));
+            })
             .withFailureHandler(function (err) {
               button.disabled = false;
               window.alert(err && err.message ? err.message : 'The decision could not be saved.');

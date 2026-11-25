@@ -139,19 +139,43 @@
           <div class="section-heading">
             <h3>Programme change requests</h3>
             <div class="section-heading-actions">
-              <span class="count">{{ pendingChangeCount }} pending</span>
+              <span class="count">{{ reviewPanel.pendingCount }} pending · {{ reviewPanel.approvedCount }} approved · {{ reviewPanel.rejectedCount }} rejected</span>
             </div>
           </div>
           <p class="text-sm text-muted" style="margin:0 0 14px">
             Faculty proposals for programme information. Approving writes the new values to the
             Programme sheet immediately.
           </p>
+
+          <div id="change-alert" class="alert alert-success" style="display:none"></div>
+
+          <h4 class="modal-section" style="font-size:14px;margin-top:0">Pending</h4>
           <div class="table-wrap">
             <table class="detail-table">
               <thead>
                 <tr><th>Programme</th><th>Faculty</th><th>Proposed by</th><th>Changes</th><th class="action-cell"><span class="sr-only">Action</span></th></tr>
               </thead>
-              <tbody v-html="changeRequestRowsHtml"></tbody>
+              <tbody v-html="reviewPanel.pending"></tbody>
+            </table>
+          </div>
+
+          <h4 class="modal-section" style="font-size:14px">Approved</h4>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr><th>Programme</th><th>Faculty</th><th>Proposed by</th><th>Changes</th><th class="action-cell">Decided</th></tr>
+              </thead>
+              <tbody v-html="reviewPanel.approved"></tbody>
+            </table>
+          </div>
+
+          <h4 class="modal-section" style="font-size:14px">Rejected</h4>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr><th>Programme</th><th>Faculty</th><th>Proposed by</th><th>Changes</th><th class="action-cell">Decided</th></tr>
+              </thead>
+              <tbody v-html="reviewPanel.rejected"></tbody>
             </table>
           </div>
         </section>

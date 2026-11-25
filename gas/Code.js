@@ -52,7 +52,7 @@ var TF_CODES_BY_MQF_DOMAIN_ = {
 };
 var MAX_PLO_COUNT_ = 11;
 var PROGRAMME_SPREADSHEET_ID_ = '1w5xrwoLJ7HpSZ_emgwqoGr-YcRVb7Zuq3KuDSmhUf6o';
-var APP_VERSION_ = '2.6.1';
+var APP_VERSION_ = '2.6.3';
 var PDF_FOLDER_ID_ = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
 /**
  * Single-workbook rule: programme records, PDF storage and the USER/ADMIN login
@@ -2053,10 +2053,7 @@ function renderReviewAdminPage_(session) {
     directory: directoryPayload_(),
     admins: reviewRolesPayload_(),
     canApproveChanges: canApproveChanges_(session.user),
-    pendingChangeCount: canApproveChanges_(session.user) ? changeRows_().filter(function (row) {
-      return String(row.Status || '') === 'Pending';
-    }).length : 0,
-    changeRequestRowsHtml: canApproveChanges_(session.user) ? changeRequestRowsHtml_(session) : '',
+    changeRequests: canApproveChanges_(session.user) ? changeRequestPanel_(session) : null,
     appJs: 'AdminJs'
   });
 }
@@ -2988,11 +2985,39 @@ var CHANGE_FIELD_LABELS_ = {
   ownerFacultyRaw: 'Owning faculty / institute', roleRaw: 'Faculty role'
 };
 
-/** Server-rendered rows for the admin queue, so the table never depends on a client fetch. */
-function changeRequestRowsHtml_(session) {
-  var rows = listChangeRequestsApi(session.token);
+/** Every change request with its decided metadata, newest first. */
+function changeRequestRows_(status) {
+  var programmes = getProgrammes_();
+  var byCode = {};
+  programmes.forEach(function (programme) { if (!byCode[programme.mqaCode]) byCode[programme.mqaCode] = programme; });
+  return changeRows_().filter(function (row) {
+    if (status && String(row.Status || '') !== status) return false;
+    return !!String(row.RequestId || '').trim();
+  }).map(function (row) {
+    var code = String(row.MQACode || '');
+    var programme = byCode[code] || {};
+    var changes = {};
+    try { changes = JSON.parse(String(row.Changes || '{}')); } catch (e) { changes = {}; }
+    return {
+      requestId: String(row.RequestId || ''),
+      mqaCode: code,
+      name: programme.name || code,
+      faculty: String(row.Faculty || ''),
+      requestedBy: String(row.RequestedBy || ''),
+      requestedAt: row.RequestedAt ? reviewDateLabel_(row.RequestedAt) : '',
+      status: String(row.Status || ''),
+      decidedBy: String(row.DecidedBy || ''),
+      decidedAt: row.DecidedAt ? reviewDateLabel_(row.DecidedAt) : '',
+      changes: changes
+    };
+  }).sort(function (left, right) {
+    return String(right.requestedAt).localeCompare(String(left.requestedAt));
+  });
+}
+
+function changeRowsHtml_(rows, withActions) {
   if (!rows.length) {
-    return '<tr><td colspan="5" class="text-muted">No pending requests.</td></tr>';
+    return '<tr><td colspan="5" class="text-muted">None.</td></tr>';
   }
   return rows.map(function (row) {
     var changes = row.changes || {};
@@ -3007,16 +3032,35 @@ function changeRequestRowsHtml_(session) {
           escapeHtml_(String(changes[field] == null ? '' : changes[field])) + '</div>';
       });
     }
-    return '<tr>' +
+    var action = '';
+    if (withActions) {
+      action = '<button type="button" class="btn btn-outline btn-sm" data-request-id="' + escapeHtml_(row.requestId) + '" data-decision="approve">Approve</button> ' +
+        '<button type="button" class="btn btn-outline btn-sm" data-request-id="' + escapeHtml_(row.requestId) + '" data-decision="reject">Reject</button>';
+    } else if (row.decidedBy || row.decidedAt) {
+      action = '<span class="text-muted text-sm">' + escapeHtml_(row.decidedBy) + ' · ' + escapeHtml_(row.decidedAt) + '</span>';
+    }
+    return '<tr data-row-id="' + escapeHtml_(row.requestId) + '">' +
       '<td>' + escapeHtml_(row.name) + '<br><span class="text-muted text-sm">' + escapeHtml_(row.mqaCode) + '</span></td>' +
       '<td>' + escapeHtml_(row.faculty) + '</td>' +
       '<td>' + escapeHtml_(row.requestedBy) + '<br><span class="text-muted text-sm">' + escapeHtml_(row.requestedAt) + '</span></td>' +
       '<td>' + body + '</td>' +
-      '<td class="action-cell">' +
-        '<button type="button" class="btn btn-outline btn-sm" data-request-id="' + escapeHtml_(row.requestId) + '" data-decision="approve">Approve</button> ' +
-        '<button type="button" class="btn btn-outline btn-sm" data-request-id="' + escapeHtml_(row.requestId) + '" data-decision="reject">Reject</button>' +
-      '</td></tr>';
+      '<td class="action-cell">' + action + '</td>' +
+      '</tr>';
   }).join('');
+}
+
+function changeRequestPanel_(session) {
+  var pending = changeRequestRows_('Pending');
+  var approved = changeRequestRows_('Approved');
+  var rejected = changeRequestRows_('Rejected');
+  return {
+    pending: changeRowsHtml_(pending, true),
+    approved: changeRowsHtml_(approved, false),
+    rejected: changeRowsHtml_(rejected, false),
+    pendingCount: pending.length,
+    approvedCount: approved.length,
+    rejectedCount: rejected.length
+  };
 }
 
 function getLatestPdfApi(mqaCode, sessionToken, faculty) {
