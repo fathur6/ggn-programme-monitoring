@@ -104,7 +104,7 @@ assert(
 const directoryOpeners = source.match(/SpreadsheetApp\.openById\(([^)]*)\)/g) || [];
 assert.deepStrictEqual(
   directoryOpeners,
-  ['SpreadsheetApp.openById(PROGRAMME_SPREADSHEET_ID_)', 'SpreadsheetApp.openById(REVIEW_SHEET_TARGET_ID_)'],
+  ['SpreadsheetApp.openById(REVIEW_SHEET_TARGET_ID_)', 'SpreadsheetApp.openById(PROGRAMME_SPREADSHEET_ID_)', 'SpreadsheetApp.openById(REVIEW_SHEET_TARGET_ID_)'],
   'Only the app workbook and the review register may be opened directly'
 );
 assert(

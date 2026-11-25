@@ -52,7 +52,7 @@ var TF_CODES_BY_MQF_DOMAIN_ = {
 };
 var MAX_PLO_COUNT_ = 11;
 var PROGRAMME_SPREADSHEET_ID_ = '1w5xrwoLJ7HpSZ_emgwqoGr-YcRVb7Zuq3KuDSmhUf6o';
-var APP_VERSION_ = '2.2.9';
+var APP_VERSION_ = '2.3.0';
 var PDF_FOLDER_ID_ = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
 /**
  * Single-workbook rule: programme records, PDF storage and the USER/ADMIN login
@@ -253,6 +253,29 @@ function doGet(e) {
       }
       var applySc = String(params.setup) === 'scnormalise';
       return jsonResponse_(scNormalisationRun_(applySc, session.user));
+    }
+    if (String(params.setup || '') === 'permcheck') {
+      if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
+      var info = { active: Session.getActiveUser().getEmail() || '', write: 'not attempted' };
+      try {
+        var regFile = DriveApp.getFileById(REVIEW_SHEET_TARGET_ID_);
+        info.owner = regFile.getOwner() ? regFile.getOwner().getEmail() : '';
+        info.editors = regFile.getEditors().map(function (u) { return u.getEmail(); }).slice(0, 8);
+        info.viewers = regFile.getViewers().map(function (u) { return u.getEmail(); }).slice(0, 8);
+      } catch (err) {
+        info.fileError = String(err && err.message ? err.message : err);
+      }
+      try {
+        var regSheet = SpreadsheetApp.openById(REVIEW_SHEET_TARGET_ID_).getSheets()[0];
+        var probeCell = regSheet.getRange(1, 80);
+        probeCell.setValue('probe');
+        SpreadsheetApp.flush();
+        probeCell.clearContent();
+        info.write = 'ok';
+      } catch (err) {
+        info.write = String(err && err.message ? err.message : err);
+      }
+      return jsonResponse_(info);
     }
     if (String(params.setup || '') === 'pdftest') {
       if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
