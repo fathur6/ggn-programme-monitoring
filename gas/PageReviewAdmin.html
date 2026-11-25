@@ -146,13 +146,13 @@
             Faculty proposals for programme information. Approving writes the new values to the
             Programme sheet immediately.
           </p>
-          <div v-if="!pendingChangeCount" class="empty-note">No pending requests.</div>
-          <div v-else class="empty-note">
-            <strong>{{ pendingChangeCount }} proposal(s) awaiting your decision.</strong>
-            Open the programme from the list to approve or reject them.
-          </div>
-          <div class="modal-actions" style="justify-content:flex-start;margin-top:12px">
-            <a class="btn btn-outline btn-sm" :href="baseUrl + '?page=programmes'" target="_top" rel="noopener">Open programmes</a>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr><th>Programme</th><th>Faculty</th><th>Proposed by</th><th>Changes</th><th class="action-cell"><span class="sr-only">Action</span></th></tr>
+              </thead>
+              <tbody v-html="changeRequestRowsHtml"></tbody>
+            </table>
           </div>
         </section>
 

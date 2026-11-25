@@ -32,6 +32,7 @@
         backupUrl: '',
         changeRequests: [],
         pendingChangeCount: ADMIN_BOOT.pendingChangeCount || 0,
+        changeRequestRowsHtml: ADMIN_BOOT.changeRequestRowsHtml || '',
         canApproveChanges: !!ADMIN_BOOT.canApproveChanges,
         exportModal: { open: false, period: null, busy: false, error: null, result: null }
       },
@@ -286,6 +287,22 @@
       },
       mounted: function () {
         this.loadChangeRequests();
+        document.addEventListener('click', function (event) {
+          var target = event.target;
+          var button = target && target.closest ? target.closest('[data-request-id]') : null;
+          if (!button) return;
+          event.preventDefault();
+          var requestId = button.getAttribute('data-request-id');
+          var decision = button.getAttribute('data-decision');
+          button.disabled = true;
+          google.script.run
+            .withSuccessHandler(function () { window.location.reload(); })
+            .withFailureHandler(function (err) {
+              button.disabled = false;
+              window.alert(err && err.message ? err.message : 'The decision could not be saved.');
+            })
+            .decideChangeRequestApi(requestId, decision, ADMIN_BOOT.token);
+        });
         try {
           var saved = localStorage.getItem('ggn-lang');
           if (saved && ['ms', 'en', 'ar'].indexOf(saved) !== -1) this.lang = saved;

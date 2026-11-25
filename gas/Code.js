@@ -52,7 +52,7 @@ var TF_CODES_BY_MQF_DOMAIN_ = {
 };
 var MAX_PLO_COUNT_ = 11;
 var PROGRAMME_SPREADSHEET_ID_ = '1w5xrwoLJ7HpSZ_emgwqoGr-YcRVb7Zuq3KuDSmhUf6o';
-var APP_VERSION_ = '2.5.3';
+var APP_VERSION_ = '2.6.1';
 var PDF_FOLDER_ID_ = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
 /**
  * Single-workbook rule: programme records, PDF storage and the USER/ADMIN login
@@ -2056,6 +2056,7 @@ function renderReviewAdminPage_(session) {
     pendingChangeCount: canApproveChanges_(session.user) ? changeRows_().filter(function (row) {
       return String(row.Status || '') === 'Pending';
     }).length : 0,
+    changeRequestRowsHtml: canApproveChanges_(session.user) ? changeRequestRowsHtml_(session) : '',
     appJs: 'AdminJs'
   });
 }
@@ -2980,6 +2981,44 @@ function addProgrammeRecordApi(mqaCode, recordType, sessionToken, faculty) {
  * MQA-FAxxxx-ddmmyy-zz (zz = daily serial). Returns the stored file details.
  */
 /** Latest PDF already recorded for a programme, so a reader can just download it. */
+var CHANGE_FIELD_LABELS_ = {
+  nameMy: 'Programme name (BM)', name: 'Programme name (EN)', progCode: 'Programme code',
+  nec: 'NEC 2020', accreditation: 'Accreditation approval date', mode: 'Programme mode',
+  faculty: 'Owning faculty code', facultyFull: 'Faculty / institute',
+  ownerFacultyRaw: 'Owning faculty / institute', roleRaw: 'Faculty role'
+};
+
+/** Server-rendered rows for the admin queue, so the table never depends on a client fetch. */
+function changeRequestRowsHtml_(session) {
+  var rows = listChangeRequestsApi(session.token);
+  if (!rows.length) {
+    return '<tr><td colspan="5" class="text-muted">No pending requests.</td></tr>';
+  }
+  return rows.map(function (row) {
+    var changes = row.changes || {};
+    var body = '';
+    if (String(changes.__action || '') === 'delete') {
+      body = '<div class="text-sm"><strong>Delete programme</strong></div>';
+    } else {
+      Object.keys(changes).forEach(function (field) {
+        if (field === '__action') return;
+        var label = CHANGE_FIELD_LABELS_[field] || field;
+        body += '<div class="text-sm"><strong>' + escapeHtml_(label) + '</strong>: ' +
+          escapeHtml_(String(changes[field] == null ? '' : changes[field])) + '</div>';
+      });
+    }
+    return '<tr>' +
+      '<td>' + escapeHtml_(row.name) + '<br><span class="text-muted text-sm">' + escapeHtml_(row.mqaCode) + '</span></td>' +
+      '<td>' + escapeHtml_(row.faculty) + '</td>' +
+      '<td>' + escapeHtml_(row.requestedBy) + '<br><span class="text-muted text-sm">' + escapeHtml_(row.requestedAt) + '</span></td>' +
+      '<td>' + body + '</td>' +
+      '<td class="action-cell">' +
+        '<button type="button" class="btn btn-outline btn-sm" data-request-id="' + escapeHtml_(row.requestId) + '" data-decision="approve">Approve</button> ' +
+        '<button type="button" class="btn btn-outline btn-sm" data-request-id="' + escapeHtml_(row.requestId) + '" data-decision="reject">Reject</button>' +
+      '</td></tr>';
+  }).join('');
+}
+
 function getLatestPdfApi(mqaCode, sessionToken, faculty) {
   var session = requireLogin_(sessionToken);
   var programme = requireProgrammeFacultyAccess_(mqaCode, session, faculty);
