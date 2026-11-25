@@ -169,7 +169,10 @@
           var self = this;
           google.script.run
             .withSuccessHandler(function (rows) { self.changeRequests = rows || []; })
-            .withFailureHandler(function () { self.changeRequests = []; })
+            .withFailureHandler(function (err) {
+              self.changeRequests = [];
+              self.error = 'Change requests could not be loaded: ' + (err && err.message ? err.message : 'unknown error');
+            })
             .listChangeRequestsApi(this.sessionToken);
         },
         decideChange: function (row, decision) {

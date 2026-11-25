@@ -52,7 +52,7 @@ var TF_CODES_BY_MQF_DOMAIN_ = {
 };
 var MAX_PLO_COUNT_ = 11;
 var PROGRAMME_SPREADSHEET_ID_ = '1w5xrwoLJ7HpSZ_emgwqoGr-YcRVb7Zuq3KuDSmhUf6o';
-var APP_VERSION_ = '2.4.0';
+var APP_VERSION_ = '2.4.4';
 var PDF_FOLDER_ID_ = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
 /**
  * Single-workbook rule: programme records, PDF storage and the USER/ADMIN login
@@ -253,6 +253,20 @@ function doGet(e) {
       }
       var applySc = String(params.setup) === 'scnormalise';
       return jsonResponse_(scNormalisationRun_(applySc, session.user));
+    }
+    if (String(params.setup || '') === 'queuecheck') {
+      if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
+      var probeResult = { rows: -1, pending: -1 };
+      try {
+        probeResult.rows = changeRows_().length;
+        probeResult.pending = changeRows_().filter(function (row) {
+          return String(row.Status || '') === 'Pending';
+        }).length;
+        probeResult.api = listChangeRequestsApi(session.token).length;
+      } catch (err) {
+        probeResult.error = String(err && err.message ? err.message : err);
+      }
+      return jsonResponse_(probeResult);
     }
     if (String(params.setup || '') === 'permcheck') {
       if (!session.user.isAdmin) return jsonResponse_({ ok: false, error: 'Admin access required' });
@@ -1493,9 +1507,11 @@ var CHANGE_SHEET_ = 'ProgrammeChangeRequests';
 var CHANGE_HEADERS_ = ['RequestId', 'MQACode', 'Faculty', 'Changes', 'RequestedBy', 'RequestedByEmail',
   'RequestedAt', 'Status', 'DecidedBy', 'DecidedAt'];
 var PROGRAMME_META_FIELDS_ = ['nameMy', 'name', 'progCode', 'nec', 'accreditation', 'mode',
-  'facultyFull', 'faculty'];
-var PROGRAMME_META_COLUMNS_ = { nameMy: 1, name: 2, progCode: 5, nec: 4, accreditation: 6, mode: 12,
-  facultyFull: 7, faculty: 8 };
+  'facultyFull', 'faculty', 'ownerFacultyRaw', 'roleRaw'];
+var PROGRAMME_META_COLUMNS_ = {
+  nameMy: 1, name: 2, nec: 4, progCode: 5, accreditation: 6,
+  facultyFull: 7, faculty: 8, roleRaw: 10, ownerFacultyRaw: 11, mode: 12
+};
 
 function changeSheet_() {
   var ss = programmeSpreadsheet_();
@@ -1584,6 +1600,9 @@ function submitProgrammeChangeApi(mqaCode, changes, sessionToken, faculty) {
       if (changes && Object.prototype.hasOwnProperty.call(changes, field)) {
         var value = String(changes[field] == null ? '' : changes[field]).trim();
         var current = String(programme[field] || '').trim();
+        // Blank stored values mean the computed default, so they are not edits.
+        if (field === 'roleRaw' && !current) current = String(programme.role || '').trim();
+        if (field === 'ownerFacultyRaw' && !current) current = String(programme.ownerFaculty || '').trim();
         if (value !== current) clean[field] = value;
       }
     });
@@ -1601,6 +1620,15 @@ function submitProgrammeChangeApi(mqaCode, changes, sessionToken, faculty) {
     }
     if (clean.faculty && clean.faculty.length > 24) throw new Error('The faculty code is too long.');
     if (clean.facultyFull && clean.facultyFull.length > 160) throw new Error('The faculty name is too long.');
+  }
+  if (clean.roleRaw && ['Pemilik', 'Berkongsi'].indexOf(clean.roleRaw) === -1) {
+    throw new Error('Faculty role must be Pemilik or Berkongsi.');
+  }
+  if (Object.prototype.hasOwnProperty.call(clean, 'facultyFull') && !clean.facultyFull) {
+    throw new Error('Faculty / institute cannot be empty.');
+  }
+  if (Object.prototype.hasOwnProperty.call(clean, 'faculty') && !clean.faculty) {
+    throw new Error('Faculty code cannot be empty.');
   }
   if (!Object.keys(clean).length) throw new Error('No changes to submit.');
 
