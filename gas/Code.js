@@ -52,7 +52,7 @@ var TF_CODES_BY_MQF_DOMAIN_ = {
 };
 var MAX_PLO_COUNT_ = 11;
 var PROGRAMME_SPREADSHEET_ID_ = '1w5xrwoLJ7HpSZ_emgwqoGr-YcRVb7Zuq3KuDSmhUf6o';
-var APP_VERSION_ = '2.4.4';
+var APP_VERSION_ = '2.5.3';
 var PDF_FOLDER_ID_ = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
 /**
  * Single-workbook rule: programme records, PDF storage and the USER/ADMIN login
@@ -377,6 +377,7 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
       nec: programme.nee || '',
       mode: programme.mode || 'Research',
       canEdit: canEditProgramme_(programme, session.user),
+      canApprove: canApproveChanges_(session.user),
       accreditation: programme.accreditation || '',
       level: programme.level,
       faculty: programme.faculty,
@@ -2052,6 +2053,9 @@ function renderReviewAdminPage_(session) {
     directory: directoryPayload_(),
     admins: reviewRolesPayload_(),
     canApproveChanges: canApproveChanges_(session.user),
+    pendingChangeCount: canApproveChanges_(session.user) ? changeRows_().filter(function (row) {
+      return String(row.Status || '') === 'Pending';
+    }).length : 0,
     appJs: 'AdminJs'
   });
 }

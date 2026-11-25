@@ -82,6 +82,42 @@
           </div>
         </section>
 
+        <section v-if="changes.length" class="section-card">
+          <div class="section-heading">
+            <h3>Pending change requests</h3>
+            <div class="section-heading-actions">
+              <span class="state-chip chip-warn">{{ changes.length }} pending</span>
+            </div>
+          </div>
+          <p class="text-sm text-muted" style="margin:0 0 12px">
+            A PPS approver must confirm these proposals before the programme record changes.
+          </p>
+          <div class="table-wrap">
+            <table class="detail-table">
+              <thead>
+                <tr><th>Proposed by</th><th>Changes</th><th class="action-cell"><span class="sr-only">Action</span></th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in changes" :key="row.requestId">
+                  <td>{{ row.requestedBy }}<br><span class="text-muted text-sm">{{ row.requestedAt }}</span></td>
+                  <td>
+                    <div v-if="row.changes.__action === 'delete'" class="text-sm"><strong>Delete programme</strong></div>
+                    <div v-for="(value, field) in row.changes" :key="field" class="text-sm" v-if="field !== '__action'">
+                      <strong>{{ changeLabel(field) }}</strong>: {{ value }}
+                    </div>
+                  </td>
+                  <td class="action-cell">
+                    <template v-if="detail.canApprove">
+                      <button type="button" class="btn btn-outline btn-sm" @click="decideChange(row, 'approve')">Approve</button>
+                      <button type="button" class="btn btn-outline btn-sm" @click="decideChange(row, 'reject')">Reject</button>
+                    </template>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <section class="section-card">
           <div class="section-heading">
             <h3>{{ t('mapping_title') }}</h3>

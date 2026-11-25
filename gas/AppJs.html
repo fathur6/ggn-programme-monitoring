@@ -436,6 +436,36 @@
             })
             .submitProgrammeChangeApi(this.detail.mqaCode, { __action: 'delete' }, this.sessionToken, this.detail.faculty);
         },
+        decideChange: function (row, decision) {
+          var self = this;
+          this.changeError = null;
+          google.script.run
+            .withSuccessHandler(function () {
+              self.notice = decision === 'approve' ? 'Change approved.' : 'Change rejected.';
+              self.refreshChanges();
+              if (decision === 'approve' && self.detail.canEdit) self.loadDetail();
+            })
+            .withFailureHandler(function (err) {
+              self.detailError = err && err.message ? err.message : 'The decision could not be saved.';
+            })
+            .decideChangeRequestApi(row.requestId, decision, this.sessionToken);
+        },
+        refreshChanges: function () {
+          var self = this;
+          google.script.run
+            .withSuccessHandler(function (payload) {
+              if (payload) self.changes = payload.pending || [];
+            })
+            .withFailureHandler(function () {})
+            .getProgrammeChangesApi(this.detail.mqaCode, this.sessionToken, this.detail.faculty);
+        },
+        loadDetail: function () {
+          var self = this;
+          google.script.run
+            .withSuccessHandler(function (result) { if (result) self.applyDetail(result); })
+            .withFailureHandler(function () {})
+            .getProgrammeDetailApi(this.detail.mqaCode, this.sessionToken, this.detail.faculty);
+        },
         openMap: function (item) {
           this.mapDetail = item.programmeCount ? item : { code: item.code, label: item.label, programmeCount: 0, percent: 0, entries: [] };
         },
