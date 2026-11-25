@@ -82,6 +82,32 @@ accordion below the generated-PDF table: the current cycle with a free-text box
 then the history newest first with author and date. Submissions are append-only,
 so a correction adds a revision instead of erasing the previous text.
 
+## Proposed changes to programme information
+
+A faculty may propose a change to any programme field it can see, including the
+owning faculty and institute:
+
+| Field | Column in `Programme` | Notes |
+| --- | --- | --- |
+| Programme name (BM / EN) | A / B | |
+| Programme code | E | |
+| NEC 2020 | D | |
+| Accreditation approval date | F | |
+| Programme mode | L | Research / Coursework / Mixed-mode |
+| Faculty / institute (owning) | G / H | Chosen as one pair, so the name and its code stay in step |
+
+`MQA reference code` is shown read-only: it identifies the programme tab and its
+review history, so PPS changes it deliberately outside the proposal flow. The
+study level is derived from the programme name.
+
+Approving is restricted to the four PPS super users
+(`PPS_CHANGE_APPROVERS_` in `Code.js`): `fathurrahman@`, `fairuznasir@`,
+`yusnitayusof@` and `fatinhannani@unisza.edu.my`. A request records the requester,
+the proposed values and, on the approver screen, the value it would replace.
+Approving writes the new values to the `Programme` sheet immediately; rejecting
+leaves the register untouched. Deletion requests use the same register and the
+same approvers.
+
 ## Generated PDFs
 
 Every generated PDF is recorded in the `PDF_Log` sheet inside the workbook and

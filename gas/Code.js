@@ -52,7 +52,7 @@ var TF_CODES_BY_MQF_DOMAIN_ = {
 };
 var MAX_PLO_COUNT_ = 11;
 var PROGRAMME_SPREADSHEET_ID_ = '1w5xrwoLJ7HpSZ_emgwqoGr-YcRVb7Zuq3KuDSmhUf6o';
-var APP_VERSION_ = '2.3.0';
+var APP_VERSION_ = '2.4.0';
 var PDF_FOLDER_ID_ = '1W6FeqkIyIj_rTi8IzrbM7DLb1qprAX57';
 /**
  * Single-workbook rule: programme records, PDF storage and the USER/ADMIN login
@@ -353,6 +353,7 @@ function renderProgrammeDetailPage_(session, mqaCode, facultyHint) {
     baseUrl: deploymentUrl_(),
     pdfLog: listPdfLog_(session.user, programme.mqaCode),
     changes: pendingChangesForProgramme_(programme.mqaCode),
+    faculties: facultyOptions_(),
     review: reviewPayloadFor_(programme, session.user),
     detail: {
       name: programme.name,
@@ -1491,8 +1492,10 @@ function referenceMapsPayload_() {
 var CHANGE_SHEET_ = 'ProgrammeChangeRequests';
 var CHANGE_HEADERS_ = ['RequestId', 'MQACode', 'Faculty', 'Changes', 'RequestedBy', 'RequestedByEmail',
   'RequestedAt', 'Status', 'DecidedBy', 'DecidedAt'];
-var PROGRAMME_META_FIELDS_ = ['nameMy', 'name', 'progCode', 'nec', 'accreditation', 'mode'];
-var PROGRAMME_META_COLUMNS_ = { nameMy: 1, name: 2, progCode: 5, nec: 4, accreditation: 6, mode: 12 };
+var PROGRAMME_META_FIELDS_ = ['nameMy', 'name', 'progCode', 'nec', 'accreditation', 'mode',
+  'facultyFull', 'faculty'];
+var PROGRAMME_META_COLUMNS_ = { nameMy: 1, name: 2, progCode: 5, nec: 4, accreditation: 6, mode: 12,
+  facultyFull: 7, faculty: 8 };
 
 function changeSheet_() {
   var ss = programmeSpreadsheet_();
@@ -1518,14 +1521,18 @@ function changeRows_() {
   });
 }
 
-/** Who may approve: the named PPS approvers, plus the super-user roles. */
+/**
+ * Only these four PPS super users may approve or reject a proposed change. The
+ * role-based fallback was removed so an ordinary faculty coordinator cannot
+ * approve, even if they hold a PJK/PPA role.
+ */
+var PPS_CHANGE_APPROVERS_ = ['fathurrahman@unisza.edu.my', 'fatinhannani@unisza.edu.my',
+  'fairuznasir@unisza.edu.my', 'yusnitayusof@unisza.edu.my'];
+
 function canApproveChanges_(session) {
   if (!session) return false;
   var email = String(session.email || '').trim().toLowerCase();
-  var named = ['fathurrahman@unisza.edu.my', 'fatinhannani@unisza.edu.my',
-    'fairuznasir@unisza.edu.my', 'yusnitayusof@unisza.edu.my'];
-  if (named.indexOf(email) !== -1) return true;
-  return ppsEditorRoles_(session).length > 0;
+  return PPS_CHANGE_APPROVERS_.indexOf(email) !== -1;
 }
 
 function pendingChangesForProgramme_(mqaCode) {
@@ -1542,6 +1549,24 @@ function pendingChangesForProgramme_(mqaCode) {
       changes: changes
     };
   });
+}
+
+function currentFacultyValue_(programme, field) {
+  return String((programme && programme[field]) || '').trim();
+}
+
+/** Distinct faculty pairs from the Programme register, for the proposal picker. */
+function facultyOptions_() {
+  var seen = {};
+  getProgrammes_().forEach(function (programme) {
+    var code = String(programme.faculty || '').trim();
+    if (!code) return;
+    var key = code.toLowerCase();
+    if (seen[key]) return;
+    seen[key] = { code: code, full: String(programme.facultyFull || code).trim() };
+  });
+  return Object.keys(seen).map(function (key) { return seen[key]; })
+    .sort(function (a, b) { return a.full.localeCompare(b.full); });
 }
 
 function submitProgrammeChangeApi(mqaCode, changes, sessionToken, faculty) {
@@ -1562,6 +1587,20 @@ function submitProgrammeChangeApi(mqaCode, changes, sessionToken, faculty) {
         if (value !== current) clean[field] = value;
       }
     });
+    if (Object.prototype.hasOwnProperty.call(clean, 'faculty') && !clean.faculty) {
+      throw new Error('The faculty code cannot be empty.');
+    }
+    if (Object.prototype.hasOwnProperty.call(clean, 'facultyFull') && !clean.facultyFull) {
+      throw new Error('The faculty name cannot be empty.');
+    }
+    if ((clean.faculty || clean.facultyFull) && (!clean.faculty || !clean.facultyFull)) {
+      // Keep the pair in step: a faculty name without its code (or the reverse)
+      // would leave the register inconsistent.
+      clean.faculty = clean.faculty || currentFacultyValue_(programme, 'faculty');
+      clean.facultyFull = clean.facultyFull || currentFacultyValue_(programme, 'facultyFull');
+    }
+    if (clean.faculty && clean.faculty.length > 24) throw new Error('The faculty code is too long.');
+    if (clean.facultyFull && clean.facultyFull.length > 160) throw new Error('The faculty name is too long.');
   }
   if (!Object.keys(clean).length) throw new Error('No changes to submit.');
 
@@ -1597,6 +1636,11 @@ function listChangeRequestsApi(sessionToken) {
     var programme = byCode[code] || {};
     var changes = {};
     try { changes = JSON.parse(String(row.Changes || '{}')); } catch (e) { changes = {}; }
+    var current = {};
+    Object.keys(changes).forEach(function (field) {
+      if (field === '__action') return;
+      current[field] = String(programme[field] == null ? '' : programme[field]);
+    });
     return {
       requestId: String(row.RequestId || ''),
       mqaCode: code,
@@ -1604,7 +1648,8 @@ function listChangeRequestsApi(sessionToken) {
       faculty: String(row.Faculty || ''),
       requestedBy: String(row.RequestedBy || ''),
       requestedAt: row.RequestedAt ? reviewDateLabel_(row.RequestedAt) : '',
-      changes: changes
+      changes: changes,
+      current: current
     };
   });
 }
@@ -1978,6 +2023,7 @@ function renderReviewAdminPage_(session) {
     review: reviewAdminPayload_(session.user),
     directory: directoryPayload_(),
     admins: reviewRolesPayload_(),
+    canApproveChanges: canApproveChanges_(session.user),
     appJs: 'AdminJs'
   });
 }

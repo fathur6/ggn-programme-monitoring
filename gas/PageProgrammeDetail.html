@@ -347,10 +347,29 @@
           <div class="form-grid">
             <div class="form-field"><label>Programme name (BM)</label><input type="text" v-model.trim="changeForm.nameMy"></div>
             <div class="form-field"><label>Programme name (EN)</label><input type="text" v-model.trim="changeForm.name"></div>
+            <div class="form-field">
+              <label>Faculty / institute (owning)</label>
+              <select v-model="changeForm.faculty" @change="syncFaculty">
+                <option v-for="faculty in faculties" :key="faculty.code" :value="faculty.code">
+                  {{ faculty.full }} ({{ faculty.code }})
+                </option>
+              </select>
+              <p class="field-note">Changing the owning faculty also updates the faculty name shown above.</p>
+            </div>
+            <div class="form-field">
+              <label>MQA reference code</label>
+              <input type="text" :value="detail.mqaCode" readonly disabled>
+              <p class="field-note">The MQA code identifies the programme tab and its review history; ask PPS to change it.</p>
+            </div>
             <div class="form-field"><label>Programme code</label><input type="text" v-model.trim="changeForm.progCode"></div>
             <div class="form-field"><label>NEC 2020</label><input type="text" v-model.trim="changeForm.nec"></div>
             <div class="form-field"><label>Accreditation approval date</label><input type="text" v-model.trim="changeForm.accreditation"></div>
             <div class="form-field"><label>Programme mode</label><input type="text" v-model.trim="changeForm.mode" placeholder="Research / Coursework / Mixed-mode"></div>
+            <div class="form-field">
+              <label>Study level</label>
+              <input type="text" :value="detail.level" readonly disabled>
+              <p class="field-note">Derived from the programme name.</p>
+            </div>
           </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-outline" @click="closeChange" :disabled="changeSaving">Cancel</button>

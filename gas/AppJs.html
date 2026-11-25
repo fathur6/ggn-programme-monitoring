@@ -29,10 +29,11 @@
         mapTab: 'sdg',
         mapDetail: null,
         changes: BOOT.changes || [],
+        faculties: BOOT.faculties || [],
         changeOpen: false,
         changeSaving: false,
         changeError: null,
-        changeForm: { nameMy: '', name: '', progCode: '', nec: '', accreditation: '', mode: '' },
+        changeForm: { nameMy: '', name: '', progCode: '', nec: '', accreditation: '', mode: '', faculty: '', facultyFull: '' },
         schoolModal: false,
         sections: { peo: true, plo: true, pdf: true },
         review: Object.assign({
@@ -378,10 +379,25 @@
           var d = this.detail || {};
           this.changeForm = {
             nameMy: d.nameMy || '', name: d.name || '', progCode: d.progCode || '',
-            nec: d.nec || '', accreditation: d.accreditation || '', mode: d.mode || 'Research'
+            nec: d.nec || '', accreditation: d.accreditation || '', mode: d.mode || 'Research',
+            faculty: d.faculty || '', facultyFull: d.facultyFull || ''
           };
           this.changeError = null;
           this.changeOpen = true;
+        },
+        syncFaculty: function () {
+          var selected = (this.faculties || []).filter(function (faculty) {
+            return faculty.code === this.changeForm.faculty;
+          }, this)[0];
+          if (selected) this.changeForm.facultyFull = selected.full;
+        },
+        changeLabel: function (field) {
+          var labels = {
+            nameMy: 'Programme name (BM)', name: 'Programme name (EN)', progCode: 'Programme code',
+            nec: 'NEC 2020', accreditation: 'Accreditation approval date', mode: 'Programme mode',
+            faculty: 'Owning faculty code', facultyFull: 'Faculty / institute'
+          };
+          return labels[field] || field;
         },
         closeChange: function () {
           if (this.changeSaving) return;

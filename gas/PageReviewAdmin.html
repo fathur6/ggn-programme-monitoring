@@ -135,7 +135,7 @@
           </div>
         </section>
 
-        <section class="section-card">
+        <section class="section-card" v-if="canApproveChanges">
           <div class="section-heading">
             <h3>Programme change requests</h3>
             <div class="section-heading-actions">
@@ -160,7 +160,8 @@
                   <td>
                     <div v-if="row.changes.__action === 'delete'" class="text-sm"><strong>Delete programme</strong></div>
                     <div v-for="(value, field) in row.changes" :key="field" class="text-sm" v-if="field !== '__action'">
-                      <strong>{{ field }}</strong>: {{ value }}
+                      <strong>{{ changeLabel(field) }}</strong>: {{ value }}
+                      <span v-if="row.current && row.current[field] && row.current[field] !== value" class="text-muted">(was {{ row.current[field] }})</span>
                     </div>
                   </td>
                   <td class="action-cell">
